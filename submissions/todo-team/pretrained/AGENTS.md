@@ -199,6 +199,12 @@ after a run_all session, add its headline findings to "Observations so far".
 
 ## Changelog
 
+- 2026-10-28 — PC smoke run (23/23 jobs ok). Fixed: fine-tunes loaded DeBERTa-v3 in its stored fp16 dtype
+  (transformers 5 default), so AdamW updated fp16 master weights and produced NaN after step 1 — weights are now
+  always loaded in fp32 (autocast still runs bf16). Report shows the real exception for failed jobs; smoke profile
+  no longer logs to `results.csv` (`log_results: false`); `run_all --resume` appends to job logs and accepts
+  `--set` / `--only` / `--skip` for the re-run jobs; HF symlink warnings silenced on Windows.
+
 - 2026-10-28 — Pretrained models: 9 fine-tune configs (DistilRoBERTa, RoBERTa, ELECTRA, ModernBERT, DeBERTa-v3
   small/base/large, OpenAI detector base/large), GPT-2 / GPT-2-medium perplexity features, Binoculars (Qwen2.5
   0.5B/1.5B pairs, incl. zero-shot), frozen BGE / E5 embeddings; extended stylometric features (Ma et al.).

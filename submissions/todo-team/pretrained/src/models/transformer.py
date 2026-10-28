@@ -75,8 +75,14 @@ class TransformerClassifier(BaseModel):
             config.id2label, config.label2id = {0: "human", 1: "ai"}, {"human": 0, "ai": 1}
         if getattr(config, "model_type", "") == "modernbert":
             config.reference_compile = False  # torch.compile needs Triton, which Windows lacks
-        self.model = AutoModelForSequenceClassification.from_pretrained(
-            src, config=config, ignore_mismatched_sizes=True)  # other heads are re-initialised
+        # Master weights must be fp32: transformers>=5 otherwise keeps the checkpoint's stored dtype
+        # (DeBERTa-v3 ships fp16), and AdamW on fp16 weights turns eps=1e-8 into 0 -> NaN after
+        # the first step. Mixed precision comes from autocast, not from the stored weights.
+        kw = dict(config=config, ignore_mismatched_sizes=True)  # other heads are re-initialised
+        try:
+            self.model = AutoModelForSequenceClassification.from_pretrained(src, dtype=torch.float32, **kw)
+        except TypeError:  # transformers < 4.56 uses torch_dtype
+            self.model = AutoModelForSequenceClassification.from_pretrained(src, torch_dtype=torch.float32, **kw)
         if ai_index == 0:  # swap the two output rows so index 1 = AI, keeping the detector's knowledge
             out = [m for m in self.model.modules() if isinstance(m, torch.nn.Linear) and m.out_features == 2][-1]
             with torch.no_grad():

@@ -4,6 +4,9 @@
 # meaningless; the point is "no errors". ~20-40 min on the PC (mostly model downloads).
 # Mac users: add  --skip ft_deberta_v3_large,ft_openai_detector_large,binoculars_qwen15b,binoculars_qwen15b_zeroshot
 description: Every config on a tiny budget to catch setup errors before the real run.
+# Smoke scores are meaningless: keep them out of experiments/results.csv and the AGENTS.md
+# leaderboard (the session report in experiments/sessions/ still shows them).
+log_results: false
 
 defaults:
   data.train_file: data/train_starter_2000.csv

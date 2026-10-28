@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 import shutil
 import warnings
 from pathlib import Path
@@ -51,6 +52,22 @@ def _ks(a, b) -> float:
 
 
 # ------------------------------------------------------------------ collection
+def job_error(run_dir: Path, log_tail: str) -> str:
+    """The exception that ended a job: train.py's status.json if it got that far, else the
+    last 'SomethingError: ...' line of the log tail (warnings printed after a traceback
+    must not hide it)."""
+    try:
+        with open(run_dir / "status.json", encoding="utf-8") as f:
+            err = json.load(f).get("error")
+        if err:
+            return str(err)[:200]
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    lines = log_tail.splitlines()
+    exc = [l for l in lines if re.match(r"^\s*[\w.]+(Error|Exception|Interrupt)\b", l)]
+    return ((exc or lines or [""])[-1]).strip()[:200]
+
+
 def collect(session: Path):
     meta = read_yaml(session / "session.yaml")
     with open(session / "jobs.csv", newline="", encoding="utf-8") as f:
@@ -79,8 +96,7 @@ def collect(session: Path):
             })
             runs[j["name"]] = run_dir
         else:
-            row["error"] = (st.get("error") or "").splitlines()[-1:] or [""]
-            row["error"] = row["error"][0][:200]
+            row["error"] = job_error(run_dir, st.get("error") or "")
         rows.append(row)
     return meta, pd.DataFrame(rows), runs
 
