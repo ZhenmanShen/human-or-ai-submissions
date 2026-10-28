@@ -1,0 +1,11 @@
+# Frozen BAAI/bge-base-en-v1.5 sentence embeddings (CLS pooling) -> logistic regression.
+# [GPU or Mac MPS | Mac: yes, ~10 min to embed once]
+model:
+  name: embedding_logreg
+  params:
+    model_name: BAAI/bge-base-en-v1.5
+    pooling: cls
+    max_length: 512
+    batch_size: 32
+    head: logreg
+    C: 1.0

@@ -1,0 +1,19 @@
+# TF-IDF -> linear SVM
+model:
+  name: tfidf_svm
+  params:
+    C: 0.5
+    calibrate: false
+    fit_vocab_on_unlabeled: false
+    tfidf:
+      sublinear_tf: true
+      lowercase: true
+      word:
+        ngram_range: [1, 2]
+        min_df: 2
+        max_features: 200000
+      char:
+        analyzer: char_wb
+        ngram_range: [3, 5]
+        min_df: 3
+        max_features: 300000

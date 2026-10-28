@@ -1,0 +1,20 @@
+# Fine-tune DeBERTa-v3-base (184M) -- usually the strongest base-size encoder. [GPU: ~4-5 min/epoch | Mac: slow, >1 h/epoch]
+model:
+  name: transformer
+  params:
+    model_name: microsoft/deberta-v3-base
+    max_length: 512
+    batch_size: 16
+    grad_accum: 2
+    eval_batch_size: 64
+    lr: 2.0e-5
+    epochs: 3
+    weight_decay: 0.01
+    warmup_ratio: 0.1
+    precision: auto              # bf16 on RTX 30/40/50, fp32 on Mac
+    gradient_checkpointing: false
+    keep_best_epoch: false       # fixed epochs keep OOF scores honest
+
+# Test predictions = average of the CV fold models (no extra refit).
+final:
+  strategy: fold_average

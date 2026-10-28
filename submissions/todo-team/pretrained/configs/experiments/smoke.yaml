@@ -1,0 +1,50 @@
+# Fast end-to-end check that EVERY model runs on this machine (downloads, GPU, memory, outputs).
+#   python run_all.py --profile smoke
+# 2,000 training texts, 2 folds, 1 short epoch for fine-tunes, max_length 128. Scores are
+# meaningless; the point is "no errors". ~20-40 min on the PC (mostly model downloads).
+# Mac users: add  --skip ft_deberta_v3_large,ft_openai_detector_large,binoculars_qwen15b,binoculars_qwen15b_zeroshot
+description: Every config on a tiny budget to catch setup errors before the real run.
+
+defaults:
+  data.train_file: data/train_starter_2000.csv
+  cv.scheme: stratified
+  cv.n_folds: 2
+  output.save_models: false
+
+ft_defaults: &ft {model.params.epochs: 1, model.params.max_length: 128, model.params.batch_size: 8,
+                  model.params.grad_accum: 1, model.params.eval_batch_size: 64}
+
+jobs:
+  - {name: tfidf_logreg,        config: tfidf_logreg,        resource: cpu, cost: 1}
+  - {name: tfidf_nb,            config: tfidf_nb,            resource: cpu, cost: 1}
+  - {name: tfidf_svm,           config: tfidf_svm,           resource: cpu, cost: 1}
+  - {name: stylometric_gbm,     config: stylometric_gbm,     resource: cpu, cost: 1}
+  - {name: stylometric_gbm_ext, config: stylometric_gbm_ext, resource: cpu, cost: 1}
+  - {name: ss_stylo_ext,        config: stylometric_gbm_ext, resource: cpu, cost: 1, group: semi_supervised, set: {semi_supervised.enabled: true}}
+  - {name: cluster_tfidf_logreg, config: tfidf_logreg,       resource: cpu, cost: 1, group: robustness, set: {cv.scheme: cluster}}
+
+  - {name: lm_gpt2,                     config: lm_gpt2,                     resource: gpu, cost: 3, set: {model.params.max_length: 128}}
+  - {name: lm_gpt2_medium,              config: lm_gpt2_medium,              resource: gpu, cost: 3, set: {model.params.max_length: 128}}
+  - {name: binoculars_qwen05b,          config: binoculars_qwen05b,          resource: gpu, cost: 4, set: {model.params.max_length: 128}}
+  - {name: binoculars_qwen15b,          config: binoculars_qwen15b,          resource: gpu, cost: 6, set: {model.params.max_length: 128}}
+  - {name: binoculars_qwen15b_zeroshot, config: binoculars_qwen15b_zeroshot, resource: gpu, cost: 1, after: binoculars_qwen15b,
+     set: {model.params.max_length: 128}}
+  - {name: embed_bge_base,              config: embed_bge_base,              resource: gpu, cost: 2, set: {model.params.max_length: 128}}
+  - {name: embed_e5_base,               config: embed_e5_base,               resource: gpu, cost: 2, set: {model.params.max_length: 128}}
+
+  - {name: ft_distilroberta,         config: ft_distilroberta,         resource: gpu, cost: 3, set: *ft}
+  - {name: ft_roberta_base,          config: ft_roberta_base,          resource: gpu, cost: 4, set: *ft}
+  - {name: ft_openai_detector,       config: ft_openai_detector,       resource: gpu, cost: 4, set: *ft}
+  - {name: ft_electra_base,          config: ft_electra_base,          resource: gpu, cost: 4, set: *ft}
+  - {name: ft_modernbert_base,       config: ft_modernbert_base,       resource: gpu, cost: 4, set: *ft}
+  - {name: ft_deberta_v3_small,      config: ft_deberta_v3_small,      resource: gpu, cost: 4, set: *ft}
+  - {name: ft_deberta_v3_base,       config: ft_deberta_v3_base,       resource: gpu, cost: 5, set: *ft}
+  - {name: ft_deberta_v3_large,      config: ft_deberta_v3_large,      resource: gpu, cost: 8,
+     set: {model.params.epochs: 1, model.params.max_length: 128, model.params.batch_size: 4,
+           model.params.grad_accum: 1, model.params.eval_batch_size: 32}}
+  - {name: ft_openai_detector_large, config: ft_openai_detector_large, resource: gpu, cost: 7,
+     set: {model.params.epochs: 1, model.params.max_length: 128, model.params.batch_size: 4,
+           model.params.grad_accum: 1, model.params.eval_batch_size: 32}}
+
+report:
+  ensemble_groups: [main]

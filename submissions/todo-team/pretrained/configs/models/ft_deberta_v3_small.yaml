@@ -1,0 +1,20 @@
+# Fine-tune DeBERTa-v3-small (141M). [GPU: ~2 min/epoch | Mac: possible, ~30 min/epoch]
+model:
+  name: transformer
+  params:
+    model_name: microsoft/deberta-v3-small
+    max_length: 512
+    batch_size: 16
+    grad_accum: 2
+    eval_batch_size: 128
+    lr: 3.0e-5
+    epochs: 3
+    weight_decay: 0.01
+    warmup_ratio: 0.1
+    precision: auto              # bf16 on RTX 30/40/50, fp32 on Mac
+    gradient_checkpointing: false
+    keep_best_epoch: false       # fixed epochs keep OOF scores honest
+
+# Test predictions = average of the CV fold models (no extra refit).
+final:
+  strategy: fold_average
