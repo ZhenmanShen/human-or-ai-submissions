@@ -21,7 +21,7 @@ from .config import ROOT, resolve
 RESULT_FIELDS = ["timestamp", "run_name", "model", "config", "author", "cv_scheme", "n_folds",
                  "cv_auc", "cv_auc_std", "fold_aucs", "tpr_at_1fpr", "train_frac", "semi_supervised",
                  "external_files", "preprocessing", "params", "device", "train_time_s",
-                 "kaggle_public", "notes"]
+                 "kaggle_public", "notes", "eval_auc"]  # new columns go at the end (older rows get migrated)
 
 
 def seed_everything(seed: int) -> None:

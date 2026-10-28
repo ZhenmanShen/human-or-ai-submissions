@@ -42,6 +42,7 @@ os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 import json
 import time
 import traceback
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -49,7 +50,7 @@ import yaml
 from tqdm.auto import tqdm
 
 from src.config import load_config, resolve
-from src.data import load_competition_data, load_external, make_splits, subsample
+from src.data import load_competition_data, load_csv, load_external, make_splits, subsample
 from src.leaderboard import update_agents_md
 from src.models import build_model, get_model_class
 from src.preprocessing import preprocess
@@ -131,7 +132,7 @@ def fold_fingerprint(cfg, va) -> str:
     return h.hexdigest()
 
 
-def load_fold(fold_dir, f, fingerprint, need_test):
+def load_fold(fold_dir, f, fingerprint, need):
     """A fold finished by an earlier attempt of this run (same run name), or None."""
     meta_path, arr_path = fold_dir / f"fold_{f}.json", fold_dir / f"fold_{f}.npz"
     if not (meta_path.exists() and arr_path.exists()):
@@ -142,7 +143,7 @@ def load_fold(fold_dir, f, fingerprint, need_test):
     except json.JSONDecodeError:  # killed while writing it -> the fold is redone
         return None
     arrs = dict(np.load(arr_path))
-    if meta.get("fingerprint") != fingerprint or (need_test and "test" not in arrs):
+    if meta.get("fingerprint") != fingerprint or any(k not in arrs for k in need):
         return None
     return meta, arrs
 
@@ -213,6 +214,7 @@ def run(args) -> dict:
             "params": to_json(cfg["model"].get("params")),
             "device": metrics.get("gpu_name", dev), "train_time_s": metrics["total_time_s"],
             "notes": ("[quick] " if args.quick else "") + args.notes,
+            "eval_auc": " ".join(f"{k}={v['auc']:.4f}" for k, v in metrics.get("eval", {}).items()),
         })
         update_agents_md(resolve(cfg["output"]["results_file"]))
         print(f"Logged to {cfg['output']['results_file']} (AGENTS.md leaderboard refreshed)")
@@ -232,7 +234,13 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
     y = dfs["train"]["label"].to_numpy(int)
     pools = {"unlabeled": unl_texts, "test": test_texts}
     unsup_texts = unl_texts + test_texts  # for unsupervised steps (e.g. vocabulary), never labels
-    print(f"train {len(train_texts)} | external {len(ext_texts)} | unlabeled {len(unl_texts)} | test {len(test_texts)}")
+    evals = {}  # data.eval_files: extra labeled sets that are only ever predicted (e.g. held-out OOD domains)
+    for path in cfg["data"].get("eval_files") or []:
+        df = load_csv(path)
+        evals[Path(path).stem] = (preprocess(df["text"], pp, f"preprocess {Path(path).stem}"),
+                                  df["label"].to_numpy(int))
+    print(f"train {len(train_texts)} | external {len(ext_texts)} | unlabeled {len(unl_texts)} | test {len(test_texts)}"
+          + "".join(f" | eval:{k} {len(v[0])}" for k, v in evals.items()))
 
     make = model_factory(cfg)
     metrics = {"run_name": run_name, "model": model_name, "config": config_name, "device": dev,
@@ -243,7 +251,8 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
     probe = make()
     if hasattr(probe, "precompute"):
         t0 = time.time()
-        probe.precompute(list(dict.fromkeys(train_texts + list(ext_texts) + test_texts + unl_texts)))
+        probe.precompute(list(dict.fromkeys(train_texts + list(ext_texts) + test_texts + unl_texts
+                                            + [t for v in evals.values() for t in v[0]])))
         metrics["feature_time_s"] = round(time.time() - t0, 1)
     del probe
 
@@ -259,16 +268,20 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
         oof = np.full(len(y), np.nan)
         fold_of = np.full(len(y), -1)
         fold_aucs, fold_times, histories = [], [], []
+        eval_fold_preds = {k: [] for k in evals}
+        need = (["test", "unl"] if fold_avg else []) + [f"eval_{k}" for k in evals]
         for f, (tr, va) in enumerate(tqdm(splits, desc=f"CV ({cfg['cv']['scheme']})")):
             t0 = time.time()
             fp = fold_fingerprint(cfg, va)
-            done = load_fold(fold_dir, f, fp, fold_avg) if out_cfg.get("resume_folds", True) else None
+            done = load_fold(fold_dir, f, fp, need) if out_cfg.get("resume_folds", True) else None
             if done is not None:  # finished by an earlier attempt of this run (run_all --resume)
                 meta, arrs = done
                 oof[va], fold_of[va] = arrs["oof"], f
                 if fold_avg:
                     test_fold_preds.append(arrs["test"])
                     unl_fold_preds.append(arrs["unl"])
+                for k in evals:
+                    eval_fold_preds[k].append(arrs[f"eval_{k}"])
                 fold_aucs.append(meta["auc"])
                 fold_times.append(meta["time_s"])
                 histories.append(meta.get("history", []))
@@ -290,6 +303,9 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
                 arrs.update(test=test_fold_preds[-1], unl=unl_fold_preds[-1])
                 if out_cfg.get("save_fold_models", False):
                     model.save(run_dir / f"fold_{f}")
+            for k, (texts_k, _) in evals.items():
+                eval_fold_preds[k].append(model.predict_proba(texts_k))
+                arrs[f"eval_{k}"] = eval_fold_preds[k][-1]
             histories.append(list(getattr(model, "history", None) or []))
             release(model)
             del model
@@ -323,6 +339,13 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
         print(f"\nCV AUROC ({cfg['cv']['scheme']}, {len(splits)} fold(s)): {cv_auc:.4f}  "
               f"[folds: {', '.join(f'{a:.4f}' for a in fold_aucs)}]  "
               f"TPR@1%FPR {metrics['oof_metrics']['tpr_at_1fpr']:.3f}")
+        if evals:  # mean of the fold models' predictions, like a fold-averaged test prediction
+            metrics["eval"] = {}
+            for k, (_, y_k) in evals.items():
+                p_k = np.mean(eval_fold_preds[k], 0)
+                metrics["eval"][k] = {"auc": auroc(y_k, p_k), "n": int(len(y_k)), **binary_metrics(y_k, p_k)}
+                pd.DataFrame({"label": y_k, "pred": p_k}).to_csv(run_dir / f"eval_{k}.csv", index=False)
+                print(f"Eval set {k}: AUROC {metrics['eval'][k]['auc']:.4f} (n={len(y_k)})")
 
     # ------------------------------------------------------------ test predictions + submission
     if not args.cv_only:

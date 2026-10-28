@@ -93,6 +93,7 @@ def collect(session: Path):
                 "device": m.get("gpu_name", m.get("device")), "gpu_mem_gb": m.get("gpu_peak_mem_gb"),
                 "test_mean": m.get("test_pred_mean"),
                 "train_frac": j.get("set", {}).get("data.train_frac", 1.0),
+                **{f"eval:{k}": v.get("auc") for k, v in (m.get("eval") or {}).items()},
             })
             runs[j["name"]] = run_dir
         else:
@@ -443,6 +444,8 @@ def build_report(session: Path) -> Path:
     cols = ["job", "config", "family", "group", "status", "cv_scheme", "n_folds", "cv_auroc", "fold_std", "fold_min",
             "tpr@1%fpr", "tpr@5%fpr", "accuracy", "f1", "log_loss", "brier", "time_min", "device", "gpu_mem_gb",
             "test_mean", "train_frac", "run_name", "error"]
+    eval_cols = sorted(c for c in df.columns if c.startswith("eval:"))  # held-out eval sets (data.eval_files)
+    cols = cols[:8] + eval_cols + cols[8:]
     summary = df.reindex(columns=cols)
     summary["n_folds"] = pd.to_numeric(summary["n_folds"], errors="coerce").astype("Int64")
     summary["_ok"] = summary.status == "ok"
@@ -483,8 +486,9 @@ def build_report(session: Path) -> Path:
                "_Greedy and stacking scores are cross-validated (nested), so they are comparable to single models. "
                "Remember the test set contains unseen domains/generators — prefer robust gains over tiny CV gains._", ""]
     md += ["## Results", "", _md_table(summary[summary.status == "ok"][
-        ["job", "family", "group", "cv_scheme", "n_folds", "cv_auroc", "fold_std", "tpr@1%fpr", "accuracy",
-         "log_loss", "time_min", "device", "test_mean"]], {"time_min": ".1f", "test_mean": ".3f", "fold_std": ".4f"}), ""]
+        ["job", "family", "group", "cv_scheme", "n_folds", "cv_auroc", "fold_std", *eval_cols, "tpr@1%fpr",
+         "accuracy", "log_loss", "time_min", "device", "test_mean"]],
+        {"time_min": ".1f", "test_mean": ".3f", "fold_std": ".4f", **{c: ".4f" for c in eval_cols}}), ""]
     failed = summary[summary.status != "ok"]
     if len(failed):
         md += ["### Jobs that did not finish", "", _md_table(failed[["job", "config", "status", "error"]]), "",

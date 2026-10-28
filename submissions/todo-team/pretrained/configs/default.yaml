@@ -18,6 +18,10 @@ data:
   # Extra labeled CSVs (columns: text,label[,source]) added to the TRAINING
   # side of every fold only -- never to validation. e.g. [data/external/poems.csv]
   external_files: []
+  # Extra labeled CSVs (text,label) that are never trained on: every CV fold model predicts
+  # them and metrics.json gets eval.<file stem>.auc (fold-averaged), e.g. a held-out
+  # out-of-domain / unseen-generator set. Logged as `eval_auc` in experiments/results.csv.
+  eval_files: []
   # Fraction of each fold's training data to keep (learning-curve experiments).
   train_frac: 1.0
 
