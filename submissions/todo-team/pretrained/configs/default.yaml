@@ -60,6 +60,12 @@ final:
 output:
   save_models: true          # save the refit model (outputs/runs/<run>/)
   save_fold_models: false    # with fold_average: also save every fold model (large for transformers)
+  # Resuming a run with the same run name (run_all --resume): folds whose predictions are in
+  # outputs/runs/<run>/folds/ are skipped, and fine-tunes with model.params.checkpoint_every_epoch
+  # continue from outputs/checkpoints/<run>/fold_<k>/last.pt (latest epoch only).
+  resume_folds: true
+  checkpoints_dir: outputs/checkpoints
+  keep_checkpoints: false    # false: delete a fold's checkpoint once its predictions are saved, and the run's at the end
   runs_dir: outputs/runs
   submissions_dir: outputs/submissions
   results_file: experiments/results.csv

@@ -14,6 +14,7 @@ model:
     precision: auto              # bf16 on RTX 30/40/50, fp32 on Mac
     gradient_checkpointing: false
     keep_best_epoch: false       # fixed epochs keep OOF scores honest
+    checkpoint_every_epoch: true # resume after a crash: outputs/checkpoints/<run>/fold_<k>/last.pt
 
 # Test predictions = average of the CV fold models (no extra refit).
 final:

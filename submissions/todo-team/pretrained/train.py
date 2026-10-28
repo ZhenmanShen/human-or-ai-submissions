@@ -27,8 +27,10 @@ and refreshes the leaderboard table in AGENTS.md.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import inspect
 import os
+import shutil
 import sys
 
 # Apple-silicon friendliness: fall back to CPU for any op MPS lacks; quiet HF tokenizers.
@@ -90,10 +92,18 @@ def release(model) -> None:
     free_torch_memory()
 
 
-def fit_model(make, cfg, X, y, X_val=None, y_val=None, pools=None, unlabeled_texts=None):
+def _make(make, ckpt_dir):
+    model = make()
+    if ckpt_dir is not None and hasattr(model, "set_checkpoint_dir"):
+        model.set_checkpoint_dir(ckpt_dir)
+    return model
+
+
+def fit_model(make, cfg, X, y, X_val=None, y_val=None, pools=None, unlabeled_texts=None, ckpt_dir=None):
     """Fit one model; with semi_supervised.enabled, do pseudo-label rounds:
-    fit -> score the pool -> add the most confident predictions -> refit."""
-    model = make().fit(X, y, X_val, y_val, unlabeled_texts=unlabeled_texts)
+    fit -> score the pool -> add the most confident predictions -> refit.
+    ckpt_dir: per-epoch checkpoint directory for models that support it (fine-tunes)."""
+    model = _make(make, ckpt_dir).fit(X, y, X_val, y_val, unlabeled_texts=unlabeled_texts)
     ss = cfg["semi_supervised"]
     if not ss.get("enabled") or not pools:
         return model
@@ -108,8 +118,41 @@ def fit_model(make, cfg, X, y, X_val=None, y_val=None, pools=None, unlabeled_tex
         print(f"  pseudo-label round {r + 1}: +{2 * k} texts "
               f"(AI thr {p[pos[0]]:.3f}, human thr {p[neg[-1]]:.3f})")
         release(model)
-        model = make().fit(X_aug, y_aug, X_val, y_val, unlabeled_texts=unlabeled_texts)
+        model = _make(make, ckpt_dir / f"round_{r + 1}" if ckpt_dir else None)
+        model.fit(X_aug, y_aug, X_val, y_val, unlabeled_texts=unlabeled_texts)
     return model
+
+
+def fold_fingerprint(cfg, va) -> str:
+    """Identifies a fold's result: everything that affects training (not output paths / device) + its split."""
+    keep = {k: v for k, v in cfg.items() if k not in ("output", "device")}
+    h = hashlib.md5(json.dumps(keep, sort_keys=True, default=str).encode("utf-8"))
+    h.update(np.asarray(va, dtype=np.int64).tobytes())
+    return h.hexdigest()
+
+
+def load_fold(fold_dir, f, fingerprint, need_test):
+    """A fold finished by an earlier attempt of this run (same run name), or None."""
+    meta_path, arr_path = fold_dir / f"fold_{f}.json", fold_dir / f"fold_{f}.npz"
+    if not (meta_path.exists() and arr_path.exists()):
+        return None
+    try:
+        with open(meta_path, encoding="utf-8") as fh:
+            meta = json.load(fh)
+    except json.JSONDecodeError:  # killed while writing it -> the fold is redone
+        return None
+    arrs = dict(np.load(arr_path))
+    if meta.get("fingerprint") != fingerprint or (need_test and "test" not in arrs):
+        return None
+    return meta, arrs
+
+
+def save_fold(fold_dir, f, meta, arrs) -> None:
+    fold_dir.mkdir(parents=True, exist_ok=True)
+    tmp = fold_dir / f"fold_{f}.tmp.npz"
+    np.savez(tmp, **arrs)
+    os.replace(tmp, fold_dir / f"fold_{f}.npz")
+    write_json(fold_dir / f"fold_{f}.json", meta)  # written last: its presence marks the fold as done
 
 
 def write_json(path, obj):
@@ -151,6 +194,9 @@ def run(args) -> dict:
     write_json(run_dir / "metrics.json", metrics)
     write_json(run_dir / "status.json", {"status": "ok", "finished": time.strftime("%Y-%m-%d %H:%M:%S"),
                                          "cv_auc": metrics.get("cv_auc")})
+    if not cfg["output"].get("keep_checkpoints", False):
+        shutil.rmtree(resolve(cfg["output"].get("checkpoints_dir", "outputs/checkpoints")) / run_name,
+                      ignore_errors=True)
 
     if not args.no_log and "cv_auc" in metrics:
         append_result(cfg, {
@@ -203,33 +249,68 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
 
     fold_avg = cfg["final"]["strategy"] == "fold_average" and not args.no_cv and not args.cv_only
     test_fold_preds, unl_fold_preds = [], []
+    out_cfg = cfg["output"]
+    ckpt_root = resolve(out_cfg.get("checkpoints_dir", "outputs/checkpoints")) / run_name
+    fold_dir = run_dir / "folds"
 
     # ------------------------------------------------------------ cross-validation
     if not args.no_cv:
         splits = make_splits(train_texts, y, cfg["cv"], cfg["seed"])
         oof = np.full(len(y), np.nan)
         fold_of = np.full(len(y), -1)
-        fold_aucs, fold_times = [], []
+        fold_aucs, fold_times, histories = [], [], []
         for f, (tr, va) in enumerate(tqdm(splits, desc=f"CV ({cfg['cv']['scheme']})")):
             t0 = time.time()
+            fp = fold_fingerprint(cfg, va)
+            done = load_fold(fold_dir, f, fp, fold_avg) if out_cfg.get("resume_folds", True) else None
+            if done is not None:  # finished by an earlier attempt of this run (run_all --resume)
+                meta, arrs = done
+                oof[va], fold_of[va] = arrs["oof"], f
+                if fold_avg:
+                    test_fold_preds.append(arrs["test"])
+                    unl_fold_preds.append(arrs["unl"])
+                fold_aucs.append(meta["auc"])
+                fold_times.append(meta["time_s"])
+                histories.append(meta.get("history", []))
+                tqdm.write(f"  fold {f + 1}/{len(splits)}: AUROC {meta['auc']:.4f}  (done in an earlier attempt)")
+                continue
+            seed_everything(cfg["seed"] + f)  # a fold's randomness doesn't depend on which folds were skipped
             tr = subsample(tr, y, cfg["data"]["train_frac"], cfg["seed"] + f)
             X_tr = [train_texts[i] for i in tr] + list(ext_texts)
             y_tr = np.concatenate([y[tr], ext_y])
             X_va = [train_texts[i] for i in va]
-            model = fit_model(make, cfg, X_tr, y_tr, X_va, y[va], pools, unsup_texts)
+            model = fit_model(make, cfg, X_tr, y_tr, X_va, y[va], pools, unsup_texts,
+                              ckpt_dir=ckpt_root / f"fold_{f}")
             oof[va] = model.predict_proba(X_va)
             fold_of[va] = f
+            arrs = {"oof": oof[va]}
             if fold_avg:
                 test_fold_preds.append(model.predict_proba(test_texts))
                 unl_fold_preds.append(model.predict_proba(unl_texts))
-                if cfg["output"].get("save_fold_models", False):
+                arrs.update(test=test_fold_preds[-1], unl=unl_fold_preds[-1])
+                if out_cfg.get("save_fold_models", False):
                     model.save(run_dir / f"fold_{f}")
+            histories.append(list(getattr(model, "history", None) or []))
             release(model)
             del model
             fold_aucs.append(auroc(y[va], oof[va]))
             fold_times.append(round(time.time() - t0, 1))
+            save_fold(fold_dir, f, {"fingerprint": fp, "auc": fold_aucs[-1], "time_s": fold_times[-1],
+                                    "n_train": len(X_tr), "history": histories[-1]}, arrs)
+            if not out_cfg.get("keep_checkpoints", False):  # the fold's predictions are on disk now
+                shutil.rmtree(ckpt_root / f"fold_{f}", ignore_errors=True)
             tqdm.write(f"  fold {f + 1}/{len(splits)}: AUROC {fold_aucs[-1]:.4f}  "
                        f"(n_train={len(X_tr)}, {fold_times[-1]:.0f}s)")
+        if any(histories):
+            metrics["epoch_history"] = histories
+            per_epoch = {}
+            for h in histories:
+                for e in h:
+                    if "val_auc" in e:
+                        per_epoch.setdefault(e["epoch"], []).append(e["val_auc"])
+            metrics["epoch_val_auc_mean"] = {k: round(float(np.mean(v)), 5) for k, v in sorted(per_epoch.items())}
+            print("Mean fold-validation AUROC per epoch: " +
+                  ", ".join(f"{k}: {v:.4f}" for k, v in metrics["epoch_val_auc_mean"].items()))
         if np.isnan(oof[fold_of >= 0]).any():
             raise RuntimeError("NaN in out-of-fold predictions -- the model produced invalid scores")
         seen = fold_of >= 0
@@ -253,7 +334,8 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
             print("\nFitting final model on all labeled data ...")
             X_all = list(train_texts) + list(ext_texts)
             y_all = np.concatenate([y, ext_y])
-            model = fit_model(make, cfg, X_all, y_all, pools=pools, unlabeled_texts=unsup_texts)
+            model = fit_model(make, cfg, X_all, y_all, pools=pools, unlabeled_texts=unsup_texts,
+                              ckpt_dir=ckpt_root / "final")
             if cfg["output"].get("save_models", True):
                 model.save(run_dir)
             p_test = model.predict_proba(test_texts)

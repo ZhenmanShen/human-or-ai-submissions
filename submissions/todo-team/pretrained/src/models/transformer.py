@@ -15,12 +15,22 @@ turn on for *-large models on 12 GB cards.
 
 Inference sorts texts by length so batches carry little padding (2-3x faster),
 then restores the original order.
+
+checkpoint_every_epoch: after each epoch, save model + optimizer + scheduler +
+grad scaler + RNG state + epoch count to <checkpoint_dir>/last.pt (train.py sets
+the directory per CV fold: outputs/checkpoints/<run>/fold_<k>/). A later fit()
+with the same directory, hyper-parameters and training data resumes after the
+last finished epoch (a partly done epoch is redone from its start). Only the
+latest checkpoint is kept. `history` holds train loss / val AUROC per epoch.
 """
 from __future__ import annotations
 
 import contextlib
+import hashlib
 import json
 import math
+import os
+import random
 from pathlib import Path
 
 import numpy as np
@@ -37,6 +47,7 @@ class TransformerClassifier(BaseModel):
                  epochs: int = 3, weight_decay: float = 0.01, warmup_ratio: float = 0.1,
                  grad_accum: int = 1, precision: str = "auto", gradient_checkpointing: bool = False,
                  keep_best_epoch: bool = False, max_grad_norm: float = 1.0,
+                 checkpoint_every_epoch: bool = False,
                  seed: int = 42, device: str = "auto", fp16: bool | None = None):
         if fp16 is not None:  # backwards compatibility with older configs
             precision = "fp16" if fp16 else "fp32"
@@ -44,10 +55,13 @@ class TransformerClassifier(BaseModel):
                        eval_batch_size=eval_batch_size, lr=lr, epochs=epochs,
                        weight_decay=weight_decay, warmup_ratio=warmup_ratio, grad_accum=grad_accum,
                        precision=precision, gradient_checkpointing=gradient_checkpointing,
-                       keep_best_epoch=keep_best_epoch, max_grad_norm=max_grad_norm, seed=seed)
+                       keep_best_epoch=keep_best_epoch, max_grad_norm=max_grad_norm,
+                       checkpoint_every_epoch=checkpoint_every_epoch, seed=seed)
         super().__init__(**self.hp)
         self.device_pref = device
         self.model = self.tok = None
+        self.checkpoint_dir = None
+        self.history = []
 
     # ------------------------------------------------------------- setup
     def _setup(self, path=None):
@@ -138,6 +152,66 @@ class TransformerClassifier(BaseModel):
         elif dt == "mps" and hasattr(self.torch, "mps"):
             self.torch.mps.empty_cache()
 
+    # ------------------------------------------------------------- checkpoints
+    def set_checkpoint_dir(self, path) -> None:
+        """Where fit() keeps its per-epoch checkpoint (used if checkpoint_every_epoch)."""
+        self.checkpoint_dir = Path(path) if path else None
+
+    def _ckpt_file(self):
+        if not (self.hp["checkpoint_every_epoch"] and self.checkpoint_dir):
+            return None
+        return self.checkpoint_dir / "last.pt"
+
+    def _fingerprint(self, texts, y) -> dict:
+        """What a checkpoint must match to be resumed: training hyper-parameters + training data."""
+        h = hashlib.md5()
+        for t, label in zip(texts, y):
+            h.update(t.encode("utf-8"))
+            h.update(b"\x01" if label else b"\x00")
+        hp = {k: v for k, v in self.hp.items() if k not in ("eval_batch_size", "checkpoint_every_epoch")}
+        return {"hp": json.dumps(hp, sort_keys=True), "data": h.hexdigest(), "n": len(texts)}
+
+    def _save_checkpoint(self, path, epoch, opt, sched, scaler, rng, fingerprint, best):
+        torch = self.torch
+        state = {
+            "epochs_done": epoch, "fingerprint": fingerprint, "history": self.history,
+            "model": self.model.state_dict(), "optimizer": opt.state_dict(), "scheduler": sched.state_dict(),
+            "scaler": scaler.state_dict() if scaler else None,
+            "rng": {"python": random.getstate(), "numpy": np.random.get_state(), "shuffle": rng.bit_generator.state,
+                    "torch": torch.get_rng_state(),
+                    "cuda": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None},
+            "best": best,
+        }
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp = path.with_suffix(f".tmp{os.getpid()}")
+        torch.save(state, tmp)
+        os.replace(tmp, path)  # atomic: a kill during saving leaves the previous checkpoint intact
+        print(f"  checkpoint: epoch {epoch} saved to {path}", flush=True)
+
+    def _load_checkpoint(self, path, opt, sched, scaler, rng, fingerprint):
+        """Restore training state; returns (epochs_done, best) or None if the checkpoint doesn't fit."""
+        torch = self.torch
+        state = torch.load(path, map_location="cpu", weights_only=False)
+        if state["fingerprint"] != fingerprint:
+            print(f"  checkpoint {path} was made with other hyper-parameters or data -> starting this fit from "
+                  f"scratch", flush=True)
+            return None
+        self.model.load_state_dict(state["model"])
+        opt.load_state_dict(state["optimizer"])
+        sched.load_state_dict(state["scheduler"])
+        if scaler is not None and state["scaler"] is not None:
+            scaler.load_state_dict(state["scaler"])
+        r = state["rng"]
+        random.setstate(r["python"])
+        np.random.set_state(r["numpy"])
+        rng.bit_generator.state = r["shuffle"]
+        torch.set_rng_state(r["torch"])
+        if r["cuda"] is not None and torch.cuda.is_available() and len(r["cuda"]) == torch.cuda.device_count():
+            torch.cuda.set_rng_state_all(r["cuda"])
+        self.history = list(state["history"])
+        print(f"  checkpoint: resumed from {path} after epoch {state['epochs_done']}/{self.hp['epochs']}", flush=True)
+        return state["epochs_done"], state["best"]
+
     # ------------------------------------------------------------- API
     def fit(self, texts, y, val_texts=None, val_y=None, unlabeled_texts=None):
         from transformers import get_linear_schedule_with_warmup
@@ -158,8 +232,15 @@ class TransformerClassifier(BaseModel):
         sched = get_linear_schedule_with_warmup(opt, int(hp["warmup_ratio"] * total), total)
         scaler = torch.amp.GradScaler("cuda") if self.amp_dtype == "fp16" else None
         best_auc, best_state = -1.0, None
+        self.history, start_epoch = [], 0
+        ckpt = self._ckpt_file()
+        fingerprint = self._fingerprint(texts, y) if ckpt else None
+        if ckpt is not None and ckpt.exists():
+            restored = self._load_checkpoint(ckpt, opt, sched, scaler, rng, fingerprint)
+            if restored is not None:
+                start_epoch, (best_auc, best_state) = restored[0], restored[1]
 
-        for epoch in range(hp["epochs"]):
+        for epoch in range(start_epoch, hp["epochs"]):
             self.model.train()
             order = rng.permutation(len(texts))
             bar = tqdm(range(n_batches), desc=f"epoch {epoch + 1}/{hp['epochs']}", leave=False)
@@ -189,12 +270,20 @@ class TransformerClassifier(BaseModel):
                 running = l if running is None else 0.98 * running + 0.02 * l
                 bar.set_postfix(loss=f"{running:.4f}", lr=f"{sched.get_last_lr()[0]:.1e}", refresh=False)
             self._empty_cache()
+            entry = {"epoch": epoch + 1, "train_loss": round(float(running), 5)}
             if val_texts is not None and val_y is not None:
+                # Logged only (the epoch count is fixed), so OOF predictions stay honest --
+                # except with keep_best_epoch, which selects on this fold's validation data.
                 auc = auroc(val_y, self.predict_proba(val_texts))
+                entry["val_auc"] = round(float(auc), 5)
                 print(f"  epoch {epoch + 1}: train loss {running:.4f}  val AUROC {auc:.4f}", flush=True)
                 if hp["keep_best_epoch"] and auc > best_auc:
                     best_auc = auc
                     best_state = {k: v.detach().cpu().clone() for k, v in self.model.state_dict().items()}
+            self.history.append(entry)
+            if ckpt is not None:
+                self._save_checkpoint(ckpt, epoch + 1, opt, sched, scaler, rng, fingerprint,
+                                      (best_auc, best_state))
         if best_state is not None:
             self.model.load_state_dict(best_state)
         return self

@@ -111,6 +111,13 @@ python train.py --model <config> [--set key=value ...] [--device auto|cuda|mps|c
 4. Test predictions: `final.strategy` = `refit` (fit on all labeled data) or `fold_average`.
 5. Outputs: `outputs/runs/<run_name>/` (config.yaml, oof.csv, metrics.json, test_pred.csv, unlabeled_pred.csv,
    status.json, model), `outputs/submissions/<run_name>.csv`; a row in `experiments/results.csv`; the table below.
+6. Crash safety: each finished fold's predictions go to `outputs/runs/<run_name>/folds/` (keyed by a config + split
+   fingerprint), and fine-tunes (`checkpoint_every_epoch: true`) save `outputs/checkpoints/<run_name>/fold_<k>/last.pt`
+   after every epoch (model, optimizer, scheduler, scaler, RNG). Re-running with the same run name
+   (`run_all --resume`, or `train.py --run-name <same>`) skips finished folds and continues the current fold after its
+   last finished epoch. Checkpoints are deleted once a fold's predictions are saved (`output.keep_checkpoints=true`
+   keeps them). `metrics.json` has `epoch_history` (train loss / fold-val AUROC per epoch, logged only — epochs stay
+   fixed) and `epoch_val_auc_mean`.
 
 Adding a model = a class in `src/models/` subclassing `BaseModel` + one line in `REGISTRY`, and/or a new
 YAML in `configs/models/` (e.g. a different Hugging Face checkpoint for an existing class).
@@ -198,6 +205,12 @@ New best scores appear in the Results table automatically when runs are logged;
 after a run_all session, add its headline findings to "Observations so far".
 
 ## Changelog
+
+- 2026-10-28 — Per-epoch checkpointing + fold-level resume for long fine-tunes (see "How a single run works" step 6).
+  Tested by killing a smoke `ft_deberta_v3_small` session mid-epoch (fold 2, epoch 2) and `--resume`-ing: fold 1 was
+  skipped, fold 2 continued from epoch 1; fold AUROCs 0.9771/0.9811 vs 0.9760/0.9809 for an uninterrupted run
+  (GPU nondeterminism only). Each fold is now seeded with `seed + fold`, so a fold's result doesn't depend on which
+  earlier folds were skipped.
 
 - 2026-10-28 — PC smoke run (23/23 jobs ok). Fixed: fine-tunes loaded DeBERTa-v3 in its stored fp16 dtype
   (transformers 5 default), so AdamW updated fp16 master weights and produced NaN after step 1 — weights are now
