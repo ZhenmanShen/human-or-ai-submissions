@@ -71,8 +71,9 @@ scripts/
   download_models.py      pre-download Hugging Face weights
   blend.py                blend chosen runs (rank / greedy / stack)
   record_kaggle_score.py  store a Kaggle public score for a run or submission
-  add_external_data.py    clean/validate extra labeled data into data/external/
-  generate_ai_text.py     generate extra AI passages with a local HF model
+  add_external_data.py    clean/validate extra labeled data into data/external/ (drops passages sharing 8-grams with train/test)
+  fetch_gutenberg.py      public-domain human poetry/stories from Project Gutenberg (raw CSV for add_external_data.py)
+  generate_ai_text.py     generate extra AI passages with a local HF model (several modes, mixed decoding settings)
 notebooks/01_eda.ipynb    exploratory data analysis
 experiments/results.csv   one row per training run (tracked in git)
 experiments/sessions/<session>/   run_all reports: report.md, summary.csv, ensembles.csv, sanity.csv, figures/ (tracked)
@@ -108,6 +109,8 @@ python train.py --model <config> [--set key=value ...] [--device auto|cuda|mps|c
 3. Cross-validation on `train.csv` per `cv.scheme`: `stratified` (k-fold), `cluster` (k-means topic clusters held
    out as whole groups — approximates unseen domains, lower scores, not comparable to stratified), `holdout`.
    External data and pseudo-labels only ever enter the training side of a fold; `data.train_frac` subsamples it.
+   `data.eval_files` (labeled CSVs never trained on, e.g. an unseen-domain/generator set) are scored by every fold
+   model; their AUROC goes to `metrics.json` (`eval`) and the `eval_auc` column of `results.csv`.
 4. Test predictions: `final.strategy` = `refit` (fit on all labeled data) or `fold_average`.
 5. Outputs: `outputs/runs/<run_name>/` (config.yaml, oof.csv, metrics.json, test_pred.csv, unlabeled_pred.csv,
    status.json, model), `outputs/submissions/<run_name>.csv`; a row in `experiments/results.csv`; the table below.
@@ -156,6 +159,44 @@ Data:
 - AI-side cues: assistant openers ("Sure, here's…"), "Title:/Ingredients:" headers, heavy repetition (typical of small base
   models), all at different rates in test than in train → generator mix differs.
 
+Full PC benchmark (session `20261028-145019_pc`, 35 jobs, 5-fold stratified CV unless noted; report in
+`experiments/sessions/20261028-145019_pc/report.md`):
+- **Train is close to saturated.** Every reasonable model is ≥ 0.990 CV AUROC, so differences between the top ~10 are
+  within noise (fold std ≈ 0.0005). The real question is generalisation to unseen test domains/generators, which train
+  CV can't measure → next step is an out-of-distribution eval set (`data.eval_files`) rather than chasing stratified CV.
+- **Winning families:** LM token statistics + style features → LightGBM (`lm_gpt2` 0.9993, `lm_gpt2_medium` /
+  `binoculars_qwen05b` / `binoculars_qwen15b` 0.9992, 2–20 min); compact fine-tunes (`ft_distilroberta` 0.9991,
+  `ft_modernbert_base` 0.9990, `ft_roberta_base` 0.9987, 12–33 min); stylometric GBM ext 0.9984 in < 1 min.
+  Bigger LMs for features give nothing over GPT-2 small on train.
+- **Underperformers:** the DeBERTa-v3 family (small/base/large 0.990/0.992/0.995) and ELECTRA (0.990) are worse *and*
+  badly calibrated (log loss 0.13–0.46 vs 0.03–0.05) despite costing the most (large: 87 min) — likely under-tuned
+  at lr 2e-5 / 3 epochs. `ft_openai_detector` (base) has 0.990 AUROC but TPR@1%FPR only 0.63. TF-IDF ≈ 0.95–0.96,
+  frozen embeddings + LR 0.87 (BGE) / 0.92 (E5). Zero-shot Binoculars is only 0.71 — the train generators/attacks
+  defeat it, so it is only useful as one feature among many (which is how `binoculars_*` use it).
+- **Per-topic (train k-means clusters):** strong models are ≥ 0.996 in every cluster. Weak models fail on news
+  ("said, year, film"), bios ("born, university") and the "new, said, used" cluster (TF-IDF ≈ 0.89–0.93, embeddings
+  down to 0.78) and are near-perfect on recipes. Train has almost no poetry, so per-topic AUROC can't tell us how
+  any model does on test's poems/stories.
+- **Topic generalisation (cluster CV):** stylometric ext drops only 0.9984 → 0.9946, TF-IDF LR 0.9576 → 0.9136
+  (fold std 0.033): content features don't transfer across topics, style features do.
+- **Debiasing (strip blank lines / double spaces / quotes / zero-width / homoglyphs):** costs stylometric ext 0.0023 AUROC
+  and TPR@1%FPR 0.981 → 0.942, but leaves DeBERTa-base unchanged (0.9919 → 0.9925) — the fine-tune doesn't lean on
+  formatting. Debiased stylometric's mean test score rises 0.458 → 0.522, i.e. formatting cues push many test passages
+  towards "human"; whether that is right is exactly the unknown (test blank-line rate 32% suggests the cue still holds).
+- **Training-set size:** stylometric is saturated (10% of train → 0.9944, 50% → 0.9977); TF-IDF keeps improving
+  (0.906 → 0.958 from 10% to 100%); DeBERTa-small loses 0.008 at 25%. More *in-domain* data won't help the strong
+  models, but more *diverse* data (new domains/generators) might.
+- **Unlabeled data:** pseudo-labelling (unlabeled, or unlabeled + test) changes nothing (Δ ≤ 0.0007) for TF-IDF and
+  stylometric — the confident pseudo-labels are the easy cases the model already gets right.
+- **Model agreement on test:** LM-feature and stylometric models are highly correlated (they share the style features);
+  the RoBERTa-type fine-tunes form a second group, DeBERTa/ELECTRA a third, TF-IDF a fourth → ensembles should mix
+  families, not stack near-duplicates.
+- **Ensembles (nested CV):** LR stacking 0.9999 (TPR@1%FPR 0.998), greedy 0.9997, rank-mean top-5 0.9996 vs best single
+  0.9993. The stacker uses large negative weights (zero-shot Binoculars −0.43, stylometric_gbm −0.38) that exploit
+  train-specific correlations and could flip under shift; the greedy (non-negative) blend of lm_gpt2 +
+  stylometric_gbm_ext + fine-tunes is the more robust candidate.
+- Run time of `ft_deberta_v3_base` shows as 0 because its folds were reused after a scheduler crash.
+
 Models (baselines run on the Mac sandbox, default configs):
 - Stylometric features + LightGBM are much stronger than TF-IDF n-grams (0.998 vs ~0.96 CV) and barely drop under
   `cluster` CV (0.994), whereas TF-IDF LR drops to ~0.91. Top features by gain: blank-line count, type-token ratio,
@@ -163,8 +204,6 @@ Models (baselines run on the Mac sandbox, default configs):
 - On the train passages in the creative-writing cluster, OOF AUROC is a bit lower for every model (TF-IDF LR 0.938, stylometric 0.993).
 - Pseudo-labelling unlabeled.csv (1 round, 40% most confident) did not change TF-IDF LR `cluster` CV.
 - Rank-blending TF-IDF LR + stylometric GBM (1:3) gives 0.998 OOF.
-- The pretrained-model configs (LM features, Binoculars, embeddings, fine-tunes) were verified end-to-end only with
-  tiny random stand-in models (Hugging Face was unreachable from the sandbox) — no real scores yet.
 
 Related work notes (summaries from the team): GPTZero (Adam et al. 2026) — supervised detector, debiasing of formatting
 cues, adversarial/paraphrase augmentation, reports recall at 1% FPR; weak on old LLMs (GPT-2). Ma et al. 2023 — syntax
@@ -183,17 +222,20 @@ scores with `python scripts/record_kaggle_score.py --run <run_name or submission
 
 | rank | run | config | CV scheme | CV AUROC | TPR@1%FPR | Kaggle public | train_frac | semi-sup | device | time (s) | author | notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | `20261028-111159_blend_lr_stylo` | blend_rank | stratified | 0.9981 |  |  | 1.0 | False |  |  | Claude | rank blend tfidf_logreg + stylometric_gbm (1:3) |
-| 2 | `20261028-105015_stylometric_gbm` | stylometric_gbm | stratified | 0.9976 ± 0.0009 |  |  | 1.0 | False |  |  | Claude | initial baseline, default config |
-| 3 | `20261028-105053_stylometric_gbm` | stylometric_gbm | cluster | 0.9937 ± 0.0025 |  |  | 1.0 | False |  |  | Claude | initial baseline, default config |
-| 4 | `20261028-111158_blend_strat4` | blend_rank | stratified | 0.9851 |  |  | 1.0 | False |  |  | Claude | rank blend of LR, stylometric, SVM, NB (equal) |
-| 5 | `20261028-105715_tfidf_svm` | tfidf_svm | stratified | 0.9591 ± 0.0046 |  |  | 1.0 | False |  |  | Claude | initial baseline, default config |
-| 6 | `20261028-104136_tfidf_logreg` | tfidf_logreg | stratified | 0.9576 ± 0.0049 |  |  | 1.0 | False |  |  | Claude | initial baseline, default config |
-| 7 | `20261028-105519_tfidf_nb` | tfidf_nb | stratified | 0.9463 ± 0.0054 |  |  | 1.0 | False |  |  | Claude | initial baseline, default config |
-| 8 | `20261028-104555_tfidf_logreg` | tfidf_logreg | cluster | 0.9139 ± 0.0316 |  |  | 1.0 | False |  |  | Claude | initial baseline, default config |
-| 9 | `20261028-110055_tfidf_logreg` | tfidf_logreg | cluster | 0.9128 ± 0.0326 |  |  | 1.0 | True |  |  | Claude | self-training on unlabeled (no gain vs 0.9139) |
+| 1 | `20261028-145019_pc__lm_gpt2` | lm_gpt2 | stratified | 0.9993 ± 0.0004 | 0.994 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 142 | Max Shen | run_all:pc:lm_gpt2 |
+| 2 | `20261028-145019_pc__lm_gpt2_medium` | lm_gpt2_medium | stratified | 0.9992 ± 0.0005 | 0.993 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 238 | Max Shen | run_all:pc:lm_gpt2_medium |
+| 3 | `20261028-145019_pc__binoculars_qwen05b` | binoculars_qwen05b | stratified | 0.9992 ± 0.0005 | 0.994 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 510 | Max Shen | run_all:pc:binoculars_qwen05b |
+| 4 | `20261028-145019_pc__binoculars_qwen15b` | binoculars_qwen15b | stratified | 0.9992 ± 0.0005 | 0.993 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 1192 | Max Shen | run_all:pc:binoculars_qwen15b |
+| 5 | `20261028-145019_pc__ft_distilroberta` | ft_distilroberta | stratified | 0.9991 ± 0.0006 | 0.992 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 735 | Max Shen | run_all:pc:ft_distilroberta |
+| 6 | `20261028-145019_pc__ft_modernbert_base` | ft_modernbert_base | stratified | 0.9990 ± 0.0004 | 0.993 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 1974 | Max Shen | run_all:pc:ft_modernbert_base |
+| 7 | `20261028-145019_pc__ft_roberta_base` | ft_roberta_base | stratified | 0.9988 ± 0.0006 | 0.989 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 866 | Max Shen | run_all:pc:ft_roberta_base |
+| 8 | `20261028-145019_pc__ss_stylo_ext_with_test` | stylometric_gbm_ext | stratified | 0.9984 ± 0.0005 | 0.980 |  | 1.0 | True | cpu | 139 | Max Shen | run_all:pc:ss_stylo_ext_with_test |
+| 9 | `20261028-145019_pc__stylometric_gbm_ext` | stylometric_gbm_ext | stratified | 0.9984 ± 0.0005 | 0.981 |  | 1.0 | False | cpu | 56 | Max Shen | run_all:pc:stylometric_gbm_ext |
+| 10 | `20261028-145019_pc__ss_stylo_ext` | stylometric_gbm_ext | stratified | 0.9983 ± 0.0005 | 0.980 |  | 1.0 | True | cpu | 119 | Max Shen | run_all:pc:ss_stylo_ext |
+| 11 | `20261028-111159_blend_lr_stylo` | blend_rank | stratified | 0.9981 |  |  | 1.0 | False |  |  | Claude | rank blend tfidf_logreg + stylometric_gbm (1:3) |
+| 12 | `20261028-145019_pc__lc_stylo_ext_f050` | stylometric_gbm_ext | stratified | 0.9977 ± 0.0005 | 0.976 |  | 0.5 | False | cpu | 38 | Max Shen | run_all:pc:lc_stylo_ext_f050 |
 
-_Top 12 of 9 logged runs by CV AUROC; full log in `experiments/results.csv`. CV scores from different schemes are not directly comparable (`cluster` CV holds out whole topics and is harder than `stratified`)._
+_Top 12 of 45 logged runs by CV AUROC; full log in `experiments/results.csv`. CV scores from different schemes are not directly comparable (`cluster` CV holds out whole topics and is harder than `stratified`)._
 <!-- LEADERBOARD:END -->
 
 ## Keeping this file current
@@ -205,6 +247,14 @@ New best scores appear in the Results table automatically when runs are logged;
 after a run_all session, add its headline findings to "Observations so far".
 
 ## Changelog
+
+- 2026-10-29 — Full PC benchmark finished (35/35 jobs; analysis under "Observations so far"). Fixed `run_all.py`
+  crashing when it printed a failed job's error tail (tqdm bar characters) to a cp1252 Windows console — stdout/stderr
+  are now UTF-8 with `errors="replace"`. That crash had orphaned a just-started job, and `--resume` then started a
+  second copy of it on the same GPU and both stalled, so after a scheduler crash, make sure no orphaned `train.py`
+  is still running before resuming. `debiased_deberta_v3_base` spilled out of the 3060's 12 GB at batch 16 (Windows
+  falls back to shared memory → ~20× slower instead of OOM) and was rerun with `gradient_checkpointing=true`.
+  Also: `data.eval_files`, `scripts/fetch_gutenberg.py`, overlap-filtering in `add_external_data.py`.
 
 - 2026-10-28 — Per-epoch checkpointing + fold-level resume for long fine-tunes (see "How a single run works" step 6).
   Tested by killing a smoke `ft_deberta_v3_small` session mid-epoch (fold 2, epoch 2) and `--resume`-ing: fold 1 was
