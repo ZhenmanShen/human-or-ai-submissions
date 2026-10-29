@@ -298,7 +298,9 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--fake-gpus", type=int, default=0, help=argparse.SUPPRESS)
     args = ap.parse_args()
-    sys.stdout.reconfigure(line_buffering=True)  # progress lines show up promptly in a redirected log
+    # utf-8 + replace: job error tails can contain tqdm bar characters a cp1252 console can't encode
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
 
     from src.report import build_report
 
