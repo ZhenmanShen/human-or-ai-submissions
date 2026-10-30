@@ -77,6 +77,8 @@ def main():
     ap.add_argument("--max-words", type=int, default=350)
     ap.add_argument("--max-shared", type=int, default=2,
                     help=f"drop rows sharing at least this many {SHINGLE}-word shingles with the competition data")
+    ap.add_argument("--out-dir", default="data/external",
+                    help="data/external for training data (data.external_files), data/eval for eval-only sets")
     args = ap.parse_args()
 
     inp = Path(args.input)
@@ -91,13 +93,15 @@ def main():
     df["source"] = df.get("source", args.name)
     df["text"] = df["text"].fillna("").astype(str).str.replace("\r\n", "\n")
 
+    keep_cols = [c for c in ("seed_id", "title") if c in df]  # provenance, kept for eval-set analysis
     rows = []
     for _, r in tqdm(df.iterrows(), total=len(df), desc="processing"):
         text = re.sub(r"\n\s*\n+", "\n", r.text) if args.collapse_blank_lines else r.text
         texts = chunk_words(text, 210, args.min_words) if args.chunk else [text.strip()]
         if args.truncate:
             texts = [truncate(t, args.max_words) for t in texts]
-        rows += [{"text": t, "label": int(r.label), "source": r.source} for t in texts]
+        extra = {c: r[c] for c in keep_cols}
+        rows += [{"text": t, "label": int(r.label), "source": r.source, **extra} for t in texts]
     out = pd.DataFrame(rows)
     n = out["text"].str.split().str.len()
     out = out[(n >= args.min_words) & (n <= args.max_words)].drop_duplicates("text")
@@ -116,7 +120,7 @@ def main():
           f">={args.max_shared} {SHINGLE}-grams)")
     out = out[keep]
 
-    dest = ROOT / "data" / "external" / f"{args.name}.csv"
+    dest = ROOT / args.out_dir / f"{args.name}.csv"
     dest.parent.mkdir(parents=True, exist_ok=True)
     out.to_csv(dest, index=False)
     print(f"Wrote {len(out)} rows to {dest}")

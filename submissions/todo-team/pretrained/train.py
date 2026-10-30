@@ -214,7 +214,7 @@ def run(args) -> dict:
             "params": to_json(cfg["model"].get("params")),
             "device": metrics.get("gpu_name", dev), "train_time_s": metrics["total_time_s"],
             "notes": ("[quick] " if args.quick else "") + args.notes,
-            "eval_auc": " ".join(f"{k}={v['auc']:.4f}" for k, v in metrics.get("eval", {}).items()),
+            "eval_auc": " ".join(f"{k}={v['auc']:.4f}" for k, v in metrics.get("eval", {}).items() if "auc" in v),
         })
         update_agents_md(resolve(cfg["output"]["results_file"]))
         print(f"Logged to {cfg['output']['results_file']} (AGENTS.md leaderboard refreshed)")
@@ -238,7 +238,7 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
     for path in cfg["data"].get("eval_files") or []:
         df = load_csv(path)
         evals[Path(path).stem] = (preprocess(df["text"], pp, f"preprocess {Path(path).stem}"),
-                                  df["label"].to_numpy(int))
+                                  df["label"].to_numpy(int), df["id"].to_numpy() if "id" in df else np.arange(len(df)))
     print(f"train {len(train_texts)} | external {len(ext_texts)} | unlabeled {len(unl_texts)} | test {len(test_texts)}"
           + "".join(f" | eval:{k} {len(v[0])}" for k, v in evals.items()))
 
@@ -303,7 +303,7 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
                 arrs.update(test=test_fold_preds[-1], unl=unl_fold_preds[-1])
                 if out_cfg.get("save_fold_models", False):
                     model.save(run_dir / f"fold_{f}")
-            for k, (texts_k, _) in evals.items():
+            for k, (texts_k, _, _) in evals.items():
                 eval_fold_preds[k].append(model.predict_proba(texts_k))
                 arrs[f"eval_{k}"] = eval_fold_preds[k][-1]
             histories.append(list(getattr(model, "history", None) or []))
@@ -341,10 +341,18 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
               f"TPR@1%FPR {metrics['oof_metrics']['tpr_at_1fpr']:.3f}")
         if evals:  # mean of the fold models' predictions, like a fold-averaged test prediction
             metrics["eval"] = {}
-            for k, (_, y_k) in evals.items():
+            for k, (_, y_k, ids_k) in evals.items():
                 p_k = np.mean(eval_fold_preds[k], 0)
+                # per-fold columns too: scripts/eval_ood.py pairs each row with the fold model that never saw its seed
+                pd.DataFrame({"id": ids_k, "label": y_k, "pred": p_k,
+                              **{f"pred_f{f}": p for f, p in enumerate(eval_fold_preds[k])}}
+                             ).to_csv(run_dir / f"eval_{k}.csv", index=False)
+                if len(np.unique(y_k)) < 2:  # one-class set (e.g. AI-only): AUROC needs the OOF humans, see eval_ood.py
+                    metrics["eval"][k] = {"n": int(len(y_k)), "mean_pred": float(p_k.mean()),
+                                          "frac_pred_ai": float((p_k >= 0.5).mean())}
+                    print(f"Eval set {k}: one class, mean prediction {p_k.mean():.4f} (n={len(y_k)})")
+                    continue
                 metrics["eval"][k] = {"auc": auroc(y_k, p_k), "n": int(len(y_k)), **binary_metrics(y_k, p_k)}
-                pd.DataFrame({"label": y_k, "pred": p_k}).to_csv(run_dir / f"eval_{k}.csv", index=False)
                 print(f"Eval set {k}: AUROC {metrics['eval'][k]['auc']:.4f} (n={len(y_k)})")
 
     # ------------------------------------------------------------ test predictions + submission

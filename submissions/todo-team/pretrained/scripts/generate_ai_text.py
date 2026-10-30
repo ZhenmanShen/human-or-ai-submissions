@@ -84,6 +84,7 @@ def main():
     ap.add_argument("--seed", type=int, default=0)
     ap.add_argument("--tag", default="", help="extra tag for the output file name")
     ap.add_argument("--device", default="auto", help="auto | cuda | cuda:<i> | mps | cpu")
+    ap.add_argument("--out-dir", default="data/external", help="where the raw_gen_*.csv file goes (data/eval for eval-only sets)")
     args = ap.parse_args()
 
     import torch
@@ -132,7 +133,7 @@ def main():
         else:
             dec = {"do_sample": True, "temperature": args.temperature, "top_p": args.top_p,
                    "repetition_penalty": args.repetition_penalty}
-        jobs.append((prompt, dec, f, tmpl))
+        jobs.append((prompt, dec, f, tmpl, r.get("id", i)))
 
     # Rows with identical decoding settings can share a batch; with --sample-mix that's per row,
     # so group by rounded settings to keep batches reasonably full.
@@ -158,19 +159,19 @@ def main():
             out = model.generate(**enc, max_new_tokens=args.max_new_tokens, pad_token_id=tok.pad_token_id, **d)
         for b, j in enumerate(idx):
             gen = tok.decode(out[b, enc["input_ids"].shape[1]:], skip_special_tokens=True).strip()
-            prompt_text, _, f, tmpl = jobs[j]
+            prompt_text, _, f, tmpl, seed_id = jobs[j]
             if args.mode == "continue" or (not chat and args.mode == "story"):
                 gen = f["prefix"] + " " + gen
             elif not chat and args.mode in ("poem", "plot"):
                 gen = prompt_text.lstrip() + gen
-            rows[j] = {"text": gen, "label": 1,
+            rows[j] = {"text": gen, "label": 1, "seed_id": seed_id,
                        "source": f"{args.model}|{args.mode}|{'chat' if chat else 'base'}|"
                                  f"{'greedy' if not d['do_sample'] else 'T=%.1f' % k[1]}|rp={k[3]}"}
         bar.update(len(idx))
     bar.close()
 
     name = args.model.split("/")[-1]
-    dest = ROOT / "data" / "external" / f"raw_gen_{name}_{args.mode}{'_' + args.tag if args.tag else ''}_s{args.seed}.csv"
+    dest = ROOT / args.out_dir / f"raw_gen_{name}_{args.mode}{'_' + args.tag if args.tag else ''}_s{args.seed}.csv"
     dest.parent.mkdir(parents=True, exist_ok=True)
     pd.DataFrame(rows).to_csv(dest, index=False)
     print(f"Wrote {len(rows)} generated passages to {dest}")
