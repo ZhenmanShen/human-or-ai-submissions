@@ -22,50 +22,29 @@ os.environ.setdefault("TOKENIZERS_PARALLELISM", "false")
 
 from pathlib import Path  # noqa: E402
 
-import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 
-from src.config import read_yaml, resolve  # noqa: E402
+from src.config import read_yaml  # noqa: E402
 from src.data import load_csv  # noqa: E402
-from src.models import get_model_class  # noqa: E402
-from src.preprocessing import preprocess  # noqa: E402
-
-
-def model_dirs(run: Path) -> list[Path]:
-    if (run / "model.joblib").exists() or (run / "transformer_hparams.json").exists():
-        return [run]
-    folds = sorted(p for p in run.glob("fold_*") if p.is_dir())
-    if folds:
-        return folds
-    raise FileNotFoundError(
-        f"No saved model in {run}. Fold-averaged runs only keep fold models when trained with "
-        f"--set output.save_fold_models=true; their test predictions are in {run / 'test_pred.csv'}.")
+from src.inference import find_run, model_dirs, predict_run  # noqa: E402
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("--run", required=True, help="outputs/runs/<run_name>")
+    ap.add_argument("--run", required=True, help="outputs/runs/<run_name> or just <run_name>")
     ap.add_argument("--input", default=None, help="CSV with id,text (default: config test_file)")
     ap.add_argument("--output", default=None, help="where to write id,label (default: <run>/predictions.csv)")
     ap.add_argument("--device", default=None, help="auto | cuda | cuda:<i> | mps | cpu (torch models only)")
     args = ap.parse_args()
 
-    run = resolve(args.run)
+    run = find_run(args.run)
     cfg = read_yaml(run / "config.yaml")
-    cls = get_model_class(cfg["model"]["name"])
     df = load_csv(args.input or cfg["data"]["test_file"])
-    texts = preprocess(df["text"], cfg["preprocessing"], "preprocess")
-    dirs = model_dirs(run)
-    preds = []
-    for d in dirs:
-        model = cls.load(d, device=args.device)
-        preds.append(model.predict_proba(texts))
-        if hasattr(model, "release"):
-            model.release()
-    out = pd.DataFrame({"id": df["id"], "label": np.mean(preds, 0)})
+    n_models = len(model_dirs(run))
+    out = pd.DataFrame({"id": df["id"], "label": predict_run(run, df["text"], args.device)})
     out_path = Path(args.output) if args.output else run / "predictions.csv"
     out.to_csv(out_path, index=False)
-    print(f"Wrote {len(out)} predictions ({len(dirs)} model(s)) to {out_path}")
+    print(f"Wrote {len(out)} predictions ({n_models} model(s)) to {out_path}")
 
 
 if __name__ == "__main__":

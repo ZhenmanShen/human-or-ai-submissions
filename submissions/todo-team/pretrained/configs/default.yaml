@@ -63,7 +63,8 @@ final:
 
 output:
   save_models: true          # save the refit model (outputs/runs/<run>/)
-  save_fold_models: false    # with fold_average: also save every fold model (large for transformers)
+  save_fold_models: true     # fold_average runs (fine-tunes): keep every fold model in <run>/fold_<k>/ so
+                             # make_submission.py / predict.py can re-predict (0.3-1.7 GB per fold)
   # Resuming a run with the same run name (run_all --resume): folds whose predictions are in
   # outputs/runs/<run>/folds/ are skipped, and fine-tunes with model.params.checkpoint_every_epoch
   # continue from outputs/checkpoints/<run>/fold_<k>/last.pt (latest epoch only).
