@@ -64,6 +64,12 @@ def collapse_blank_lines(t: str) -> str:
     return re.sub(r"\n\s*\n+", "\n", t)
 
 
+def join_lines(t: str) -> str:
+    """Replace every line break with a space. Train humans are mostly long unwrapped lines and train AI
+    short lines, so line structure is a class shortcut that flags human verse (~15% of test) as AI."""
+    return re.sub(r"\s*\n\s*", " ", t)
+
+
 def collapse_spaces(t: str) -> str:
     return re.sub(r"[ \t]+", " ", t)
 
@@ -83,6 +89,7 @@ STEPS: dict[str, Callable[[str], str]] = {
     "map_homoglyphs": map_homoglyphs,
     "normalize_quotes": normalize_quotes,
     "collapse_blank_lines": collapse_blank_lines,
+    "join_lines": join_lines,
     "collapse_spaces": collapse_spaces,
     "lowercase": lowercase,
     "strip": strip,

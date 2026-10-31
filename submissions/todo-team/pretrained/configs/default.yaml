@@ -34,6 +34,7 @@ preprocessing:
   map_homoglyphs: false
   normalize_quotes: false
   collapse_blank_lines: false
+  join_lines: false            # all line breaks -> spaces (removes the line-structure shortcut, see preprocessing.py)
   collapse_spaces: false
   lowercase: false
   strip: true

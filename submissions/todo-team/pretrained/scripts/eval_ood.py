@@ -17,6 +17,13 @@ Metrics (one row per run/blend, appended/updated in experiments/ood_eval.csv):
                    models, not as a test-score estimate. poem/story columns split it by form.
   creative_fpr5    share of Gutenberg human passages flagged as AI at the threshold that flags 5% of train
                    humans -> do we mistake (old) poetry/fiction for AI? Lower is better.
+  proxy_auc        ONE pooled, weighted AUROC meant to track the Kaggle score: Kaggle ranks all 3,000 test
+                   passages together, so a model must also put different domains/generators on one scale.
+                   Humans: train OOF (1 - creative_share) + Gutenberg poems/stories (creative_share).
+                   AI: train OOF (seen generators) and eval_newgen (unseen) split by --unseen-share over the
+                   non-creative mass, + AI poems/stories (creative_share). creative_share = 0.41 is the
+                   creative-writing cluster's share of test (AGENTS.md, topic shift); the generator mix of
+                   test is unknown, so proxy_auc_u25 / _u75 repeat it with 25% / 75% unseen.
 Blends average each model's scores after mapping them through that model's OOF-score CDF on train
 (monotone, so single-model AUROCs are unchanged; puts all models on one scale).
 """
@@ -28,6 +35,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import roc_auc_score
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from src.config import resolve  # noqa: E402
@@ -36,6 +44,7 @@ from src.utils import auroc  # noqa: E402
 
 OUT = "experiments/ood_eval.csv"
 NEWGEN, CREATIVE = "data/eval/eval_newgen.csv", "data/eval/eval_creative.csv"
+CREATIVE_SHARE, UNSEEN_SHARE = 0.41, 0.5  # proxy_auc mix, see the docstring
 
 
 def thr_at_fpr(human_scores, fpr):
@@ -94,7 +103,76 @@ def metrics(r: RunScores, meta_ng: pd.DataFrame, meta_cr: pd.DataFrame) -> dict:
         m = ((meta_cr["mode"] == hmode) | meta_cr["mode"].isin(amodes)).to_numpy()
         row[f"creative_{form}_auc"] = auroc(yc[m], r.creative[m])
     row["creative_fpr5"] = float((r.creative[yc == 0] > thr_at_fpr(human, 0.05)).mean())
+    for tag, unseen in [("", UNSEEN_SHARE), ("_u25", 0.25), ("_u75", 0.75)]:
+        row[f"proxy_auc{tag}"] = proxy_auc(r, yc, CREATIVE_SHARE, unseen)
     return row
+
+
+def proxy_auc(r: RunScores, yc: np.ndarray, creative: float, unseen: float) -> float:
+    """Weighted AUROC over all pools at once (see the module docstring); every pool's weights sum to
+    its share of its class, so pool sizes don't matter."""
+    pools = [  # (scores, label, share of that label's mass)
+        (r.oof[r.y == 0], 0, 1 - creative),
+        (r.creative[yc == 0], 0, creative),
+        (r.oof[r.y == 1], 1, (1 - creative) * (1 - unseen)),
+        (r.newgen, 1, (1 - creative) * unseen),
+        (r.creative[yc == 1], 1, creative),
+    ]
+    s = np.concatenate([p for p, _, _ in pools])
+    y = np.concatenate([np.full(len(p), lab) for p, lab, _ in pools])
+    w = np.concatenate([np.full(len(p), share / len(p)) for p, _, share in pools])
+    return float(roc_auc_score(y, s, sample_weight=w))
+
+
+def subset(r: RunScores, ng_mask: np.ndarray, cr_mask: np.ndarray) -> RunScores:
+    s = RunScores.__new__(RunScores)
+    s.name, s.y, s.oof, s.ref = r.name, r.y, r.oof, r.ref
+    s.newgen, s.creative = r.newgen[ng_mask], r.creative[cr_mask]
+    return s
+
+
+def greedy(cands: dict[str, RunScores], yc: np.ndarray, steps: int = 12) -> dict[str, int]:
+    """Caruana selection with replacement, maximising proxy_auc; returns {run: times picked}."""
+    picked: list[str] = []
+    best = -1.0
+    for _ in range(steps):
+        scored = []
+        for k in cands:
+            trial = picked + [k]
+            b = blend("t", [(cands[m], trial.count(m)) for m in dict.fromkeys(trial)])
+            scored.append((proxy_auc(b, yc, CREATIVE_SHARE, UNSEEN_SHARE), k))
+        auc, k = max(scored)
+        if auc <= best + 1e-5:
+            break
+        best, picked = auc, picked + [k]
+    return {m: picked.count(m) for m in dict.fromkeys(picked)}
+
+
+def greedy_check(cands: dict[str, RunScores], meta_ng, meta_cr) -> list[dict]:
+    """Pick a greedy blend on half of the generators (and half of the Gutenberg humans), score it on the
+    other half, then swap: an honest estimate of what greedy selection on the proxy is worth."""
+    gens = sorted(meta_ng["generator"].unique())
+    yc = meta_cr["label"].to_numpy()
+    rng = np.random.default_rng(0)
+    human_half = rng.random(len(meta_cr)) < 0.5
+    rows = []
+    for half in (0, 1):
+        g_sel = set(gens[half::2])
+        masks = {}
+        for side, g in (("sel", g_sel), ("held", set(gens) - g_sel)):
+            hum = human_half if (side == "sel") == (half == 0) else ~human_half
+            masks[side] = (meta_ng["generator"].isin(g).to_numpy(),
+                           np.where(yc == 0, hum, meta_cr["generator"].isin(g).to_numpy()))
+        sel = {k: subset(r, *masks["sel"]) for k, r in cands.items()}
+        held = {k: subset(r, *masks["held"]) for k, r in cands.items()}
+        w = greedy(sel, yc[masks["sel"][1]])
+        b = blend("g", [(held[m], c) for m, c in w.items()])
+        best_single = max(cands, key=lambda k: proxy_auc(sel[k], yc[masks["sel"][1]], CREATIVE_SHARE, UNSEEN_SHARE))
+        rows.append({"selected_on": ",".join(sorted(g_sel)), "weights": w,
+                     "held_blend": proxy_auc(b, yc[masks["held"][1]], CREATIVE_SHARE, UNSEEN_SHARE),
+                     "held_best_single": proxy_auc(held[best_single], yc[masks["held"][1]], CREATIVE_SHARE,
+                                                   UNSEEN_SHARE), "best_single": best_single})
+    return rows
 
 
 def main():
@@ -102,6 +180,8 @@ def main():
     ap.add_argument("--runs", nargs="*", default=[])
     ap.add_argument("--all", action="store_true", help="every run in outputs/runs that has the eval files")
     ap.add_argument("--blend", nargs="*", default=[], help="name=runA:w,runB:w (runs must be in --runs/--all)")
+    ap.add_argument("--greedy", action="store_true",
+                    help="greedy blend on proxy_auc (+ a select-on-half / score-on-other-half check)")
     ap.add_argument("--no-save", action="store_true")
     args = ap.parse_args()
 
@@ -123,11 +203,20 @@ def main():
         parts = [(scores[m.rsplit(":", 1)[0]], float(m.rsplit(":", 1)[1]) if ":" in m else 1.0)
                  for m in members.split(",")]
         rows.append(metrics(blend(f"blend:{name}", parts), meta_ng, meta_cr))
+    if args.greedy:
+        cands = {k: s for k, s in scores.items() if k == s.name}
+        for c in greedy_check(cands, meta_ng, meta_cr):
+            print(f"greedy check: select on [{c['selected_on']}] -> held-out proxy {c['held_blend']:.4f} "
+                  f"(best single {c['best_single'].split('__')[-1]}: {c['held_best_single']:.4f}) {c['weights']}")
+        w = greedy(cands, meta_cr["label"].to_numpy())
+        spec = ",".join(f"{m.split('__')[-1]}:{c}" for m, c in w.items())
+        print(f"greedy blend on all eval data: {spec}")
+        rows.append(metrics(blend("blend:greedy_proxy", [(cands[m], c) for m, c in w.items()]), meta_ng, meta_cr))
     res = pd.DataFrame(rows)
-    lead = ["run", "cv_auc", "newgen_auc", "newgen_tpr1", "newgen_min_gen", "creative_auc",
+    lead = ["run", "proxy_auc", "cv_auc", "newgen_auc", "newgen_tpr1", "newgen_min_gen", "creative_auc",
             "creative_poem_auc", "creative_story_auc", "creative_fpr5"]
     res = res[lead + [c for c in res.columns if c not in lead]]
-    print(res[lead].sort_values("newgen_auc", ascending=False).to_string(index=False, float_format=lambda v: f"{v:.4f}"))
+    print(res[lead].sort_values("proxy_auc", ascending=False).to_string(index=False, float_format=lambda v: f"{v:.4f}"))
     if not args.no_save:
         out = resolve(OUT)
         if out.exists():  # replace rows of the same run/blend, keep the others

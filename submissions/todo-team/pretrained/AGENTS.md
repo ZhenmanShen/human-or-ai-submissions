@@ -229,13 +229,13 @@ scores with `python scripts/record_kaggle_score.py --run <run_name or submission
 | 5 | `20261028-145019_pc__ft_distilroberta` | ft_distilroberta | stratified | 0.9991 ± 0.0006 | 0.992 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 735 | Max Shen | run_all:pc:ft_distilroberta |
 | 6 | `20261028-145019_pc__ft_modernbert_base` | ft_modernbert_base | stratified | 0.9990 ± 0.0004 | 0.993 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 1974 | Max Shen | run_all:pc:ft_modernbert_base |
 | 7 | `20261028-145019_pc__ft_roberta_base` | ft_roberta_base | stratified | 0.9988 ± 0.0006 | 0.989 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 866 | Max Shen | run_all:pc:ft_roberta_base |
-| 8 | `20261028-145019_pc__ss_stylo_ext_with_test` | stylometric_gbm_ext | stratified | 0.9984 ± 0.0005 | 0.980 |  | 1.0 | True | cpu | 139 | Max Shen | run_all:pc:ss_stylo_ext_with_test |
+| 8 | `20261030-135404_ood__stylometric_gbm_ext` | stylometric_gbm_ext | stratified | 0.9984 ± 0.0005 | 0.981 |  | 1.0 | False | cpu | 66 | Max Shen | run_all:ood:stylometric_gbm_ext |
 | 9 | `20261028-145019_pc__stylometric_gbm_ext` | stylometric_gbm_ext | stratified | 0.9984 ± 0.0005 | 0.981 |  | 1.0 | False | cpu | 56 | Max Shen | run_all:pc:stylometric_gbm_ext |
-| 10 | `20261028-145019_pc__ss_stylo_ext` | stylometric_gbm_ext | stratified | 0.9983 ± 0.0005 | 0.980 |  | 1.0 | True | cpu | 119 | Max Shen | run_all:pc:ss_stylo_ext |
-| 11 | `20261028-111159_blend_lr_stylo` | blend_rank | stratified | 0.9981 |  |  | 1.0 | False |  |  | Claude | rank blend tfidf_logreg + stylometric_gbm (1:3) |
-| 12 | `20261028-145019_pc__lc_stylo_ext_f050` | stylometric_gbm_ext | stratified | 0.9977 ± 0.0005 | 0.976 |  | 0.5 | False | cpu | 38 | Max Shen | run_all:pc:lc_stylo_ext_f050 |
+| 10 | `20261028-145019_pc__ss_stylo_ext_with_test` | stylometric_gbm_ext | stratified | 0.9984 ± 0.0005 | 0.980 |  | 1.0 | True | cpu | 139 | Max Shen | run_all:pc:ss_stylo_ext_with_test |
+| 11 | `20261028-145019_pc__ss_stylo_ext` | stylometric_gbm_ext | stratified | 0.9983 ± 0.0005 | 0.980 |  | 1.0 | True | cpu | 119 | Max Shen | run_all:pc:ss_stylo_ext |
+| 12 | `20261028-111159_blend_lr_stylo` | blend_rank | stratified | 0.9981 |  |  | 1.0 | False |  |  | Claude | rank blend tfidf_logreg + stylometric_gbm (1:3) |
 
-_Top 12 of 45 logged runs by CV AUROC; full log in `experiments/results.csv`. CV scores from different schemes are not directly comparable (`cluster` CV holds out whole topics and is harder than `stratified`)._
+_Top 12 of 51 logged runs by CV AUROC; full log in `experiments/results.csv`. CV scores from different schemes are not directly comparable (`cluster` CV holds out whole topics and is harder than `stratified`)._
 <!-- LEADERBOARD:END -->
 
 ## Keeping this file current
