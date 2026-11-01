@@ -45,10 +45,12 @@ requirements.txt          pip deps; environment.yml creates the cs-aml conda env
 train.py                  CV + test predictions + submission for ONE model config (entry point)
 run_all.py                runs every job of an experiment profile in parallel (GPUs + CPU) and builds a report
 predict.py                re-predict any CSV from a saved run
+make_submission.py        Kaggle file from one or more saved runs (re-predicts test, OOF-CDF blend, validates)
 configs/
   default.yaml            shared settings: data, device, preprocessing, CV, semi-supervised, final strategy, outputs
   models/<config>.yaml    one file per model config (see table below); --model <config> selects it
-  experiments/<profile>.yaml  job lists for run_all.py: smoke (does everything run?), pc, mac
+  experiments/<profile>.yaml  job lists for run_all.py: smoke (does everything run?), pc, mac,
+                          ood (strongest models scored on the held-out eval sets)
 src/
   config.py               loads default.yaml <- models/<config>.yaml <- --set key=value overrides
   data.py                 CSV loading, external data, CV splits (stratified / cluster / holdout), subsampling
@@ -62,7 +64,8 @@ src/
     lm_perplexity.py      causal-LM token statistics (+ Binoculars with an observer/performer pair) -> classifier
     embedding_logreg.py   frozen sentence-embedding model -> logistic regression
     transformer.py        fine-tuned pretrained encoder (bf16 on CUDA, gradient checkpointing, length-sorted inference)
-  ensemble.py             rank averaging, greedy (Caruana) selection, logistic stacking on OOF predictions
+  ensemble.py             rank / OOF-CDF averaging, greedy (Caruana) selection, logistic stacking on OOF predictions
+  inference.py            predict with a saved run (refit model or fold models), submission validator
   report.py               run_all report: summary table, sanity checks, ensembles, figures
   leaderboard.py          rewrites the Results table below from experiments/results.csv
   utils.py                seeding, metrics (AUROC, TPR@1%FPR, ...), results log + file lock, device resolver
@@ -74,8 +77,12 @@ scripts/
   add_external_data.py    clean/validate extra labeled data into data/external/ (drops passages sharing 8-grams with train/test)
   fetch_gutenberg.py      public-domain human poetry/stories from Project Gutenberg (raw CSV for add_external_data.py)
   generate_ai_text.py     generate extra AI passages with a local HF model (several modes, mixed decoding settings)
+  build_eval_set.py       held-out eval sets in data/eval/ from 7 generators never trained on (eval only!)
+  eval_ood.py             score runs/blends on data/eval + Kaggle-proxy AUROC + proxy greedy blend -> experiments/ood_eval.csv
+  gptzero_compare.py      compare runs with GPTZero on the same passages (DRAFT: API call not written yet)
 notebooks/01_eda.ipynb    exploratory data analysis
 experiments/results.csv   one row per training run (tracked in git)
+experiments/ood_eval.csv  one row per run/blend scored by scripts/eval_ood.py (tracked)
 experiments/sessions/<session>/   run_all reports: report.md, summary.csv, ensembles.csv, sanity.csv, figures/ (tracked)
 data/  outputs/  pretrained/      git-ignored: data, run artefacts/logs/submissions/caches, local model copies
 ```
@@ -145,6 +152,40 @@ calibration, cost vs accuracy, and sanity checks (PASS/WARN/FAIL). The recommend
 `outputs/submissions/<session>__best.csv`.
 
 ## Observations so far
+
+**Summary / final submissions (2026-10-31).** Train CV is saturated (top models 0.999), so models and blends
+were chosen on the held-out eval sets instead (`scripts/eval_ood.py`, `experiments/ood_eval.csv`), using
+`proxy_auc`: one weighted AUROC over train OOF + unseen-generator AI text + held-out human/AI poems and stories,
+mixed like test (41% creative writing). Proxy ranking ≠ CV ranking; the old CV-best blend is 0.986 on the proxy.
+Upload order (all in `outputs/submissions/`, built by `make_submission.py` from the saved models, OOF-CDF blend):
+1. `final_A_greedy_proxy.csv` — greedy blend on the proxy: lm_gpt2_medium ×3, binoculars_qwen05b ×3,
+   binoculars_qwen15b ×2, ft_deberta_v3_large, ft_roberta_base, lm_gpt2 (LM features only), ft_openai_detector_large.
+   Proxy 0.9928 (in-sample for the selection; selecting on half the generators and scoring the other half gains
+   +0.001 over the best single model, both ways round), CV 0.9996.
+2. `final_B_lm4.csv` — equal-weight lm_gpt2 + lm_gpt2_medium + binoculars_qwen05b + binoculars_qwen15b; nothing
+   tuned on the eval sets. Proxy 0.9906, CV 0.9994.
+3. `final_C_lm4_roberta.csv` — lm4 + ft_roberta_base (adds a second family). Proxy 0.9910, CV 0.9996.
+
+Held-out eval (session `20261030-135404_ood` + `20261031-144451_ood`; `data/eval/`, built by
+`scripts/build_eval_set.py` from 7 generators never trained on — Llama-3.2-3B, Qwen3-4B, Phi-3.5-mini, SmolLM2-1.7B,
+Granite-3.1-2B, OLMo-2-1B, Pythia-1.4B: 542 rewrites of train human passages + 816 AI poems/stories, and 681 human
+poems/stories from held-out Gutenberg books; never trained on):
+- **LM token statistics + style features generalise best.** lm_gpt2_medium / binoculars_qwen05b / lm_gpt2 /
+  binoculars_qwen15b: proxy 0.989, unseen-generator AUROC 0.992–0.996 (hardest generator ≥ 0.97), and they flag only
+  17–25% of held-out human poems/stories at the threshold flagging 5% of train humans. Fine-tunes (RoBERTa,
+  DistilRoBERTa, ModernBERT) and stylometric GBM tie them on CV but drop to 0.971–0.975 proxy and flag 42–74% of
+  human verse. DeBERTa-v3 / OpenAI-detector-large rarely flag human verse (1–14%) but miss more AI (proxy 0.91–0.95).
+- **Test is ~15% verse** (short lines, no digits) vs 0.3% of train, incl. archaic hymns like the Gutenberg pool.
+  Line structure is a train shortcut (human median 80 words/line, AI 28). `preprocessing.join_lines` removes it:
+  human-verse false alarms 74% → 18% for stylometric, but proxy 0.974 → 0.925 — off.
+- **Debiasing hurts everywhere on the proxy:** stylometric 0.974 → 0.915, lm_gpt2 0.989 → 0.968, DistilRoBERTa
+  0.971 → 0.931, DeBERTa-base ≈ same (0.909 → 0.914). The formatting cues still carry signal on unseen generators.
+- **LM features without style features are much worse** (lm_gpt2 0.989 → 0.938; logistic head 0.903): the two
+  feature sets complement each other.
+- Qwen3-4B is the hardest generator for every family (stylometric mean score 0.62 on its rewrites).
+- Caveat: the Gutenberg humans are archaic and have no blank lines (like train humans), so `creative_*` overstates
+  separability; the proxy's generator mix in test is unknown (`proxy_auc_u25/_u75` use 25% / 75% unseen: the top 4 keep their order, only near-tied singles swap;
+  Spearman 0.96–0.99 between the three versions).
 
 Data:
 - Formatting differs systematically by class in train: blank lines (`\n\n`) appear in ~66% of AI passages and almost no
@@ -222,20 +263,20 @@ scores with `python scripts/record_kaggle_score.py --run <run_name or submission
 
 | rank | run | config | CV scheme | CV AUROC | TPR@1%FPR | Kaggle public | train_frac | semi-sup | device | time (s) | author | notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| 1 | `20261028-145019_pc__lm_gpt2` | lm_gpt2 | stratified | 0.9993 ± 0.0004 | 0.994 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 142 | Max Shen | run_all:pc:lm_gpt2 |
-| 2 | `20261028-145019_pc__lm_gpt2_medium` | lm_gpt2_medium | stratified | 0.9992 ± 0.0005 | 0.993 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 238 | Max Shen | run_all:pc:lm_gpt2_medium |
-| 3 | `20261028-145019_pc__binoculars_qwen05b` | binoculars_qwen05b | stratified | 0.9992 ± 0.0005 | 0.994 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 510 | Max Shen | run_all:pc:binoculars_qwen05b |
-| 4 | `20261028-145019_pc__binoculars_qwen15b` | binoculars_qwen15b | stratified | 0.9992 ± 0.0005 | 0.993 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 1192 | Max Shen | run_all:pc:binoculars_qwen15b |
-| 5 | `20261028-145019_pc__ft_distilroberta` | ft_distilroberta | stratified | 0.9991 ± 0.0006 | 0.992 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 735 | Max Shen | run_all:pc:ft_distilroberta |
-| 6 | `20261028-145019_pc__ft_modernbert_base` | ft_modernbert_base | stratified | 0.9990 ± 0.0004 | 0.993 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 1974 | Max Shen | run_all:pc:ft_modernbert_base |
-| 7 | `20261028-145019_pc__ft_roberta_base` | ft_roberta_base | stratified | 0.9988 ± 0.0006 | 0.989 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 866 | Max Shen | run_all:pc:ft_roberta_base |
-| 8 | `20261030-135404_ood__stylometric_gbm_ext` | stylometric_gbm_ext | stratified | 0.9984 ± 0.0005 | 0.981 |  | 1.0 | False | cpu | 66 | Max Shen | run_all:ood:stylometric_gbm_ext |
-| 9 | `20261028-145019_pc__stylometric_gbm_ext` | stylometric_gbm_ext | stratified | 0.9984 ± 0.0005 | 0.981 |  | 1.0 | False | cpu | 56 | Max Shen | run_all:pc:stylometric_gbm_ext |
-| 10 | `20261028-145019_pc__ss_stylo_ext_with_test` | stylometric_gbm_ext | stratified | 0.9984 ± 0.0005 | 0.980 |  | 1.0 | True | cpu | 139 | Max Shen | run_all:pc:ss_stylo_ext_with_test |
-| 11 | `20261028-145019_pc__ss_stylo_ext` | stylometric_gbm_ext | stratified | 0.9983 ± 0.0005 | 0.980 |  | 1.0 | True | cpu | 119 | Max Shen | run_all:pc:ss_stylo_ext |
-| 12 | `20261028-111159_blend_lr_stylo` | blend_rank | stratified | 0.9981 |  |  | 1.0 | False |  |  | Claude | rank blend tfidf_logreg + stylometric_gbm (1:3) |
+| 1 | `20261030-135404_ood__lm_gpt2` | lm_gpt2 | stratified | 0.9993 ± 0.0004 | 0.994 |  | 1.0 | False | NVIDIA GeForce RTX 3060 | 76 | Max Shen | run_all:ood:lm_gpt2 |
+| 2 | `20261028-145019_pc__lm_gpt2` | lm_gpt2 | stratified | 0.9993 ± 0.0004 | 0.994 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 142 | Max Shen | run_all:pc:lm_gpt2 |
+| 3 | `20261028-145019_pc__lm_gpt2_medium` | lm_gpt2_medium | stratified | 0.9992 ± 0.0005 | 0.993 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 238 | Max Shen | run_all:pc:lm_gpt2_medium |
+| 4 | `20261030-135404_ood__binoculars_qwen05b` | binoculars_qwen05b | stratified | 0.9992 ± 0.0005 | 0.994 |  | 1.0 | False | NVIDIA GeForce RTX 3060 | 1348 | Max Shen | run_all:ood:binoculars_qwen05b |
+| 5 | `20261028-145019_pc__binoculars_qwen05b` | binoculars_qwen05b | stratified | 0.9992 ± 0.0005 | 0.994 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 510 | Max Shen | run_all:pc:binoculars_qwen05b |
+| 6 | `20261030-135404_ood__lm_gpt2_medium` | lm_gpt2_medium | stratified | 0.9992 ± 0.0005 | 0.993 |  | 1.0 | False | NVIDIA GeForce RTX 3060 | 104 | Max Shen | run_all:ood:lm_gpt2_medium |
+| 7 | `20261030-135404_ood__binoculars_qwen15b` | binoculars_qwen15b | stratified | 0.9992 ± 0.0005 | 0.993 |  | 1.0 | False | NVIDIA GeForce RTX 3060 | 1783 | Max Shen | run_all:ood:binoculars_qwen15b |
+| 8 | `20261028-145019_pc__binoculars_qwen15b` | binoculars_qwen15b | stratified | 0.9992 ± 0.0005 | 0.993 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 1192 | Max Shen | run_all:pc:binoculars_qwen15b |
+| 9 | `20261028-145019_pc__ft_distilroberta` | ft_distilroberta | stratified | 0.9991 ± 0.0006 | 0.992 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 735 | Max Shen | run_all:pc:ft_distilroberta |
+| 10 | `20261028-145019_pc__ft_modernbert_base` | ft_modernbert_base | stratified | 0.9990 ± 0.0004 | 0.993 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 1974 | Max Shen | run_all:pc:ft_modernbert_base |
+| 11 | `20261030-135404_ood__ft_distilroberta` | ft_distilroberta | stratified | 0.9988 ± 0.0006 | 0.991 |  | 1.0 | False | NVIDIA GeForce RTX 3060 | 1646 | Max Shen | run_all:ood:ft_distilroberta |
+| 12 | `20261028-145019_pc__ft_roberta_base` | ft_roberta_base | stratified | 0.9988 ± 0.0006 | 0.989 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 866 | Max Shen | run_all:pc:ft_roberta_base |
 
-_Top 12 of 51 logged runs by CV AUROC; full log in `experiments/results.csv`. CV scores from different schemes are not directly comparable (`cluster` CV holds out whole topics and is harder than `stratified`)._
+_Top 12 of 69 logged runs by CV AUROC; full log in `experiments/results.csv`. CV scores from different schemes are not directly comparable (`cluster` CV holds out whole topics and is harder than `stratified`)._
 <!-- LEADERBOARD:END -->
 
 ## Keeping this file current
@@ -247,6 +288,15 @@ New best scores appear in the Results table automatically when runs are logged;
 after a run_all session, add its headline findings to "Observations so far".
 
 ## Changelog
+
+- 2026-10-31 — Held-out evaluation and final submissions (see the summary at the top of "Observations so far").
+  `scripts/build_eval_set.py` (7 unseen generators + held-out Gutenberg, eval only), `scripts/eval_ood.py`
+  (seed-matched fold scoring, Kaggle-proxy AUROC, greedy blend with a half/half generator check), `ood` profile
+  (18 models + variants, run on both GPUs in two sessions), `train.py` writes per-fold eval predictions and accepts
+  one-class eval sets, `preprocessing.join_lines` (tested, off), `make_submission.py` (saved-model re-prediction,
+  verified identical to training-time predictions; blends via each model's OOF-score CDF, the same as eval_ood, so
+  the uploaded file is exactly what was validated), `src/inference.py`, fine-tunes keep fold models
+  (`output.save_fold_models`), `scripts/gptzero_compare.py` draft (API call left open).
 
 - 2026-10-29 — Full PC benchmark finished (35/35 jobs; analysis under "Observations so far"). Fixed `run_all.py`
   crashing when it printed a failed job's error tail (tqdm bar characters) to a cp1252 Windows console — stdout/stderr

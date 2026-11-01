@@ -36,7 +36,7 @@ from scipy.stats import spearmanr  # noqa: E402
 
 from src.config import load_config, read_yaml  # noqa: E402
 from src.data import load_csv  # noqa: E402
-from src.ensemble import load_runs, rank_mean  # noqa: E402
+from src.ensemble import cdf_mean, load_runs, rank_mean  # noqa: E402
 from src.inference import find_run, has_model, predict_run, validate_submission  # noqa: E402
 from src.utils import auroc, ensure_dir, tpr_at_fpr  # noqa: E402
 
@@ -69,6 +69,9 @@ def main():
     ap.add_argument("--run", nargs="+", help="run directories or names in outputs/runs/")
     ap.add_argument("--weights", nargs="+", type=float, help="blend weights, one per run (default: equal)")
     ap.add_argument("--name", default=None, help="output file name (default: the run name, or blend_<runs>)")
+    ap.add_argument("--blend", choices=["cdf", "rank"], default="cdf",
+                    help="cdf (default): map each model's test scores through its OOF-score CDF, as "
+                         "scripts/eval_ood.py does; rank: rank within test")
     ap.add_argument("--cached", action="store_true", help="use stored test predictions instead of the saved models")
     ap.add_argument("--device", default=None, help="auto | cuda | cuda:<i> | mps | cpu (torch models only)")
     ap.add_argument("--check", default=None, help="only validate this submission CSV")
@@ -93,14 +96,17 @@ def main():
 
     if len(runs) == 1:
         label = preds.iloc[:, 0].to_numpy()
-    else:  # weighted rank average: AUROC only cares about order, and ranks put every model on the same scale
-        O, T, y, names = load_runs(runs)
-        oof, _ = rank_mean(O, T, names, args.weights)
-        print(f"Blend out-of-fold AUROC {auroc(y, oof):.4f}, TPR@1%FPR {tpr_at_fpr(y, oof, 0.01):.3f} "
-              f"on {len(y)} rows (best single {max(auroc(y, O[n]) for n in names):.4f})")
+    else:  # weighted average on a common scale (AUROC only cares about order)
+        O, _, y, names = load_runs(runs)
         T = preds.copy()
         T.columns = names
-        _, label = rank_mean(T, T, names, args.weights)
+        if args.blend == "cdf":
+            oof, label = cdf_mean(O, T, names, args.weights)
+        else:
+            oof, _ = rank_mean(O, T, names, args.weights)
+            _, label = rank_mean(T, T, names, args.weights)
+        print(f"Blend ({args.blend}) out-of-fold AUROC {auroc(y, oof):.4f}, TPR@1%FPR {tpr_at_fpr(y, oof, 0.01):.3f} "
+              f"on {len(y)} rows (best single {max(auroc(y, O[n]) for n in names):.4f})")
         label = np.asarray(label)
 
     name = args.name or (runs[0].name if len(runs) == 1 else "blend_" + "+".join(r.name.split("__")[-1] for r in runs))
