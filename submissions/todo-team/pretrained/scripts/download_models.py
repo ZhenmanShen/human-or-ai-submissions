@@ -2,7 +2,7 @@
 
   python scripts/download_models.py                    # every model in configs/models/
   python scripts/download_models.py --profile mac      # only what a run_all profile needs
-  python scripts/download_models.py --configs ft_deberta_v3_base lm_gpt2
+  python scripts/download_models.py --configs ft_roberta_base lm_gpt2
   python scripts/download_models.py --ids microsoft/deberta-v3-base   # any Hugging Face repo id
   python scripts/download_models.py --local            # also keep a copy in ./pretrained/ (git-ignored)
   python scripts/download_models.py --list             # just show which models / sizes

@@ -4,7 +4,7 @@ optionally that every pretrained model loads and runs one forward pass.
 
   python scripts/check_setup.py              # environment + GPUs + data (seconds)
   python scripts/check_setup.py --models     # + load every pretrained model and run 2 texts through it
-  python scripts/check_setup.py --models --configs ft_deberta_v3_base lm_gpt2
+  python scripts/check_setup.py --models --configs ft_roberta_base lm_gpt2
 
 Exit code 0 = no FAIL.
 """
@@ -51,7 +51,7 @@ def check_packages():
         import transformers
         major, minor = (int(x) for x in transformers.__version__.split(".")[:2])
         if (major, minor) < (4, 48):
-            report("WARN", "transformers >= 4.48 needed for ModernBERT (ft_modernbert_base)")
+            report("WARN", "transformers >= 4.48 needed for recent model classes")
     except Exception:
         pass
 
@@ -119,7 +119,7 @@ def check_models(configs, device):
     for c in configs or available_configs():
         cfg = load_config(c)
         name = cfg["model"]["name"]
-        if name not in ("transformer", "lm_perplexity", "embedding_logreg"):
+        if name not in ("transformer", "lm_perplexity"):
             continue
         params = dict(cfg["model"]["params"])
         if "device" in inspect.signature(get_model_class(name).__init__).parameters:

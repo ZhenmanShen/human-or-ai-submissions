@@ -7,11 +7,8 @@ import importlib
 # name -> "module:ClassName" (module relative to src.models)
 REGISTRY = {
     "tfidf_logreg": "tfidf_logreg:TfidfLogReg",
-    "tfidf_nb": "tfidf_nb:TfidfNaiveBayes",
-    "tfidf_svm": "tfidf_svm:TfidfSVM",
     "stylometric_gbm": "stylometric_gbm:StylometricGBM",
     "lm_perplexity": "lm_perplexity:LMPerplexity",
-    "embedding_logreg": "embedding_logreg:EmbeddingLogReg",
     "transformer": "transformer:TransformerClassifier",
 }
 

@@ -7,8 +7,8 @@ Examples
   python train.py --model stylometric_gbm --set model.params.estimator=random_forest
   python train.py --model tfidf_logreg --set data.train_frac=0.25          # learning curve
   python train.py --model tfidf_logreg --set semi_supervised.enabled=true  # pseudo-labelling
-  python train.py --model ft_deberta_v3_base --device cuda                 # fine-tune on an NVIDIA GPU
-  python train.py --model ft_distilroberta --device mps                    # Apple silicon
+  python train.py --model ft_roberta_base --device cuda                 # fine-tune on an NVIDIA GPU
+  python train.py --model lm_gpt2 --device mps                           # Apple silicon
   python train.py --model tfidf_logreg --quick                             # 2k-example smoke test
   python train.py --config path/to/custom.yaml
 
@@ -60,7 +60,7 @@ from src.utils import (append_result, auroc, binary_metrics, ensure_dir, free_to
 
 def parse_args(argv=None):
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--model", help="config name in configs/models/ (e.g. tfidf_logreg, ft_deberta_v3_base)")
+    ap.add_argument("--model", help="config name in configs/models/ (e.g. tfidf_logreg, lm_gpt2)")
     ap.add_argument("--config", help="explicit config file instead of configs/models/<model>.yaml")
     ap.add_argument("--set", nargs="*", default=[], metavar="KEY=VALUE",
                     help="override any config value, e.g. model.params.C=8 cv.n_folds=3")

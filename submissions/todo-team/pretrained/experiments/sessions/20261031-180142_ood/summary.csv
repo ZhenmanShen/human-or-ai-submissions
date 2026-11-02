@@ -1,2 +1,0 @@
-job,config,family,group,status,cv_scheme,n_folds,cv_auroc,eval:eval_creative,eval:eval_newgen,fold_std,fold_min,tpr@1%fpr,tpr@5%fpr,accuracy,f1,log_loss,brier,time_min,device,gpu_mem_gb,test_mean,train_frac,run_name,error
-debiased_deberta_v3_base,ft_deberta_v3_base,fine-tuned,robustness,ok,stratified,5,0.99216598,0.845710604359218,,0.0017473181908284627,0.989201,0.9104,0.973,0.9079,0.9147774590543166,0.3894071165863772,0.08055059381822835,56.6,NVIDIA GeForce RTX 5070,6.16,0.5409336090087891,1.0,20261031-180142_ood__debiased_deberta_v3_base,
