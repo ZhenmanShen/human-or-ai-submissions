@@ -1,0 +1,25 @@
+{
+  "model": "ensemble_c123",
+  "registry_name": "ensemble_c123",
+  "params": {
+    "members": [
+      "tfidf_lr",
+      "stylo_gbm",
+      "transformer_scratch"
+    ],
+    "folds": 5,
+    "greedy_iters": 20
+  },
+  "seed": 20261023,
+  "train_auroc": 0.9999999999999999,
+  "val_auroc": 0.998683,
+  "val_tpr_at_1fpr": 0.99,
+  "n_train": 8000,
+  "n_val": 2000,
+  "fit_time_s": 239.7,
+  "val_predict_time_s": 4.1,
+  "hardware": "NVIDIA GeForce RTX 5070",
+  "searched": false,
+  "timestamp": "2026-11-01T17:40:45",
+  "git_commit": "892b43a29a1e30c365caf2140116a60a4bed0019"
+}
