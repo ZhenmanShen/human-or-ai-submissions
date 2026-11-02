@@ -8,3 +8,4 @@ uploaded to Kaggle say "not submitted". Kaggle private scores are blank until th
 |---|---|---|---|---|---|---|---|---|---|
 | 2026-11-01 | classical | stylo_gbm | `classical/kaggle_submissions/2026-11-01_stylo_gbm.csv` |  | Max Shen | 0.99831 | pending upload |  |  |
 | 2026-11-01 | classical | tfidf_lr | `classical/kaggle_submissions/2026-11-01_tfidf_lr.csv` |  | Max Shen | 0.96256 | pending upload |  |  |
+| 2026-11-01 | classical | transformer_scratch | `classical/kaggle_submissions/2026-11-01_transformer_scratch.csv` |  | Max Shen | 0.98500 | pending upload |  |  |

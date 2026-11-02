@@ -1,0 +1,32 @@
+{
+  "model": "transformer_scratch",
+  "registry_name": "transformer_scratch",
+  "params": {
+    "vocab_size": 12000,
+    "max_len": 512,
+    "d_model": 256,
+    "n_heads": 4,
+    "n_layers": 4,
+    "d_ff": 1024,
+    "dropout": 0.1,
+    "lr": 0.0003,
+    "weight_decay": 0.01,
+    "batch_size": 32,
+    "max_epochs": 20,
+    "patience": 3,
+    "warmup_frac": 0.06,
+    "inner_val_frac": 0.1
+  },
+  "seed": 20261023,
+  "train_auroc": 0.9978737499999999,
+  "val_auroc": 0.9849985000000001,
+  "val_tpr_at_1fpr": 0.846,
+  "n_train": 8000,
+  "n_val": 2000,
+  "fit_time_s": 38.3,
+  "val_predict_time_s": 0.4,
+  "hardware": "NVIDIA GeForce RTX 5070",
+  "searched": false,
+  "timestamp": "2026-11-01T17:20:00",
+  "git_commit": "403cfb56b33137e161e5a46dc9700b60e3d0eb4e"
+}
