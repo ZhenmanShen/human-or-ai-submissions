@@ -1,0 +1,41 @@
+# Held-out generator / creative-writing evaluation of the strongest model families.
+#   python scripts/build_eval_set.py generate ... && python scripts/build_eval_set.py assemble
+#   python run_all.py --profile ood
+#   python scripts/eval_ood.py --all
+# Strongest models of the full benchmark (pc profile, removed in the trim), plus data.eval_files: every CV fold model also scores
+# data/eval/eval_newgen.csv (AI text from 7 generators never used anywhere else, on train's domains)
+# and data/eval/eval_creative.csv (held-out Gutenberg human poems/stories + AI poems/stories).
+# Nothing from data/eval/ is ever trained on. Fine-tunes keep their fold models (make_submission.py).
+# Rough wall time: ~4 h on both GPUs.
+description: Strongest models + debiased variants, scored on held-out generators and creative writing (data/eval).
+
+defaults:
+  cv.scheme: stratified
+  cv.n_folds: 5
+  data.eval_files: [data/eval/eval_newgen.csv, data/eval/eval_creative.csv]
+
+jobs:
+  # ------------------------------------------------------------ CPU
+  - {name: tfidf_logreg,        config: tfidf_logreg,        resource: cpu, cost: 3}
+  - {name: stylometric_gbm_ext, config: stylometric_gbm_ext, resource: cpu, cost: 1}
+  - {name: debiased_stylo_ext,  config: stylometric_gbm_ext, resource: cpu, cost: 1, group: robustness,
+     set: {preprocessing.collapse_blank_lines: true, preprocessing.collapse_spaces: true,
+           preprocessing.normalize_quotes: true, preprocessing.remove_zero_width: true, preprocessing.map_homoglyphs: true}}
+
+  # ------------------------------------------------------------ LM features / embeddings (GPU, features cached)
+  - {name: lm_gpt2,            config: lm_gpt2,            resource: gpu, cost: 4}
+  - {name: lm_gpt2_medium,     config: lm_gpt2_medium,     resource: gpu, cost: 6}
+  - {name: binoculars_qwen05b, config: binoculars_qwen05b, resource: gpu, cost: 10}
+  - {name: binoculars_qwen15b, config: binoculars_qwen15b, resource: gpu, cost: 20}
+  - {name: lm_gpt2_nostyle,    config: lm_gpt2_nostyle,    resource: gpu, cost: 4}   # final_A member
+  - {name: debiased_lm_gpt2,   config: lm_gpt2,            resource: gpu, cost: 4, group: robustness,
+     set: {preprocessing.collapse_blank_lines: true, preprocessing.collapse_spaces: true,
+           preprocessing.normalize_quotes: true, preprocessing.remove_zero_width: true, preprocessing.map_homoglyphs: true}}
+
+  # ------------------------------------------------------------ fine-tunes (GPU)
+  - {name: ft_roberta_base,          config: ft_roberta_base,          resource: gpu, cost: 15}
+  - {name: ft_deberta_v3_large,      config: ft_deberta_v3_large,      resource: gpu, cost: 90}
+  - {name: ft_openai_detector_large, config: ft_openai_detector_large, resource: gpu, cost: 120}
+
+report:
+  ensemble_groups: [main]

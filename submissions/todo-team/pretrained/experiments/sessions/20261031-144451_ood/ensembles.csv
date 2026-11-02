@@ -1,0 +1,6 @@
+method,auroc,tpr@1%fpr,rows_evaluated,members
+stack_logreg,0.9979168399999999,0.9736,10000,ft_deberta_v3_large:+0.49 + ft_openai_detector_large:+0.38 + ft_deberta_v3_base:+0.05
+greedy_selection,0.99782126,0.9834,10000,ft_deberta_v3_large:0.43 + ft_openai_detector_large:0.40 + ft_deberta_v3_base:0.17
+rank_mean_top5,0.9976740000000001,0.982,10000,ft_deberta_v3_large + ft_openai_detector_large + ft_deberta_v3_base
+rank_mean_all,0.9976740000000001,0.982,10000,3 models
+single_best (ft_deberta_v3_large),0.9951091999999999,0.9434,10000,ft_deberta_v3_large
