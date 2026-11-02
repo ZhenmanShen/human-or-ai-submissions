@@ -1,19 +1,73 @@
 # [TODO: Kaggle team name] — Human or AI?
 
-Code for the CS5785 "Human or AI?" Kaggle competition. There are two tracks, and both use the same validation split:
+Code for the CS5785 "Human or AI?" Kaggle competition. Six models were submitted, three from each of two
+tracks, and every model is scored on the same fixed 2,000-row validation split.
 
-| Folder | What | Report |
+## Start here
+
+| I want to... | Go to |
+|---|---|
+| Read the report | [`reports/kaggle_report.tex`](reports/kaggle_report.tex) (the one report we submit) |
+| See every Kaggle upload and its score | [`SUBMISSIONS.md`](SUBMISSIONS.md) |
+| See the six models side by side | [`common/results/compare_tracks.csv`](common/results/compare_tracks.csv), [`common/figures/six_models.pdf`](common/figures/six_models.pdf) |
+| Run a classical model on a laptop | [`classical/README.md`](classical/README.md) |
+| Add a new model | [`classical/CONTRIBUTING.md`](classical/CONTRIBUTING.md) |
+| Run the pretrained (GPU) pipeline | [`pretrained/README.md`](pretrained/README.md) |
+| See what is still to do | search the repo for `[TODO` |
+
+## Folder map
+
+```
+submissions/todo-team/
+├── README.md              this file: setup, commands, seeds, AI-use disclosure
+├── SUBMISSIONS.md         every Kaggle upload and its score (generated from submission_log.csv)
+├── submission_log.csv
+├── reports/               THE REPORT: kaggle_report.tex + build_tables.py (picks rows from the track tables)
+├── common/                shared by both tracks
+│   ├── val_ids.csv          the fixed validation split (2,000 ids, seed 20261023)
+│   ├── data.py metrics.py   data loading, AUROC, length/verse subgroups
+│   ├── compare_tracks.py    the six-model comparison -> results/ tables/ figures/
+│   └── update_submission_log.py, validate_submission.py, make_split.py, describe_splits.py
+├── classical/             from-scratch models, no pretrained weights (CPU-friendly)
+│   ├── models/              one file per model: tfidf_lr (C1), stylo_gbm (C2), transformer_scratch (C3), + extras
+│   ├── configs/             one YAML per model, including its hyperparameter grid
+│   ├── train.py predict.py experiments.py report_tables.py
+│   ├── results/             metrics + predictions per model (all report numbers come from here)
+│   ├── kaggle_submissions/  the uploaded CSVs
+│   └── reports/             tables/figures used by the report (+ a longer classical-only draft)
+└── pretrained/            frozen-LM features + fine-tuned encoders, blended (needs a GPU)
+    ├── src/ configs/        the pipeline, imported with its history from the research repo
+    ├── train.py run_all.py make_submission.py scripts/
+    ├── results/             fixed-split metrics, curves, error analysis (all report numbers come from here)
+    ├── kaggle_submissions/  the uploaded CSVs (blends A, B, C)
+    ├── experiments/         log of every research run (72 runs, 5-fold CV, seed 42)
+    └── reports/             tables/figures used by the report (+ a longer pretrained-only draft)
+```
+
+The six submitted models:
+
+| Model | Track | Code |
 |---|---|---|
-| [`pretrained/`](pretrained/) | Frozen-LM features (GPT-2, Qwen2.5 Binoculars) and fine-tuned encoders (RoBERTa, DeBERTa-v3, OpenAI detector), blended. Imported with its development history. | [`pretrained/reports/kaggle_pretrained_report.tex`](pretrained/reports/kaggle_pretrained_report.tex) |
-| [`classical/`](classical/) | Models trained from scratch, no pretrained weights: C1 TF-IDF + LR, C2 stylometric LightGBM, C3 small Transformer, plus comparison rows | [`classical/reports/kaggle_classical_report.tex`](classical/reports/kaggle_classical_report.tex) |
-| [`common/`](common/) | The fixed validation split, data loading, metrics, the submission validator, the submission log and the cross-track comparison | — |
+| Blend A (best public score, 0.99161) | pretrained | `pretrained/make_submission.py`, weights 3 3 2 1 1 1 1 |
+| Blend B, Blend C | pretrained | same script, equal weights |
+| C1 TF-IDF + logistic regression | classical | [`classical/models/tfidf_lr.py`](classical/models/tfidf_lr.py) |
+| C2 stylometric LightGBM (best classical) | classical | [`classical/models/stylo_gbm.py`](classical/models/stylo_gbm.py) |
+| C3 small Transformer from scratch | classical | [`classical/models/transformer_scratch.py`](classical/models/transformer_scratch.py) |
 
-- **The report:** [`reports/kaggle_report.tex`](reports/kaggle_report.tex). It covers both tracks and centres on the six models submitted to Kaggle, three per track.
-  - Its tables are assembled by `reports/build_tables.py` from the tracks' generated tables.
-  - The per-track reports above are longer versions with every model.
+Notes:
+
+- **The report.** Its tables are generated: run the track scripts, then `python common/compare_tracks.py` and
+  `python reports/build_tables.py`.
   - To compile it in Overleaf, upload the whole team folder; the report reads `../common`, `../pretrained` and `../classical`.
-- Submission and testing history: [`SUBMISSIONS.md`](SUBMISSIONS.md), generated from `submission_log.csv`.
-- Adding a model: [`classical/CONTRIBUTING.md`](classical/CONTRIBUTING.md).
+  - `pretrained/reports/kaggle_pretrained_report.tex` and `classical/reports/kaggle_classical_report.tex` are
+    longer single-track drafts that cover every model. They are background only and not submitted.
+- **AI-assistant files.** `pretrained/AGENTS.md` and `pretrained/CLAUDE.md` are context files for AI assistants,
+  carried over from the research repo. You don't need them to use the code.
+- **Branches.**
+  - `main` holds everything.
+  - `submission/todo-team` is the branch the course PR will be opened from; keep it equal to `main`.
+  - `pretrained`, `classical` and `model/*` are the per-track and per-model branches. All of them are already merged
+    into `main`, and they are kept only so the commit history shows how each model was built.
 
 ## 1. Team
 
