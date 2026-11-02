@@ -6,3 +6,5 @@ date,track,model,file,commit,author,val_auroc,kaggle_public,kaggle_private,notes
 2026-11-01,classical,nbsvm,,548c60872335e543fad8c65b94096f8d8f8b2735,Max Shen,0.96987,not submitted,,
 2026-11-01,classical,rf_stylo,,f55543e976e781ddbcd225c6526447a7bee9e358,Max Shen,0.99691,not submitted,,
 2026-11-01,classical,ensemble_c123,,892b43a29a1e30c365caf2140116a60a4bed0019,Max Shen,0.99868,not submitted,,
+2026-11-01,classical,stylo_gbm@no_added,,7f9337d15dac14bceda39a5845d5a797d1a7e998,Max Shen,0.99825,not submitted,,
+2026-11-01,classical,stylo_gbm@no_layout,,7f9337d15dac14bceda39a5845d5a797d1a7e998,Max Shen,0.98724,not submitted,,
