@@ -116,7 +116,10 @@ def cmd_collect(args):
         rows.append({"model": m, "kind": "single", "train_auroc": met["train_auc"], "val_auroc": met["val_auc"],
                      "val_tpr_at_1fpr": met["oof_metrics"]["tpr_at_1fpr"], "fit_time_s": met["fit_time_s"],
                      "feature_time_s": met.get("feature_time_s", ""), "hardware": met.get("gpu_name", "CPU"),
-                     "cv5_auroc_seed42": orig.loc[o, "cv_auc"] if o in orig.index else "", "run": run.name})
+                     "cv5_auroc_seed42": orig.loc[o, "cv_auc"] if o in orig.index else "",
+                     # wall time of the original 5-fold run incl. LM feature extraction (fixed-split LM runs read
+                     # the feature cache, so their fit_time_s is the LightGBM head only)
+                     "cv5_run_time_s_seed42": orig.loc[o, "train_time_s"] if o in orig.index else "", "run": run.name})
     V = pd.DataFrame(val)
     T = pd.DataFrame(tr)
     yv, yt = y.loc[V.index].to_numpy(), y.loc[T.index].to_numpy()
