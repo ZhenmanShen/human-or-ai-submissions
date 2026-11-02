@@ -162,8 +162,11 @@ def main(argv=None):
         print(f"{name}: inner {cfg['cv_folds']}-fold CV on {len(y)} training rows over {cfg['search']}")
         params = search(cfg, params, X, y, unl, args.seed, args.device, out_dir)
         print(f"  chosen: {params}")
+    model = build(cfg, params, args.seed, args.device)
+    if hasattr(model, "reset_cache"):  # time the fit including feature extraction, not from the search's cache
+        model.reset_cache()
     t0 = time.time()
-    model = build(cfg, params, args.seed, args.device).fit(X, y, unlabeled_texts=unl)
+    model.fit(X, y, unlabeled_texts=unl)
     fit_s = time.time() - t0
     p_tr = model.predict_proba(X)
     t1 = time.time()

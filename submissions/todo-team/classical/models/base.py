@@ -28,6 +28,9 @@ class BaseModel:
         """P(AI-written) for each text, shape (n,), values in [0, 1]."""
         raise NotImplementedError
 
+    # Optional: a model that caches features across fits (e.g. for the search grid) can define
+    # reset_cache(); train.py calls it before the timed final fit so fit_time_s is honest.
+
     # Default persistence pickles the whole object; override for torch models.
     def save(self, path: str | Path) -> None:
         Path(path).mkdir(parents=True, exist_ok=True)

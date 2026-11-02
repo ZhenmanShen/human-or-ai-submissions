@@ -34,6 +34,11 @@ class StyloGBM(BaseModel):
         self.names_ = [names[i] for i in keep]
         return X[:, keep]
 
+    @staticmethod
+    def reset_cache():
+        from features import stylometry
+        stylometry._CACHE.clear()
+
     def fit(self, texts, y, unlabeled_texts=None):
         import lightgbm as lgb
         self.clf = lgb.LGBMClassifier(**self.lgbm).fit(self._X(texts), y)
