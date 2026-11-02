@@ -178,18 +178,24 @@ class Scheduler:
         device = slot["device"] if j["resource"] == "gpu" else "cpu"
         cmd = [sys.executable, "train.py", "--model", j["config"], "--run-name", j["run_name"],
                "--device", device, "--notes", f"run_all:{self.args.profile_name}:{j['name']}"]
+        if not self.args.log_results:
+            cmd.append("--no-log")
         sets = set_args(j["set"])
         if sets:
             cmd += ["--set", *sets]
         env = os.environ.copy()
         env.update(slot["env"] if j["resource"] == "gpu" else {})
         env.update({"PYTHONUNBUFFERED": "1", "PYTHONIOENCODING": "utf-8", "TQDM_MININTERVAL": "15",
-                    "TOKENIZERS_PARALLELISM": "false"})
+                    "TOKENIZERS_PARALLELISM": "false",
+                    # Windows without Developer Mode: HF prints a symlink warning on every load,
+                    # which buries the real error at the end of a failed job's log.
+                    "HF_HUB_DISABLE_SYMLINKS_WARNING": "1"})
         j["started"] = datetime.now().strftime("%H:%M:%S")
         j["log"] = str(log.relative_to(ROOT))
         t0 = time.time()
         self.events.put(("start", j, slot))
-        with open(log, "w", encoding="utf-8") as fh:
+        with open(log, "a", encoding="utf-8") as fh:  # append: a resumed job keeps earlier attempts' logs
+            fh.write(f"\n===== attempt started {datetime.now():%Y-%m-%d %H:%M:%S} =====\n")
             fh.write("$ " + " ".join(cmd) + "\n\n")
             fh.flush()
             p = subprocess.Popen(cmd, cwd=ROOT, env=env, stdout=fh, stderr=subprocess.STDOUT)
@@ -292,6 +298,9 @@ def main():
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--fake-gpus", type=int, default=0, help=argparse.SUPPRESS)
     args = ap.parse_args()
+    # utf-8 + replace: job error tails can contain tqdm bar characters a cp1252 console can't encode
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)
 
     from src.report import build_report
 
@@ -312,6 +321,15 @@ def main():
             j["cost"] = float(j["cost"])
             if j.get("status") != "ok":
                 j.update(status="pending", error="", returncode="", cv_auc="")
+                for kv in args.set:  # e.g. a smaller batch size for a job that ran out of memory
+                    k, v = kv.split("=", 1)
+                    j["set"][k] = yaml.safe_load(v)
+        if args.only or args.skip:  # restrict which unfinished jobs this resume runs
+            keep = set(args.only.split(",")) if args.only else {j["name"] for j in jobs}
+            keep -= set(args.skip.split(",")) if args.skip else set()
+            for j in jobs:
+                if j["status"] == "pending" and j["name"] not in keep:
+                    j["status"] = "skipped"
     else:
         if not args.profile:
             ap.error("--profile (or --resume / --report) is required")
@@ -324,9 +342,11 @@ def main():
             j.update(status="pending", run_name=f"{stamp}_{args.profile}__{j['name']}", slot="", returncode="",
                      started="", finished="", duration_s="", cv_auc="", log="", error="")
         meta = {"profile": args.profile, "created": stamp, "description": profile.get("description", ""),
+                "log_results": profile.get("log_results", True),
                 "report": profile.get("report", {}), "jobs": [{k: j[k] for k in
                 ("name", "config", "resource", "group", "cost", "after", "set", "run_name")} for j in jobs]}
 
+    args.log_results = meta.get("log_results", True)
     slots = detect_slots(args)
     print(f"Session: {session.relative_to(ROOT)}")
     print("Workers: " + "; ".join(s["desc"] for s in slots))

@@ -18,6 +18,10 @@ data:
   # Extra labeled CSVs (columns: text,label[,source]) added to the TRAINING
   # side of every fold only -- never to validation. e.g. [data/external/poems.csv]
   external_files: []
+  # Extra labeled CSVs (text,label) that are never trained on: every CV fold model predicts
+  # them and metrics.json gets eval.<file stem>.auc (fold-averaged), e.g. a held-out
+  # out-of-domain / unseen-generator set. Logged as `eval_auc` in experiments/results.csv.
+  eval_files: []
   # Fraction of each fold's training data to keep (learning-curve experiments).
   train_frac: 1.0
 
@@ -30,6 +34,7 @@ preprocessing:
   map_homoglyphs: false
   normalize_quotes: false
   collapse_blank_lines: false
+  join_lines: false            # all line breaks -> spaces (removes the line-structure shortcut, see preprocessing.py)
   collapse_spaces: false
   lowercase: false
   strip: true
@@ -59,7 +64,14 @@ final:
 
 output:
   save_models: true          # save the refit model (outputs/runs/<run>/)
-  save_fold_models: false    # with fold_average: also save every fold model (large for transformers)
+  save_fold_models: true     # fold_average runs (fine-tunes): keep every fold model in <run>/fold_<k>/ so
+                             # make_submission.py / predict.py can re-predict (0.3-1.7 GB per fold)
+  # Resuming a run with the same run name (run_all --resume): folds whose predictions are in
+  # outputs/runs/<run>/folds/ are skipped, and fine-tunes with model.params.checkpoint_every_epoch
+  # continue from outputs/checkpoints/<run>/fold_<k>/last.pt (latest epoch only).
+  resume_folds: true
+  checkpoints_dir: outputs/checkpoints
+  keep_checkpoints: false    # false: delete a fold's checkpoint once its predictions are saved, and the run's at the end
   runs_dir: outputs/runs
   submissions_dir: outputs/submissions
   results_file: experiments/results.csv

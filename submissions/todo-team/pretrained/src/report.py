@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 import shutil
 import warnings
 from pathlib import Path
@@ -51,6 +52,22 @@ def _ks(a, b) -> float:
 
 
 # ------------------------------------------------------------------ collection
+def job_error(run_dir: Path, log_tail: str) -> str:
+    """The exception that ended a job: train.py's status.json if it got that far, else the
+    last 'SomethingError: ...' line of the log tail (warnings printed after a traceback
+    must not hide it)."""
+    try:
+        with open(run_dir / "status.json", encoding="utf-8") as f:
+            err = json.load(f).get("error")
+        if err:
+            return str(err)[:200]
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    lines = log_tail.splitlines()
+    exc = [l for l in lines if re.match(r"^\s*[\w.]+(Error|Exception|Interrupt)\b", l)]
+    return ((exc or lines or [""])[-1]).strip()[:200]
+
+
 def collect(session: Path):
     meta = read_yaml(session / "session.yaml")
     with open(session / "jobs.csv", newline="", encoding="utf-8") as f:
@@ -76,11 +93,11 @@ def collect(session: Path):
                 "device": m.get("gpu_name", m.get("device")), "gpu_mem_gb": m.get("gpu_peak_mem_gb"),
                 "test_mean": m.get("test_pred_mean"),
                 "train_frac": j.get("set", {}).get("data.train_frac", 1.0),
+                **{f"eval:{k}": v.get("auc") for k, v in (m.get("eval") or {}).items()},
             })
             runs[j["name"]] = run_dir
         else:
-            row["error"] = (st.get("error") or "").splitlines()[-1:] or [""]
-            row["error"] = row["error"][0][:200]
+            row["error"] = job_error(run_dir, st.get("error") or "")
         rows.append(row)
     return meta, pd.DataFrame(rows), runs
 
@@ -427,6 +444,8 @@ def build_report(session: Path) -> Path:
     cols = ["job", "config", "family", "group", "status", "cv_scheme", "n_folds", "cv_auroc", "fold_std", "fold_min",
             "tpr@1%fpr", "tpr@5%fpr", "accuracy", "f1", "log_loss", "brier", "time_min", "device", "gpu_mem_gb",
             "test_mean", "train_frac", "run_name", "error"]
+    eval_cols = sorted(c for c in df.columns if c.startswith("eval:"))  # held-out eval sets (data.eval_files)
+    cols = cols[:8] + eval_cols + cols[8:]
     summary = df.reindex(columns=cols)
     summary["n_folds"] = pd.to_numeric(summary["n_folds"], errors="coerce").astype("Int64")
     summary["_ok"] = summary.status == "ok"
@@ -467,8 +486,9 @@ def build_report(session: Path) -> Path:
                "_Greedy and stacking scores are cross-validated (nested), so they are comparable to single models. "
                "Remember the test set contains unseen domains/generators — prefer robust gains over tiny CV gains._", ""]
     md += ["## Results", "", _md_table(summary[summary.status == "ok"][
-        ["job", "family", "group", "cv_scheme", "n_folds", "cv_auroc", "fold_std", "tpr@1%fpr", "accuracy",
-         "log_loss", "time_min", "device", "test_mean"]], {"time_min": ".1f", "test_mean": ".3f", "fold_std": ".4f"}), ""]
+        ["job", "family", "group", "cv_scheme", "n_folds", "cv_auroc", "fold_std", *eval_cols, "tpr@1%fpr",
+         "accuracy", "log_loss", "time_min", "device", "test_mean"]],
+        {"time_min": ".1f", "test_mean": ".3f", "fold_std": ".4f", **{c: ".4f" for c in eval_cols}}), ""]
     failed = summary[summary.status != "ok"]
     if len(failed):
         md += ["### Jobs that did not finish", "", _md_table(failed[["job", "config", "status", "error"]]), "",

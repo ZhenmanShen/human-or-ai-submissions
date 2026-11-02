@@ -1,0 +1,133 @@
+scope,check,result,detail
+data,train labels are 0/1 and roughly balanced,PASS,AI share 0.500
+data,test ids unique and identical to sample_submission ids,PASS,3000 test rows
+data,no exact text overlap between train and test,PASS,0 overlaps
+tfidf_logreg,OOF predictions finite,PASS,
+tfidf_logreg,CV AUROC > 0.5 (labels not flipped),PASS,0.9576
+tfidf_logreg,CV AUROC > 0.75 (model learned something),PASS,0.9576
+tfidf_logreg,fold AUROC spread small (std < 0.03),PASS,std 0.0049
+tfidf_logreg,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+tfidf_logreg,test predictions not constant,PASS,std 0.3191
+tfidf_logreg,mean test prediction plausible (0.15-0.85),PASS,0.441
+tfidf_logreg,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.117 - large values mean distribution shift or a preprocessing mismatch
+stylometric_gbm,OOF predictions finite,PASS,
+stylometric_gbm,CV AUROC > 0.5 (labels not flipped),PASS,0.9976
+stylometric_gbm,CV AUROC > 0.75 (model learned something),PASS,0.9976
+stylometric_gbm,fold AUROC spread small (std < 0.03),PASS,std 0.0009
+stylometric_gbm,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+stylometric_gbm,test predictions not constant,PASS,std 0.4675
+stylometric_gbm,mean test prediction plausible (0.15-0.85),PASS,0.473
+stylometric_gbm,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.108 - large values mean distribution shift or a preprocessing mismatch
+stylometric_gbm_ext,OOF predictions finite,PASS,
+stylometric_gbm_ext,CV AUROC > 0.5 (labels not flipped),PASS,0.9984
+stylometric_gbm_ext,CV AUROC > 0.75 (model learned something),PASS,0.9984
+stylometric_gbm_ext,fold AUROC spread small (std < 0.03),PASS,std 0.0005
+stylometric_gbm_ext,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+stylometric_gbm_ext,test predictions not constant,PASS,std 0.4738
+stylometric_gbm_ext,mean test prediction plausible (0.15-0.85),PASS,0.458
+stylometric_gbm_ext,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.109 - large values mean distribution shift or a preprocessing mismatch
+debiased_stylo_ext,OOF predictions finite,PASS,
+debiased_stylo_ext,CV AUROC > 0.5 (labels not flipped),PASS,0.9961
+debiased_stylo_ext,CV AUROC > 0.75 (model learned something),PASS,0.9961
+debiased_stylo_ext,fold AUROC spread small (std < 0.03),PASS,std 0.0007
+debiased_stylo_ext,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+debiased_stylo_ext,test predictions not constant,PASS,std 0.4670
+debiased_stylo_ext,mean test prediction plausible (0.15-0.85),PASS,0.522
+debiased_stylo_ext,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.132 - large values mean distribution shift or a preprocessing mismatch
+lm_gpt2,OOF predictions finite,PASS,
+lm_gpt2,CV AUROC > 0.5 (labels not flipped),PASS,0.9993
+lm_gpt2,CV AUROC > 0.75 (model learned something),PASS,0.9993
+lm_gpt2,fold AUROC spread small (std < 0.03),PASS,std 0.0004
+lm_gpt2,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+lm_gpt2,test predictions not constant,PASS,std 0.4890
+lm_gpt2,mean test prediction plausible (0.15-0.85),PASS,0.460
+lm_gpt2,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.148 - large values mean distribution shift or a preprocessing mismatch
+lm_gpt2_medium,OOF predictions finite,PASS,
+lm_gpt2_medium,CV AUROC > 0.5 (labels not flipped),PASS,0.9992
+lm_gpt2_medium,CV AUROC > 0.75 (model learned something),PASS,0.9992
+lm_gpt2_medium,fold AUROC spread small (std < 0.03),PASS,std 0.0005
+lm_gpt2_medium,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+lm_gpt2_medium,test predictions not constant,PASS,std 0.4899
+lm_gpt2_medium,mean test prediction plausible (0.15-0.85),PASS,0.461
+lm_gpt2_medium,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.150 - large values mean distribution shift or a preprocessing mismatch
+binoculars_qwen05b,OOF predictions finite,PASS,
+binoculars_qwen05b,CV AUROC > 0.5 (labels not flipped),PASS,0.9992
+binoculars_qwen05b,CV AUROC > 0.75 (model learned something),PASS,0.9992
+binoculars_qwen05b,fold AUROC spread small (std < 0.03),PASS,std 0.0005
+binoculars_qwen05b,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+binoculars_qwen05b,test predictions not constant,PASS,std 0.4890
+binoculars_qwen05b,mean test prediction plausible (0.15-0.85),PASS,0.454
+binoculars_qwen05b,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.158 - large values mean distribution shift or a preprocessing mismatch
+binoculars_qwen15b,OOF predictions finite,PASS,
+binoculars_qwen15b,CV AUROC > 0.5 (labels not flipped),PASS,0.9992
+binoculars_qwen15b,CV AUROC > 0.75 (model learned something),PASS,0.9992
+binoculars_qwen15b,fold AUROC spread small (std < 0.03),PASS,std 0.0005
+binoculars_qwen15b,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+binoculars_qwen15b,test predictions not constant,PASS,std 0.4898
+binoculars_qwen15b,mean test prediction plausible (0.15-0.85),PASS,0.453
+binoculars_qwen15b,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.171 - large values mean distribution shift or a preprocessing mismatch
+embed_e5_base,OOF predictions finite,PASS,
+embed_e5_base,CV AUROC > 0.5 (labels not flipped),PASS,0.9215
+embed_e5_base,CV AUROC > 0.75 (model learned something),PASS,0.9215
+embed_e5_base,fold AUROC spread small (std < 0.03),PASS,std 0.0027
+embed_e5_base,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+embed_e5_base,test predictions not constant,PASS,std 0.4013
+embed_e5_base,mean test prediction plausible (0.15-0.85),PASS,0.511
+embed_e5_base,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.058 - large values mean distribution shift or a preprocessing mismatch
+debiased_lm_gpt2,OOF predictions finite,PASS,
+debiased_lm_gpt2,CV AUROC > 0.5 (labels not flipped),PASS,0.9985
+debiased_lm_gpt2,CV AUROC > 0.75 (model learned something),PASS,0.9985
+debiased_lm_gpt2,fold AUROC spread small (std < 0.03),PASS,std 0.0002
+debiased_lm_gpt2,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+debiased_lm_gpt2,test predictions not constant,PASS,std 0.4618
+debiased_lm_gpt2,mean test prediction plausible (0.15-0.85),PASS,0.506
+debiased_lm_gpt2,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.137 - large values mean distribution shift or a preprocessing mismatch
+ft_distilroberta,OOF predictions finite,PASS,
+ft_distilroberta,CV AUROC > 0.5 (labels not flipped),PASS,0.9988
+ft_distilroberta,CV AUROC > 0.75 (model learned something),PASS,0.9988
+ft_distilroberta,fold AUROC spread small (std < 0.03),PASS,std 0.0006
+ft_distilroberta,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+ft_distilroberta,test predictions not constant,PASS,std 0.4799
+ft_distilroberta,mean test prediction plausible (0.15-0.85),PASS,0.529
+ft_distilroberta,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.248 - large values mean distribution shift or a preprocessing mismatch
+ft_roberta_base,OOF predictions finite,PASS,
+ft_roberta_base,CV AUROC > 0.5 (labels not flipped),PASS,0.9985
+ft_roberta_base,CV AUROC > 0.75 (model learned something),PASS,0.9985
+ft_roberta_base,fold AUROC spread small (std < 0.03),PASS,std 0.0006
+ft_roberta_base,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+ft_roberta_base,test predictions not constant,PASS,std 0.4799
+ft_roberta_base,mean test prediction plausible (0.15-0.85),PASS,0.509
+ft_roberta_base,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.220 - large values mean distribution shift or a preprocessing mismatch
+ft_modernbert_base,OOF predictions finite,PASS,
+ft_modernbert_base,CV AUROC > 0.5 (labels not flipped),PASS,0.9987
+ft_modernbert_base,CV AUROC > 0.75 (model learned something),PASS,0.9987
+ft_modernbert_base,fold AUROC spread small (std < 0.03),PASS,std 0.0006
+ft_modernbert_base,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+ft_modernbert_base,test predictions not constant,PASS,std 0.4838
+ft_modernbert_base,mean test prediction plausible (0.15-0.85),PASS,0.470
+ft_modernbert_base,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.172 - large values mean distribution shift or a preprocessing mismatch
+ft_deberta_v3_base,job finished,FAIL,skipped
+ft_deberta_v3_large,job finished,FAIL,skipped
+ft_openai_detector_large,job finished,FAIL,skipped
+debiased_distilroberta,OOF predictions finite,PASS,
+debiased_distilroberta,CV AUROC > 0.5 (labels not flipped),PASS,0.9985
+debiased_distilroberta,CV AUROC > 0.75 (model learned something),PASS,0.9985
+debiased_distilroberta,fold AUROC spread small (std < 0.03),PASS,std 0.0007
+debiased_distilroberta,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+debiased_distilroberta,test predictions not constant,PASS,std 0.4724
+debiased_distilroberta,mean test prediction plausible (0.15-0.85),PASS,0.535
+debiased_distilroberta,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.179 - large values mean distribution shift or a preprocessing mismatch
+debiased_deberta_v3_base,job finished,FAIL,skipped
+tfidf_logreg,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.687
+stylometric_gbm,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.917
+stylometric_gbm_ext,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.923
+debiased_stylo_ext,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.876
+lm_gpt2_medium,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.982
+binoculars_qwen05b,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.949
+binoculars_qwen15b,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.944
+embed_e5_base,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.666
+debiased_lm_gpt2,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.938
+ft_distilroberta,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.899
+ft_roberta_base,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.885
+ft_modernbert_base,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.899
+debiased_distilroberta,test predictions agree with best model (lm_gpt2) - Spearman > 0.2,PASS,rho 0.870

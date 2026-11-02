@@ -66,6 +66,20 @@ def rank_mean(O: pd.DataFrame, T: pd.DataFrame, cols=None, weights=None):
     return oof, test
 
 
+def cdf_mean(O: pd.DataFrame, T: pd.DataFrame, cols=None, weights=None):
+    """Like rank_mean, but test scores are mapped through each model's OOF-score CDF instead of being
+    ranked within test, so the blend doesn't depend on test's class/domain mix and matches how
+    scripts/eval_ood.py scores blends. On OOF rows it equals rank_mean."""
+    cols = list(cols or O.columns)
+    w = np.ones(len(cols)) if weights is None else np.asarray(weights, float)
+    w = w / w.sum()
+    cdf = {c: (lambda x, ref=np.sort(O[c].to_numpy()): np.searchsorted(ref, x, side="right") / len(ref))
+           for c in cols}
+    oof = sum(wi * cdf[c](O[c].to_numpy()) for wi, c in zip(w, cols))
+    test = sum(wi * cdf[c](T[c].to_numpy()) for wi, c in zip(w, cols))
+    return oof, test
+
+
 def greedy_weights(O: pd.DataFrame, y, n_iter: int = 30) -> dict:
     """Forward selection with replacement (Caruana et al., 2004) on rank scores."""
     R = {c: rank01(O[c]) for c in O.columns}
