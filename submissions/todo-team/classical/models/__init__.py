@@ -10,6 +10,7 @@ import importlib
 REGISTRY = {
     "template": "_template:TemplateModel",
     "tfidf_lr": "tfidf_lr:TfidfLR",
+    "stylo_gbm": "stylo_gbm:StyloGBM",
 }
 
 
