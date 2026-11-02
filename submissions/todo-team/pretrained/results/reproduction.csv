@@ -1,0 +1,4 @@
+submission,ids_identical,max_abs_diff,spearman,how
+final_A_greedy_proxy,True,0.0,1.0,"make_submission.py in this repo re-predicting test with the saved research-repo runs (outputs/runs, not in git)"
+final_B_lm4,True,0.0,0.9999999999999999,"make_submission.py in this repo re-predicting test with the saved research-repo runs (outputs/runs, not in git)"
+final_C_lm4_roberta,True,0.0,1.0,"make_submission.py in this repo re-predicting test with the saved research-repo runs (outputs/runs, not in git)"
