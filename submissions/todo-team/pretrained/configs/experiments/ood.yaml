@@ -27,6 +27,7 @@ jobs:
   - {name: lm_gpt2_medium,     config: lm_gpt2_medium,     resource: gpu, cost: 6}
   - {name: binoculars_qwen05b, config: binoculars_qwen05b, resource: gpu, cost: 10}
   - {name: binoculars_qwen15b, config: binoculars_qwen15b, resource: gpu, cost: 20}
+  - {name: lm_gpt2_nostyle,    config: lm_gpt2_nostyle,    resource: gpu, cost: 4}   # final_A member
   - {name: debiased_lm_gpt2,   config: lm_gpt2,            resource: gpu, cost: 4, group: robustness,
      set: {preprocessing.collapse_blank_lines: true, preprocessing.collapse_spaces: true,
            preprocessing.normalize_quotes: true, preprocessing.remove_zero_width: true, preprocessing.map_homoglyphs: true}}
