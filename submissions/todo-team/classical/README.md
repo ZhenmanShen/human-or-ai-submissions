@@ -34,5 +34,6 @@ python predict.py --model <name> --out submission.csv   # re-create the file fro
 | name | what |
 |---|---|
 | `template` | character-count logistic regression; the starting point for new models |
+| `tfidf_lr` (C1) | word 1-2-gram + char_wb 2-5-gram TF-IDF -> logistic regression |
 
 Adding a model: see [CONTRIBUTING.md](CONTRIBUTING.md).
