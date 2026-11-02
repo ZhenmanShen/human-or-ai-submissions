@@ -6,3 +6,4 @@ uploaded to Kaggle say "not submitted". Kaggle private scores are blank until th
 
 | date | track | model | submission file | commit | author | val AUROC (fixed split) | Kaggle public | Kaggle private | notes |
 |---|---|---|---|---|---|---|---|---|---|
+| 2026-11-01 | classical | tfidf_lr |  | [`1bc0f61`](https://github.com/ZhenmanShen/human-or-ai-submissions/commit/1bc0f61074fac003fdd6b53d3b5e21854fe73c2b) | Max Shen | 0.96256 | not submitted |  |  |
