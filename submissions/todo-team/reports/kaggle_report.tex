@@ -118,11 +118,11 @@ We do no normalisation in either track: case, spacing, line breaks and Unicode a
 
 Representations, from cheapest to most expensive:
 \begin{itemize}
-\item \textbf{C1:} word 1--2-grams (sklearn regex tokenizer) and character 2--5-grams within word boundaries, sublinear TF-IDF, vocabulary fit on the training rows.
-\item \textbf{C2:} 101 closed-form stylometric measurements: sentence-length burstiness, type--token ratio, repetition, punctuation and function-word rates, readability, blank lines and line structure, zero-width and homoglyph counts.
-\item \textbf{C3:} a 12k byte-level BPE tokenizer that we trained on the training rows and \texttt{unlabeled.csv}, which keeps spaces and newlines.
-\item \textbf{Pretrained features:} each LM's own tokenizer (512 tokens), summarised by statistics of token log-probability, rank and entropy. The Binoculars score adds a base/instruct cross-perplexity ratio. These features measure how predictable the text is to an LM, which transfers across topics.
-\item \textbf{Fine-tuned encoders:} read sub-word tokens end to end.
+\item \textbf{C1:} word 1--2-grams (sklearn regex tokenizer \cite{sklearn}) and character 2--5-grams within word boundaries, sublinear TF-IDF, vocabulary fit on the training rows.
+\item \textbf{C2:} 101 closed-form stylometric measurements, partly following Ma et al.\ \cite{ma2023}: sentence-length burstiness, type--token ratio, repetition, punctuation and function-word rates, readability, blank lines and line structure, zero-width and homoglyph counts. Classified with LightGBM \cite{lightgbm}, as are the LM-feature heads.
+\item \textbf{C3:} a 12k byte-level BPE tokenizer \cite{bpe} that we trained on the training rows and \texttt{unlabeled.csv}, which keeps spaces and newlines, feeding a small Transformer encoder \cite{transformer} trained from random initialisation.
+\item \textbf{Pretrained features:} GPT-2 and GPT-2-medium \cite{gpt2} and Qwen2.5 \cite{qwen25}, each with its own tokenizer (512 tokens), summarised by statistics of token log-probability, rank and entropy. The Binoculars score \cite{binoculars} adds a base/instruct cross-perplexity ratio. These features measure how predictable the text is to an LM, which transfers across topics.
+\item \textbf{Fine-tuned encoders:} RoBERTa-base \cite{roberta}, DeBERTa-v3-large \cite{debertav3} and OpenAI's GPT-2-output detector \cite{solaiman2019}, loaded with Hugging Face Transformers \cite{hftransformers}, read sub-word tokens end to end.
 \end{itemize}
 
 \question{Q1.2 [5 points].}{Which \textbf{three or more} modeling approaches did you try? Keep the labeled validation partition fixed across models.}
@@ -282,14 +282,14 @@ This is itself a finding: the subgroup that matters most for test is almost abse
 \question{Q5.2 [4 points].}{What exactly did you change? Describe the baseline, the new approach and what you held fixed for a fair comparison.}
 \textbf{The proxy} (evaluation only, never trained on) combines:
 \begin{itemize}
-\item 542 rewrites of training human passages and 816 poems and stories, generated locally by seven models never used for training: Llama-3.2-3B, Qwen3-4B, Phi-3.5-mini, SmolLM2-1.7B, Granite-3.1-2B, OLMo-2-1B and Pythia-1.4B;
-\item 681 human poems and stories from held-out Project Gutenberg books.
+\item 542 rewrites of training human passages and 816 poems and stories, generated locally by seven models never used for training: Llama-3.2-3B-Instruct \cite{llama3}, Qwen3-4B-Instruct \cite{qwen3}, Phi-3.5-mini-instruct \cite{phi3}, SmolLM2-1.7B-Instruct \cite{smollm2}, Granite-3.1-2B-Instruct \cite{granite}, OLMo-2-1B-Instruct \cite{olmo2} and Pythia-1.4B \cite{pythia};
+\item 681 human poems and stories from held-out Project Gutenberg books \cite{gutenberg}.
 \end{itemize}
 \texttt{proxy\_auc} pools these with out-of-fold training scores, weighted so that 41\% is creative writing, like test. Each passage is scored only by fold models that never saw its source.
 
 \textbf{Baseline:} blend B, an equal-weight blend of the four best LM-feature models, chosen without the proxy.
 
-\textbf{New approach:} blend A, chosen by greedy forward selection on \texttt{proxy\_auc} over the 18 out-of-distribution-evaluated models and their variants.
+\textbf{New approach:} blend A, chosen by greedy forward selection with replacement \cite{caruana2004} on \texttt{proxy\_auc} over the 18 out-of-distribution-evaluated models and their variants.
 
 \textbf{Held fixed:} the trained models, the CDF blending rule and the training data.
 
@@ -362,11 +362,12 @@ The out-of-distribution proxy used text generated locally by seven open models a
 
 Pretrained weights used by the pretrained track (Hugging Face):
 {\small\begin{itemize}
-\item \texttt{openai-community/gpt2}, \texttt{openai-community/gpt2-medium}
-\item \texttt{Qwen/Qwen2.5-0.5B}, \texttt{Qwen/Qwen2.5-0.5B-Instruct}, \texttt{Qwen/Qwen2.5-1.5B}, \texttt{Qwen/Qwen2.5-1.5B-Instruct}
-\item \texttt{FacebookAI/roberta-base}, \texttt{microsoft/deberta-v3-large}
-\item \texttt{openai-community/roberta-large-openai-detector}
+\item \texttt{openai-community/gpt2}, \texttt{openai-community/gpt2-medium} \cite{gpt2}
+\item \texttt{Qwen/Qwen2.5-0.5B}, \texttt{Qwen/Qwen2.5-0.5B-Instruct}, \texttt{Qwen/Qwen2.5-1.5B}, \texttt{Qwen/Qwen2.5-1.5B-Instruct} \cite{qwen25}
+\item \texttt{FacebookAI/roberta-base} \cite{roberta}, \texttt{microsoft/deberta-v3-large} \cite{debertav3}
+\item \texttt{openai-community/roberta-large-openai-detector} \cite{solaiman2019}
 \end{itemize}}
+{\small\raggedright Generators used only to build the evaluation proxy (no training labels): \texttt{meta-llama/Llama-3.2-3B-Instruct}, \texttt{Qwen/Qwen3-4B-Instruct-2507}, \texttt{microsoft/Phi-3.5-mini-instruct}, \texttt{HuggingFaceTB/SmolLM2-1.7B-Instruct}, \texttt{ibm-granite/granite-3.1-2b-instruct}, \texttt{allenai/OLMo-2-0425-1B-Instruct}, \texttt{EleutherAI/pythia-1.4b}; references in Q5.2.\par}
 
 \textbf{AI policy.} You may use AI assistants for coding, debugging, explanations, brainstorming, and editing. We expect each team to exercise its own judgment, run experiments, check outputs, and understand its submitted approach. Sending the entire assignment to an AI tool and submitting its unverified output without meaningful involvement does not satisfy the objectives of this project. We will use the PR history, reproducible experiments and report together as evidence of engagement. \emph{Commit counts and the presence of AI-generated code are not themselves grading criteria.} Do not fabricate results or retrieve hidden test labels.
 
@@ -379,6 +380,31 @@ Pretrained weights used by the pretrained track (Hugging Face):
 \item Relevant experiments and seed/configuration details are recorded.
 \item AI-use disclosure is complete; hidden labels were not retrieved externally.
 \end{itemize}
+
+{\small
+\begin{thebibliography}{99}\setlength{\itemsep}{1pt}
+\bibitem{gpt2} A.~Radford, J.~Wu, R.~Child, D.~Luan, D.~Amodei, I.~Sutskever. Language Models are Unsupervised Multitask Learners. OpenAI technical report, 2019.
+\bibitem{qwen25} Qwen Team. Qwen2.5 Technical Report. arXiv:2412.15115, 2024.
+\bibitem{binoculars} A.~Hans et al. Spotting LLMs With Binoculars: Zero-Shot Detection of Machine-Generated Text. ICML 2024; arXiv:2401.12070.
+\bibitem{roberta} Y.~Liu et al. RoBERTa: A Robustly Optimized BERT Pretraining Approach. arXiv:1907.11692, 2019.
+\bibitem{debertav3} P.~He, J.~Gao, W.~Chen. DeBERTaV3: Improving DeBERTa using ELECTRA-Style Pre-Training with Gradient-Disentangled Embedding Sharing. ICLR 2023; arXiv:2111.09543.
+\bibitem{solaiman2019} I.~Solaiman et al. Release Strategies and the Social Impacts of Language Models. arXiv:1908.09203, 2019 (the GPT-2 output detector).
+\bibitem{hftransformers} T.~Wolf et al. Transformers: State-of-the-Art Natural Language Processing. EMNLP 2020 (System Demonstrations).
+\bibitem{lightgbm} G.~Ke et al. LightGBM: A Highly Efficient Gradient Boosting Decision Tree. NeurIPS 2017.
+\bibitem{sklearn} F.~Pedregosa et al. Scikit-learn: Machine Learning in Python. JMLR 12, 2011.
+\bibitem{ma2023} Y.~Ma et al. AI vs.\ Human -- Differentiation Analysis of Scientific Content Generation. arXiv:2301.10416, 2023.
+\bibitem{bpe} R.~Sennrich, B.~Haddow, A.~Birch. Neural Machine Translation of Rare Words with Subword Units. ACL 2016.
+\bibitem{transformer} A.~Vaswani et al. Attention Is All You Need. NeurIPS 2017.
+\bibitem{caruana2004} R.~Caruana, A.~Niculescu-Mizil, G.~Crew, A.~Ksikes. Ensemble Selection from Libraries of Models. ICML 2004.
+\bibitem{llama3} Llama Team, AI @ Meta. The Llama 3 Herd of Models. arXiv:2407.21783, 2024 (Llama 3.2 checkpoints).
+\bibitem{qwen3} Qwen Team. Qwen3 Technical Report. arXiv:2505.09388, 2025.
+\bibitem{phi3} M.~Abdin et al. Phi-3 Technical Report. arXiv:2404.14219, 2024 (Phi-3.5 checkpoints).
+\bibitem{smollm2} L.~Ben Allal et al. SmolLM2: When Smol Goes Big. arXiv:2502.02737, 2025.
+\bibitem{granite} IBM Granite Team. Granite 3.1 language models (model card, \texttt{ibm-granite/granite-3.1-2b-instruct}), 2024.
+\bibitem{olmo2} Team OLMo. 2 OLMo 2 Furious. arXiv:2501.00656, 2025.
+\bibitem{pythia} S.~Biderman et al. Pythia: A Suite for Analyzing Large Language Models Across Training and Scaling. ICML 2023.
+\bibitem{gutenberg} Project Gutenberg. \url{https://www.gutenberg.org}.
+\end{thebibliography}}
 
 \appendix
 \section*{Appendix A. Submission and testing history}
