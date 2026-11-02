@@ -1,2 +1,2 @@
 date,track,model,file,commit,author,val_auroc,kaggle_public,kaggle_private,notes
-2026-11-01,classical,tfidf_lr,,1bc0f61074fac003fdd6b53d3b5e21854fe73c2b,Max Shen,0.96256,not submitted,,
+2026-11-01,classical,tfidf_lr,classical/kaggle_submissions/2026-11-01_tfidf_lr.csv,,Max Shen,0.96256,pending upload,,
