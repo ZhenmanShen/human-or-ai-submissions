@@ -36,5 +36,6 @@ python predict.py --model <name> --out submission.csv   # re-create the file fro
 | `template` | character-count logistic regression; the starting point for new models |
 | `tfidf_lr` (C1) | word 1-2-gram + char_wb 2-5-gram TF-IDF -> logistic regression |
 | `stylo_gbm` (C2) | 101 hand-crafted stylometric features (features/stylometry.py) -> LightGBM |
+| `transformer_scratch` (C3) | 4-layer Transformer encoder (d=256) from random init over a 12k byte-level BPE trained on train + unlabeled text |
 
 Adding a model: see [CONTRIBUTING.md](CONTRIBUTING.md).
