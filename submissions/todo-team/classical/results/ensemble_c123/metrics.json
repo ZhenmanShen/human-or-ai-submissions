@@ -1,0 +1,25 @@
+{
+  "model": "ensemble_c123",
+  "registry_name": "ensemble_c123",
+  "params": {
+    "members": [
+      "tfidf_lr",
+      "stylo_gbm",
+      "transformer_scratch"
+    ],
+    "folds": 5,
+    "greedy_iters": 20
+  },
+  "seed": 20261023,
+  "train_auroc": 0.9999999999999999,
+  "val_auroc": 0.998683,
+  "val_tpr_at_1fpr": 0.99,
+  "n_train": 8000,
+  "n_val": 2000,
+  "fit_time_s": 266.3,
+  "val_predict_time_s": 4.0,
+  "hardware": "CPU (AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD)",
+  "searched": false,
+  "timestamp": "2026-11-01T17:36:07",
+  "git_commit": "4f9451b0f6b3c53313b347cafda15e5b73cba556"
+}
