@@ -210,6 +210,14 @@ def cmd_errors(args):
     vp = verse_prose_auroc(texts, yv, score).assign(grouping="line structure")
     write(pd.concat([lb, vp], ignore_index=True), "error_analysis/subgroups.csv")
     err = errors(V.index, yv, score, threshold=0.5, k=5)
+    # Blend A makes fewer than 5 errors of a kind at 0.5: fill up with the closest misses on the right side
+    # of the threshold (highest-scored humans / lowest-scored AI), marked as near misses.
+    df = pd.DataFrame({"id": V.index, "label": yv, "p_ai": np.asarray(score)})
+    for kind, cls, asc in (("FP", 0, False), ("FN", 1, True)):
+        need = 5 - (err["error"] == kind).sum()
+        if need > 0:
+            cand = df[(df.label == cls) & ~df.id.isin(err.id)].sort_values("p_ai", ascending=asc).head(need)
+            err = pd.concat([err, cand.assign(error=f"{kind} (near miss)")], ignore_index=True)
     err["words"] = word_count(texts.loc[err["id"]])
     err["blank_lines"] = [t.count("\n\n") for t in texts.loc[err["id"]]]
     err["lines"] = [len([ln for ln in t.splitlines() if ln.strip()]) for t in texts.loc[err["id"]]]
