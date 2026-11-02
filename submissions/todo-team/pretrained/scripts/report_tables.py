@@ -145,7 +145,7 @@ def q3():
     d = pd.read_csv(RES / "semi_supervised.csv")
     label = {"supervised": "Supervised only", "pseudo_label_unlabeled_r1": "Pseudo-labels, 1 round",
              "pseudo_label_unlabeled_r3": "Pseudo-labels, 3 rounds"}
-    write("q32_semisup.tex", [f"{label[r.method]} (\\texttt{{{tex(r.model)}}}) & {f4(r.val_auroc)} \\\\"
+    write("q32_semisup.tex", [f"{label[r.method]} (\\texttt{{{tex(r.model)}}}) & {f5(r.val_auroc)} \\\\"
                               for _, r in d.iterrows()])
 
 

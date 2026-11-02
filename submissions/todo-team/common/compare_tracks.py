@@ -26,6 +26,15 @@ OUT = TEAM / "common"
 SIX = [("pretrained", "final_A_greedy_proxy", "Blend A"), ("pretrained", "final_B_lm4", "Blend B"),
        ("pretrained", "final_C_lm4_roberta", "Blend C"), ("classical", "tfidf_lr", "C1 TF-IDF + LR"),
        ("classical", "stylo_gbm", "C2 stylometric GBM"), ("classical", "transformer_scratch", "C3 Transformer (scratch)")]
+REPR = {
+    "final_A_greedy_proxy": "7-model CDF blend: 3 frozen-LM + style heads, GPT-2 stats-only head, "
+                            "3 fine-tuned encoders; weights 3,3,2,1,1,1,1",
+    "final_B_lm4": "4 frozen-LM token-statistics + style heads (GPT-2, GPT-2-medium, 2 Qwen2.5 Binoculars), equal weights",
+    "final_C_lm4_roberta": "blend B + fine-tuned RoBERTa-base, equal weights",
+    "tfidf_lr": "word 1--2 + char 2--5 TF-IDF $\\to$ logistic regression",
+    "stylo_gbm": "101 hand-crafted stylometric features $\\to$ LightGBM",
+    "transformer_scratch": "12k byte-level BPE $\\to$ 4-layer Transformer encoder, random init",
+}
 BLEND_HW = "RTX 5070 + RTX 3060"  # pretrained members ran on both GPUs (see results/fixed_split/models.csv)
 
 
@@ -91,6 +100,12 @@ def main():
                    f"{r.hardware} & {kag(r.kaggle_public)} \\\\")
     (OUT / "tables").mkdir(exist_ok=True)
     (OUT / "tables" / "six_models.tex").write_text("\n".join(six) + "\n", encoding="utf-8")
+    # the template's Q1.2 columns (model, representation, train, val, time) + Kaggle, for the combined report
+    q12 = [f"{label} & {REPR[model]} & {idx.loc[(track, model)].train_auroc:.5f} & {idx.loc[(track, model)].val_auroc:.5f} & "
+           f"{secs(idx.loc[(track, model)].fit_time_s)} & {kag(idx.loc[(track, model)].kaggle_public)} \\\\"
+           for track, model, label in SIX]
+    q12.insert(3, "\\midrule")
+    (OUT / "tables" / "six_models_q12.tex").write_text("\n".join(q12) + "\n", encoding="utf-8")
     others = df[~df.set_index(["track", "model"]).index.isin([(t, m) for t, m, _ in SIX])]
     (OUT / "tables" / "all_models.tex").write_text("\n".join(
         f"\\texttt{{{tex(r.model)}}} & {r.track} & {r.train_auroc:.5f} & {r.val_auroc:.5f} & {secs(r.fit_time_s)} & "

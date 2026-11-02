@@ -8,6 +8,10 @@ Code for the CS5785 "Human or AI?" Kaggle competition. There are two tracks, and
 | [`classical/`](classical/) | Models trained from scratch, no pretrained weights: C1 TF-IDF + LR, C2 stylometric LightGBM, C3 small Transformer, plus comparison rows | [`classical/reports/kaggle_classical_report.tex`](classical/reports/kaggle_classical_report.tex) |
 | [`common/`](common/) | The fixed validation split, data loading, metrics, the submission validator, the submission log and the cross-track comparison | — |
 
+- **The report:** [`reports/kaggle_report.tex`](reports/kaggle_report.tex). It covers both tracks and centres on the six models submitted to Kaggle, three per track.
+  - Its tables are assembled by `reports/build_tables.py` from the tracks' generated tables.
+  - The per-track reports above are longer versions with every model.
+  - To compile it in Overleaf, upload the whole team folder; the report reads `../common`, `../pretrained` and `../classical`.
 - Submission and testing history: [`SUBMISSIONS.md`](SUBMISSIONS.md), generated from `submission_log.csv`.
 - Adding a model: [`classical/CONTRIBUTING.md`](classical/CONTRIBUTING.md).
 
