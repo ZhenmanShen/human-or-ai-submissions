@@ -51,14 +51,21 @@ def make_splits(texts: list[str], y: np.ndarray, cv_cfg: dict, seed: int, ids=No
     """Return a list of (train_idx, val_idx) pairs."""
     scheme = cv_cfg.get("scheme", "stratified")
     idx = np.arange(len(y))
-    if scheme == "fixed":  # the team's fixed 8,000 / 2,000 split (common/val_ids.csv), same for every model
+    if scheme in ("fixed", "inner"):
+        # fixed: the team's 8,000 / 2,000 split (common/val_ids.csv), the same for every model.
+        # inner: k-fold CV inside the 8,000 training rows only (hyperparameter search); the 2,000
+        #        validation rows are in no fold, so they are never trained on or scored.
         if ids is None:
-            raise ValueError("cv.scheme=fixed needs the train ids")
+            raise ValueError(f"cv.scheme={scheme} needs the train ids")
         val_ids = pd.read_csv(resolve(cv_cfg["val_ids_file"]))
         is_val = np.isin(np.asarray(ids), val_ids["id"].to_numpy())
         if is_val.sum() != len(val_ids):
             raise ValueError(f"{is_val.sum()} of {len(val_ids)} validation ids found in the training file")
-        return [(idx[~is_val], idx[is_val])]
+        if scheme == "fixed":
+            return [(idx[~is_val], idx[is_val])]
+        inner = idx[~is_val]
+        skf = StratifiedKFold(n_splits=cv_cfg["n_folds"], shuffle=True, random_state=seed)
+        return [(inner[tr], inner[va]) for tr, va in skf.split(inner, y[inner])]
     if scheme == "holdout":
         tr, va = train_test_split(idx, test_size=cv_cfg.get("val_size", 0.2),
                                   stratify=y, random_state=seed)
