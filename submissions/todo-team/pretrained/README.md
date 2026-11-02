@@ -5,6 +5,34 @@ Metric: AUROC. Competition page: https://www.kaggle.com/competitions/cornell-tec
 
 Project context, model list and results so far: **[AGENTS.md](AGENTS.md)**.
 
+## In the course repo (`submissions/<team>/pretrained/`)
+
+This folder is the research repo imported with its history and trimmed to the pipeline behind the three
+uploaded files (`kaggle_submissions/2026-10-31_final_{A,B,C}_*.csv`). Differences from the sections below:
+
+- **Data** stays outside git. `data/...` paths resolve through `--data-dir PATH`, `$HOA_DATA_DIR`, `./data`,
+  or the team default in `../common/data.py`.
+- **Fixed validation split** (shared with `../classical/`): `--set cv.scheme=fixed` trains on 8,000 rows and
+  scores the 2,000 in `../common/val_ids.csv`; `cv.scheme=inner` is 5-fold CV inside the 8,000 for tuning.
+- **Report experiments**:
+  ```bash
+  python run_all.py --profile fixed                          # every model of blends A/B/C on the fixed split
+  python scripts/report_experiments.py collect --session outputs/sessions/<session>
+  python scripts/report_experiments.py hpsearch              # also: curve, semisup, errors, debias
+  python scripts/report_tables.py                            # -> reports/tables, reports/figures
+  ```
+  Results are in `results/`; the report is `reports/kaggle_pretrained_report.tex`.
+- **Uploaded files**: `python run_all.py --profile ood` trains the 5-fold models (seed 42, ~4 h on two
+  12 GB GPUs). Then:
+  ```bash
+  python make_submission.py --run <runs> [--weights ...] --name <file>
+  ```
+  Blend A's runs are lm_gpt2_medium, binoculars_qwen05b, binoculars_qwen15b, ft_deberta_v3_large,
+  ft_roberta_base, lm_gpt2_nostyle and ft_openai_detector_large, with weights 3 3 2 1 1 1 1.
+  Run against the saved models, this re-creates all three uploaded files exactly (`results/reproduction.csv`).
+- Removed in the trim: the smoke/pc/mac profiles and 12 model configs not used by the final blends.
+  `experiments/results.csv` and `experiments/sessions/` keep the record of everything that was run.
+
 ## Setup
 
 ### 1. Get the data
