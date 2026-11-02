@@ -1,0 +1,12 @@
+scope,check,result,detail
+data,train labels are 0/1 and roughly balanced,PASS,AI share 0.500
+data,test ids unique and identical to sample_submission ids,PASS,3000 test rows
+data,no exact text overlap between train and test,PASS,0 overlaps
+debiased_deberta_v3_base,OOF predictions finite,PASS,
+debiased_deberta_v3_base,CV AUROC > 0.5 (labels not flipped),PASS,0.9922
+debiased_deberta_v3_base,CV AUROC > 0.75 (model learned something),PASS,0.9922
+debiased_deberta_v3_base,fold AUROC spread small (std < 0.03),PASS,std 0.0017
+debiased_deberta_v3_base,"test predictions: 3000 rows, ids match sample, in [0,1], no NaN",PASS,
+debiased_deberta_v3_base,test predictions not constant,PASS,std 0.4587
+debiased_deberta_v3_base,mean test prediction plausible (0.15-0.85),PASS,0.541
+debiased_deberta_v3_base,test score distribution close to OOF distribution (KS < 0.25),PASS,KS 0.128 - large values mean distribution shift or a preprocessing mismatch

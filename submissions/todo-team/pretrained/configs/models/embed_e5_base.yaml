@@ -1,0 +1,12 @@
+# Frozen intfloat/e5-base-v2 embeddings (mean pooling, "query: " prefix) -> logistic regression.
+# [GPU or Mac MPS | Mac: yes]
+model:
+  name: embedding_logreg
+  params:
+    model_name: intfloat/e5-base-v2
+    pooling: mean
+    prefix: "query: "
+    max_length: 512
+    batch_size: 32
+    head: logreg
+    C: 1.0
