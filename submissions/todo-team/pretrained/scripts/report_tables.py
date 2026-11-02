@@ -177,6 +177,7 @@ def q5():
         d = pd.read_csv(deb)
         proxy = {("stylometric_gbm_ext", "as is"): "20261030-135404_ood__stylometric_gbm_ext",
                  ("stylometric_gbm_ext", "debiased"): "20261030-135404_ood__debiased_stylo_ext",
+                 ("stylometric_gbm_ext", "join_lines"): "20261031_join__stylo_ext",
                  ("lm_gpt2", "as is"): "20261030-135404_ood__lm_gpt2",
                  ("lm_gpt2", "debiased"): "20261030-135404_ood__debiased_lm_gpt2"}
         write("q53_debias.tex", [f"\\texttt{{{tex(r.model)}}}, {tex(r.variant)} & {f4(r.val_auroc)} & "
