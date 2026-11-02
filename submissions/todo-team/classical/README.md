@@ -37,5 +37,9 @@ python predict.py --model <name> --out submission.csv   # re-create the file fro
 | `tfidf_lr` (C1) | word 1-2-gram + char_wb 2-5-gram TF-IDF -> logistic regression |
 | `stylo_gbm` (C2) | 101 hand-crafted stylometric features (features/stylometry.py) -> LightGBM |
 | `transformer_scratch` (C3) | 4-layer Transformer encoder (d=256) from random init over a 12k byte-level BPE trained on train + unlabeled text |
+| `linear_svm` | C1's TF-IDF features -> linear SVM (comparison row) |
+| `nbsvm` | NB-SVM: NB log-count-ratio scaled binary n-grams -> LR (comparison row) |
+| `rf_stylo` | C2's stylometric features -> random forest (comparison row) |
+| `ensemble_c123` | C1+C2+C3 rank/CDF blend, weights by greedy selection on inner-CV OOF predictions |
 
 Adding a model: see [CONTRIBUTING.md](CONTRIBUTING.md).

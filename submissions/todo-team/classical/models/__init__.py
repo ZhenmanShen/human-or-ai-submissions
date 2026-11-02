@@ -12,6 +12,10 @@ REGISTRY = {
     "tfidf_lr": "tfidf_lr:TfidfLR",
     "stylo_gbm": "stylo_gbm:StyloGBM",
     "transformer_scratch": "transformer_scratch:TransformerScratch",
+    "linear_svm": "linear_svm:TfidfLinearSVM",
+    "nbsvm": "nbsvm:NBSVM",
+    "rf_stylo": "rf_stylo:RFStylo",
+    "ensemble_c123": "ensemble_c123:EnsembleC123",
 }
 
 
