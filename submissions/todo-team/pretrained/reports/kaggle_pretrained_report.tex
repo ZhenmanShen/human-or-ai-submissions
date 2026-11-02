@@ -225,8 +225,8 @@ python run_all.py --profile ood                   # 5-fold models behind the upl
 python make_submission.py --run <the 7 runs of blend A> --weights 3 3 2 1 1 1 1 \
        --name final_A_greedy_proxy                # -> outputs/submissions/, validated
 \end{verbatim}}
-The uploaded files are committed in \texttt{kaggle\_submissions/}. Running this repository's \texttt{make\_submission.py} on the saved 5-fold runs re-creates all three uploaded files exactly (max $|\Delta| = 0$, \texttt{results/reproduction.csv}); the saved models are 0.3--1.7 GB per fold and are not in git, so a fresh clone must retrain them first.
-Seeds: 20261023 for the split and every fixed-split experiment; the original 5-fold runs behind the uploaded files used seed 42 (fold $k$ seeded $42+k$). Fine-tunes use bf16 on GPU, so reruns differ in the last digits.
+{\RaggedRight The uploaded files are committed in \texttt{kaggle\_submissions/}. Running this repository's \texttt{make\_submission.py} on the saved 5-fold runs re-creates all three uploaded files exactly (max $|\Delta| = 0$, \texttt{results/reproduction.csv}); the saved models are 0.3--1.7 GB per fold and are not in git, so a fresh clone must retrain them first.
+Seeds: 20261023 for the split and every fixed-split experiment; the original 5-fold runs behind the uploaded files used seed 42 (fold $k$ seeded $42+k$). Fine-tunes use bf16 on GPU, so reruns differ in the last digits.\par}
 
 \question{Q6.2 [3 points].}{Give two or three examples of changes you made during development. Link to relevant commits or PR discussion and briefly explain what the experiments taught you.}
 \begin{itemize}
