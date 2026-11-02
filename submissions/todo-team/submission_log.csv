@@ -2,3 +2,12 @@ date,track,model,file,commit,author,val_auroc,kaggle_public,kaggle_private,notes
 2026-10-31,pretrained,final_A_greedy_proxy,pretrained/kaggle_submissions/2026-10-31_final_A_greedy_proxy.csv,c7c1e3e5c379f092b31d1ef745dbf2900d052f03,Max Shen,,0.99161,,greedy OOF-CDF blend chosen on OOD proxy (7 runs); file built 2026-10-31; upload date not recorded (score logged 2026-11-01)
 2026-10-31,pretrained,final_B_lm4,pretrained/kaggle_submissions/2026-10-31_final_B_lm4.csv,c7c1e3e5c379f092b31d1ef745dbf2900d052f03,Max Shen,,0.98848,,"equal-weight lm_gpt2 + lm_gpt2_medium + binoculars_qwen05b/15b, not tuned on eval sets; file built 2026-10-31; upload date not recorded (score logged 2026-11-01)"
 2026-10-31,pretrained,final_C_lm4_roberta,pretrained/kaggle_submissions/2026-10-31_final_C_lm4_roberta.csv,c7c1e3e5c379f092b31d1ef745dbf2900d052f03,Max Shen,,0.98845,,"lm4 + ft_roberta_base, equal weights; file built 2026-10-31; upload date not recorded (score logged 2026-11-01)"
+2026-11-01,classical,tfidf_lr,classical/kaggle_submissions/2026-11-01_tfidf_lr.csv,,Max Shen,0.96256,pending upload,,
+2026-11-01,classical,stylo_gbm,classical/kaggle_submissions/2026-11-01_stylo_gbm.csv,,Max Shen,0.99831,pending upload,,
+2026-11-01,classical,transformer_scratch,classical/kaggle_submissions/2026-11-01_transformer_scratch.csv,,Max Shen,0.98500,pending upload,,
+2026-11-01,classical,linear_svm,,2e086bbb3bb0efdcacd05c2be84f7e85ffe978c2,Max Shen,0.96235,not submitted,,
+2026-11-01,classical,nbsvm,,548c60872335e543fad8c65b94096f8d8f8b2735,Max Shen,0.96987,not submitted,,
+2026-11-01,classical,rf_stylo,,f55543e976e781ddbcd225c6526447a7bee9e358,Max Shen,0.99691,not submitted,,
+2026-11-01,classical,ensemble_c123,,892b43a29a1e30c365caf2140116a60a4bed0019,Max Shen,0.99868,not submitted,,
+2026-11-01,classical,stylo_gbm@no_added,,7f9337d15dac14bceda39a5845d5a797d1a7e998,Max Shen,0.99825,not submitted,,
+2026-11-01,classical,stylo_gbm@no_layout,,7f9337d15dac14bceda39a5845d5a797d1a7e998,Max Shen,0.98724,not submitted,,

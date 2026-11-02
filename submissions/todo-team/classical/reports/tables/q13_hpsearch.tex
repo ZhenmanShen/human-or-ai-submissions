@@ -1,0 +1,5 @@
+\texttt{tfidf\_lr} & C \{1.0, 4.0, 16.0, 64.0\} $\times$ lowercase \{True, False\} (8 settings) & C=64.0, lowercase=False; inner CV 0.9572 $\pm$ 0.0037 \\
+\texttt{stylo\_gbm} & num\_leaves \{15, 31, 63\} $\times$ learning\_rate \{0.1, 0.03\} $\times$ n\_estimators \{300, 800\} (12 settings) & num\_leaves=63, learning\_rate=0.03, n\_estimators=800; inner CV 0.9981 $\pm$ 0.0005 \\
+\texttt{linear\_svm} & C \{0.1, 1.0, 10.0\} (3 settings) & C=1.0; inner CV 0.9574 $\pm$ 0.0038 \\
+\texttt{nbsvm} & C \{0.1, 1.0, 4.0\} (3 settings) & C=0.1; inner CV 0.9627 $\pm$ 0.0023 \\
+\texttt{rf\_stylo} & min\_samples\_leaf \{1, 5\} $\times$ max\_features \{0.3, "sqrt"\} (4 settings) & min\_samples\_leaf=1, max\_features="sqrt"; inner CV 0.9972 $\pm$ 0.0010 \\
