@@ -9,6 +9,7 @@ import importlib
 
 REGISTRY = {
     "template": "_template:TemplateModel",
+    "tfidf_lr": "tfidf_lr:TfidfLR",
 }
 
 

@@ -6,3 +6,4 @@ uploaded to Kaggle say "not submitted". Kaggle private scores are blank until th
 
 | date | track | model | submission file | commit | author | val AUROC (fixed split) | Kaggle public | Kaggle private | notes |
 |---|---|---|---|---|---|---|---|---|---|
+| 2026-11-01 | classical | tfidf_lr | `classical/kaggle_submissions/2026-11-01_tfidf_lr.csv` |  | Max Shen | 0.96256 | pending upload |  |  |
