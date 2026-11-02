@@ -1,0 +1,10 @@
+\mbox{2696} & FP & 0.583 & Run-on, repetitive predictive-text-style ramble with no punctuation; DeBERTa and the GPT-2 token-stats-only model rank it 0.87-0.93 - repetitive low-perplexity text looks like small-model AI output. \\
+\mbox{6479} & FP & 0.505 & Wire-style football news report with quotes (Solskjaer injury); every member sits near 0.5 - formulaic news prose is predictable to an LM. \\
+\mbox{7384} & FP & 0.505 & Short, informal movie review with run-on sentences; members split around 0.5 - hypothesis: generic review phrasing is low-surprise for the LMs. \\
+\mbox{9388} & FP (near miss) & 0.495 & Near miss (P=0.495, below 0.5): Wikipedia bio of composer Bright Sheng with a long list of orchestras; list-like encyclopedic prose is predictable. \\
+\mbox{6138} & FP (near miss) & 0.489 & Near miss (P=0.489): Wikipedia article on a paramilitary group; formal encyclopedic register, like 9388. \\
+\mbox{6331} & FN & 0.476 & AI bread recipe with ingredient lines and self-correcting notes ('it was my error to add...'); the token-stats-only model ranks it 0.17 - hypothesis: messy, human-like asides and recipe layout. \\
+\mbox{2914} & FN & 0.487 & AI physics proposal with hard line wraps and two-space indentation like an arXiv abstract; DeBERTa ranks it 0.05 - hypothesis: copies human arXiv formatting and dense jargon (high perplexity). \\
+\mbox{3938} & FN & 0.494 & AI wiki-style article (View Askew universe) with long lists of film titles; all members near 0.5 - proper-noun lists look human to token statistics. \\
+\mbox{7049} & FN & 0.494 & AI spelt-dough recipe with bullet glyphs and scraped-web layout (also a stylo\_gbm FN); formatting mimics human scraped text. \\
+\mbox{1602} & FN & 0.496 & AI wiki-bio with a hatnote and [1] citation markers (also a stylo\_gbm FN); copies Wikipedia scraping artefacts that train associates with human text. \\
