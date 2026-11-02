@@ -19,6 +19,7 @@ import yaml
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.ticker  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 TEAM = ROOT.parent
@@ -130,6 +131,7 @@ def q2():
         ax.plot(s.train_rows, s.val_auroc, "-o", color=c, ms=4, label=f"{model} validation")
     ax.set_xscale("log")
     ax.set_xticks([500, 1000, 2000, 5000, 8000], ["500", "1k", "2k", "5k", "8k"])
+    ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
     ax.set_xlabel("training rows (nested subsets of the fixed 8,000)")
     ax.set_ylabel("AUROC")
     ax.legend(fontsize=8, loc="lower right")
@@ -191,7 +193,7 @@ def appendix():
     rows = []
     for _, r in log.iterrows():
         commit = f"\\href{{{url}{r.commit}}}{{\\texttt{{{r.commit[:7]}}}}}" if r.commit else ""
-        rows.append(f"{r.date} & {r.track} & \\texttt{{{tex(r.model)}}} & {commit} & {f4(r.val_auroc) if r.val_auroc else '--'} & "
+        rows.append(f"{r.date} & {r.track} & \\texttt{{{tex(r.model)}}} & {commit} & {f5(r.val_auroc) if r.val_auroc else '--'} & "
                     f"{tex(r.kaggle_public)} & {tex(r.kaggle_private) or '--'} \\\\")
     write("appendix_submissions.tex", rows)
 
