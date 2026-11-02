@@ -95,7 +95,8 @@ def main():
         if args.track:
             key &= df.track == args.track
         if args.file is not None:
-            key &= df.file == args.file
+            # a model's first submission fills in its "tested, not submitted" row; later files get new rows
+            key = key & (df.file == args.file) if (key & (df.file == args.file)).any() else key & (df.file == "")
         if key.sum() > 1:
             ap.error(f"{key.sum()} rows match; add --track/--file to pick one")
         if key.sum() == 0:
@@ -103,13 +104,20 @@ def main():
                 ap.error("new row: --track is required")
             df.loc[len(df)] = {c: "" for c in COLUMNS} | {
                 "date": args.date or dt.date.today().isoformat(), "track": args.track, "model": args.model,
-                "file": args.file or "", "kaggle_public": "" if args.file else NOT_SUBMITTED}
+                "file": args.file or "", "kaggle_public": "pending upload" if args.file else NOT_SUBMITTED}
             key = df.index == len(df) - 1
         i = df.index[key][0]
-        if args.file and not args.commit and not df.at[i, "commit"]:
-            args.commit = git("log", "-1", "--format=%H", "--", args.file) or None
-        if not args.commit and not df.at[i, "commit"]:
-            args.commit = git("rev-parse", "HEAD")
+        if args.file and not df.at[i, "file"]:  # submission file written, score not in yet
+            df.at[i, "file"], df.at[i, "commit"] = args.file, ""
+            if df.at[i, "kaggle_public"] == NOT_SUBMITTED:
+                df.at[i, "kaggle_public"] = "pending upload"
+            if not args.date:
+                df.at[i, "date"] = dt.date.today().isoformat()
+        if not args.commit:
+            if df.at[i, "file"]:  # the commit that added the submission file (blank until it is committed)
+                args.commit = git("log", "-1", "--format=%H", "--", df.at[i, "file"]) or None
+            elif args.val is not None or not df.at[i, "commit"]:  # code version that produced the val score
+                args.commit = git("rev-parse", "HEAD")
         for col, val in [("date", args.date), ("author", args.author), ("val_auroc", args.val),
                          ("kaggle_public", args.public), ("kaggle_private", args.private),
                          ("commit", args.commit), ("notes", args.notes)]:

@@ -1,0 +1,13 @@
+# C1: word (1-2) + char_wb (2-5) TF-IDF -> logistic regression (liblinear, L2).
+model: tfidf_lr
+params:
+  C: 4.0
+  word_ngrams: [1, 2]
+  char_ngrams: [2, 5]
+  word_min_df: 2
+  char_min_df: 3
+  max_features: 300000
+  lowercase: true
+search:                 # 5-fold CV inside the 8,000 training rows
+  C: [1.0, 4.0, 16.0, 64.0]
+  lowercase: [true, false]
