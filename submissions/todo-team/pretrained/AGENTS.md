@@ -166,6 +166,10 @@ Upload order (all in `outputs/submissions/`, built by `make_submission.py` from 
    tuned on the eval sets. Proxy 0.9906, CV 0.9994.
 3. `final_C_lm4_roberta.csv` — lm4 + ft_roberta_base (adds a second family). Proxy 0.9910, CV 0.9996.
 
+**Kaggle public LB:** A 0.9916, B 0.9885, C 0.9885. The proxy ranked A first and was 0.001–0.003 above the
+public scores; train CV was 0.008–0.011 above and could not separate the three. → use `proxy_auc`, not CV, to
+choose models and blends.
+
 Held-out eval (session `20261030-135404_ood` + `20261031-144451_ood`; `data/eval/`, built by
 `scripts/build_eval_set.py` from 7 generators never trained on — Llama-3.2-3B, Qwen3-4B, Phi-3.5-mini, SmolLM2-1.7B,
 Granite-3.1-2B, OLMo-2-1B, Pythia-1.4B: 542 rewrites of train human passages + 816 AI poems/stories, and 681 human
@@ -259,7 +263,7 @@ The table is regenerated automatically by `train.py`, `scripts/blend.py` and
 scores with `python scripts/record_kaggle_score.py --run <run_name or submission file> --score <x>`.
 
 <!-- LEADERBOARD:START -->
-**Best Kaggle public score:** none recorded yet
+**Best Kaggle public score:** 0.9916 — `final_A_greedy_proxy` (final_A_greedy_proxy)
 
 | rank | run | config | CV scheme | CV AUROC | TPR@1%FPR | Kaggle public | train_frac | semi-sup | device | time (s) | author | notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -276,7 +280,7 @@ scores with `python scripts/record_kaggle_score.py --run <run_name or submission
 | 11 | `20261030-135404_ood__ft_distilroberta` | ft_distilroberta | stratified | 0.9988 ± 0.0006 | 0.991 |  | 1.0 | False | NVIDIA GeForce RTX 3060 | 1646 | Max Shen | run_all:ood:ft_distilroberta |
 | 12 | `20261028-145019_pc__ft_roberta_base` | ft_roberta_base | stratified | 0.9988 ± 0.0006 | 0.989 |  | 1.0 | False | NVIDIA GeForce RTX 5070 | 866 | Max Shen | run_all:pc:ft_roberta_base |
 
-_Top 12 of 69 logged runs by CV AUROC; full log in `experiments/results.csv`. CV scores from different schemes are not directly comparable (`cluster` CV holds out whole topics and is harder than `stratified`)._
+_Top 12 of 72 logged runs by CV AUROC; full log in `experiments/results.csv`. CV scores from different schemes are not directly comparable (`cluster` CV holds out whole topics and is harder than `stratified`)._
 <!-- LEADERBOARD:END -->
 
 ## Keeping this file current
