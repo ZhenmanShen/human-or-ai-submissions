@@ -21,7 +21,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from .config import ROOT, read_yaml
+from .config import ROOT, data_dir, read_yaml
 from .ensemble import greedy, load_runs, rank_mean, stack_lr
 from .utils import auroc, binary_metrics, file_lock
 
@@ -110,9 +110,9 @@ def sanity_checks(df: pd.DataFrame, runs: dict, oofs: dict, tests: dict) -> pd.D
         checks.append({"scope": scope, "check": check,
                        "result": "PASS" if ok else ("WARN" if warn else "FAIL"), "detail": detail})
 
-    train = pd.read_csv(ROOT / "data" / "train.csv")
-    test = pd.read_csv(ROOT / "data" / "test.csv")
-    sample = pd.read_csv(ROOT / "data" / "sample_submission.csv")
+    train = pd.read_csv(data_dir() / "train.csv")
+    test = pd.read_csv(data_dir() / "test.csv")
+    sample = pd.read_csv(data_dir() / "sample_submission.csv")
     add("data", "train labels are 0/1 and roughly balanced",
         set(train.label.unique()) <= {0, 1} and 0.4 < train.label.mean() < 0.6, f"AI share {train.label.mean():.3f}")
     add("data", "test ids unique and identical to sample_submission ids",
@@ -268,7 +268,7 @@ def fig_corr(ok, oofs, tests, path: Path):
 def topic_auroc(ok, oofs, k: int = 8):
     from sklearn.cluster import MiniBatchKMeans
     from sklearn.feature_extraction.text import TfidfVectorizer
-    train = pd.read_csv(ROOT / "data" / "train.csv").sort_values("id").reset_index(drop=True)
+    train = pd.read_csv(data_dir() / "train.csv").sort_values("id").reset_index(drop=True)
     vec = TfidfVectorizer(max_features=20000, min_df=3, stop_words="english", sublinear_tf=True)
     X = vec.fit_transform(train.text)
     km = MiniBatchKMeans(k, random_state=0, n_init=5).fit(X)
