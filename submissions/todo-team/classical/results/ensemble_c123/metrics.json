@@ -16,10 +16,10 @@
   "val_tpr_at_1fpr": 0.99,
   "n_train": 8000,
   "n_val": 2000,
-  "fit_time_s": 266.3,
-  "val_predict_time_s": 4.0,
-  "hardware": "CPU (AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD)",
+  "fit_time_s": 239.7,
+  "val_predict_time_s": 4.1,
+  "hardware": "NVIDIA GeForce RTX 5070",
   "searched": false,
-  "timestamp": "2026-11-01T17:36:07",
-  "git_commit": "4f9451b0f6b3c53313b347cafda15e5b73cba556"
+  "timestamp": "2026-11-01T17:40:45",
+  "git_commit": "892b43a29a1e30c365caf2140116a60a4bed0019"
 }

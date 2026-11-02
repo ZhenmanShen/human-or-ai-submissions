@@ -53,6 +53,8 @@ class EnsembleC123(BaseModel):
             for m in self.members:
                 mdl = self._make(m, self.seed + f).fit([texts[i] for i in tr], y[tr], unlabeled_texts=unlabeled_texts)
                 oof[m][va] = mdl.predict_proba([texts[i] for i in va])
+                if getattr(mdl, "device_used", "cpu") != "cpu":  # report the GPU even if that member gets weight 0
+                    self.device_used = mdl.device_used
             print(f"  ensemble: inner fold {f + 1}/{self.folds} done", flush=True)
         R = {m: _rank01(oof[m]) for m in self.members}
         counts = dict.fromkeys(self.members, 0)
@@ -69,8 +71,6 @@ class EnsembleC123(BaseModel):
         self.ref = {m: np.sort(oof[m]) for m in self.members}
         self.models = {m: self._make(m, self.seed).fit(texts, y, unlabeled_texts=unlabeled_texts)
                        for m in self.members if self.weights[m] > 0}
-        self.device_used = next((getattr(md, "device_used", "cpu") for md in self.models.values()
-                                 if getattr(md, "device_used", "cpu") != "cpu"), "cpu")
         return self
 
     def predict_proba(self, texts):
