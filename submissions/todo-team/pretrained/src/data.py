@@ -47,10 +47,18 @@ def topic_clusters(texts: list[str], n_clusters: int, seed: int) -> np.ndarray:
     return MiniBatchKMeans(n_clusters=n_clusters, random_state=seed, n_init=5).fit_predict(X)
 
 
-def make_splits(texts: list[str], y: np.ndarray, cv_cfg: dict, seed: int):
+def make_splits(texts: list[str], y: np.ndarray, cv_cfg: dict, seed: int, ids=None):
     """Return a list of (train_idx, val_idx) pairs."""
     scheme = cv_cfg.get("scheme", "stratified")
     idx = np.arange(len(y))
+    if scheme == "fixed":  # the team's fixed 8,000 / 2,000 split (common/val_ids.csv), same for every model
+        if ids is None:
+            raise ValueError("cv.scheme=fixed needs the train ids")
+        val_ids = pd.read_csv(resolve(cv_cfg["val_ids_file"]))
+        is_val = np.isin(np.asarray(ids), val_ids["id"].to_numpy())
+        if is_val.sum() != len(val_ids):
+            raise ValueError(f"{is_val.sum()} of {len(val_ids)} validation ids found in the training file")
+        return [(idx[~is_val], idx[is_val])]
     if scheme == "holdout":
         tr, va = train_test_split(idx, test_size=cv_cfg.get("val_size", 0.2),
                                   stratify=y, random_state=seed)
@@ -63,6 +71,20 @@ def make_splits(texts: list[str], y: np.ndarray, cv_cfg: dict, seed: int):
         sgkf = StratifiedGroupKFold(n_splits=cv_cfg["n_folds"], shuffle=True, random_state=seed)
         return list(sgkf.split(idx, y, groups))
     raise ValueError(f"Unknown cv.scheme: {scheme}")
+
+
+def subsample_n(idx: np.ndarray, y: np.ndarray, n: int | None, seed: int) -> np.ndarray:
+    """Nested stratified subsample of n training indices (learning curves): each class is shuffled
+    once with `seed` and its first n * class-share indices are kept, so a smaller n is always a
+    subset of a larger one."""
+    if n is None or n >= len(idx):
+        return idx
+    rng = np.random.default_rng(seed)
+    keep = []
+    for c in np.unique(y[idx]):
+        members = rng.permutation(idx[y[idx] == c])
+        keep.append(members[:int(round(n * len(members) / len(idx)))])
+    return np.sort(np.concatenate(keep))
 
 
 def subsample(idx: np.ndarray, y: np.ndarray, frac: float, seed: int) -> np.ndarray:

@@ -38,7 +38,7 @@ import pandas as pd
 from sklearn.metrics import roc_auc_score
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from src.config import resolve  # noqa: E402
+from src.config import resolve, set_data_dir  # noqa: E402
 from src.inference import find_run  # noqa: E402
 from src.utils import auroc  # noqa: E402
 
@@ -183,7 +183,9 @@ def main():
     ap.add_argument("--greedy", action="store_true",
                     help="greedy blend on proxy_auc (+ a select-on-half / score-on-other-half check)")
     ap.add_argument("--no-save", action="store_true")
+    ap.add_argument("--data-dir", default=None, help="folder with the Kaggle CSVs (default: $HOA_DATA_DIR, ./data, common/data.py)")
     args = ap.parse_args()
+    set_data_dir(args.data_dir)
 
     meta_ng, meta_cr = pd.read_csv(resolve(NEWGEN)), pd.read_csv(resolve(CREATIVE))
     runs = [find_run(r) for r in args.runs]

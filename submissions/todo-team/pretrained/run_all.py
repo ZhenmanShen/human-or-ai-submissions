@@ -40,7 +40,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
-from src.config import read_yaml  # noqa: E402
+from src.config import read_yaml, set_data_dir  # noqa: E402
 
 JOB_FIELDS = ["name", "config", "resource", "group", "cost", "after", "slot", "status", "returncode",
               "started", "finished", "duration_s", "cv_auc", "run_name", "log", "error"]
@@ -295,7 +295,9 @@ def main():
     ap.add_argument("--no-prefetch", action="store_true", help="don't pre-download Hugging Face weights")
     ap.add_argument("--dry-run", action="store_true")
     ap.add_argument("--fake-gpus", type=int, default=0, help=argparse.SUPPRESS)
+    ap.add_argument("--data-dir", default=None, help="folder with the Kaggle CSVs (default: $HOA_DATA_DIR, ./data, common/data.py)")
     args = ap.parse_args()
+    set_data_dir(args.data_dir)
     # utf-8 + replace: job error tails can contain tqdm bar characters a cp1252 console can't encode
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8", errors="replace", line_buffering=True)

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import copy
+import os
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -65,7 +66,35 @@ def load_config(model: str | None = None, config_path: str | None = None,
     return cfg
 
 
+DATA_DIR_ENV = "HOA_DATA_DIR"
+
+
+def set_data_dir(path: str | Path | None) -> None:
+    """--data-dir on any entry point: exported so run_all.py's train.py subprocesses inherit it."""
+    if path:
+        os.environ[DATA_DIR_ENV] = str(Path(path).expanduser().resolve())
+
+
+def data_dir() -> Path:
+    """Where `data/...` paths point. The competition data lives outside git: --data-dir / $HOA_DATA_DIR,
+    else ./data if it holds train.csv, else the team-wide default (common/data.py: submissions/<team>/data/,
+    then the research repo's data/ next to the course repo)."""
+    if os.environ.get(DATA_DIR_ENV):
+        return Path(os.environ[DATA_DIR_ENV])
+    if (ROOT / "data" / "train.csv").exists():
+        return ROOT / "data"
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("team_common_data", ROOT.parent / "common" / "data.py")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod.resolve_data_dir()
+
+
 def resolve(path: str | Path) -> Path:
-    """Paths in configs are relative to the repo root."""
+    """Paths in configs are relative to the repo root, except `data/...`, which is relative to data_dir()."""
     p = Path(path)
-    return p if p.is_absolute() else ROOT / p
+    if p.is_absolute():
+        return p
+    if p.parts and p.parts[0] == "data":
+        return data_dir().joinpath(*p.parts[1:])
+    return ROOT / p

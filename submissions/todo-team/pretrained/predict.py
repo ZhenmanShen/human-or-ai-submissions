@@ -24,7 +24,7 @@ from pathlib import Path  # noqa: E402
 
 import pandas as pd  # noqa: E402
 
-from src.config import read_yaml  # noqa: E402
+from src.config import read_yaml, set_data_dir  # noqa: E402
 from src.data import load_csv  # noqa: E402
 from src.inference import find_run, model_dirs, predict_run  # noqa: E402
 
@@ -35,7 +35,9 @@ def main():
     ap.add_argument("--input", default=None, help="CSV with id,text (default: config test_file)")
     ap.add_argument("--output", default=None, help="where to write id,label (default: <run>/predictions.csv)")
     ap.add_argument("--device", default=None, help="auto | cuda | cuda:<i> | mps | cpu (torch models only)")
+    ap.add_argument("--data-dir", default=None, help="folder with the Kaggle CSVs (default: $HOA_DATA_DIR, ./data, common/data.py)")
     args = ap.parse_args()
+    set_data_dir(args.data_dir)
 
     run = find_run(args.run)
     cfg = read_yaml(run / "config.yaml")

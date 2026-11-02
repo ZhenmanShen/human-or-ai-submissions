@@ -34,7 +34,7 @@ import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
 from scipy.stats import spearmanr  # noqa: E402
 
-from src.config import load_config, read_yaml  # noqa: E402
+from src.config import load_config, read_yaml, set_data_dir  # noqa: E402
 from src.data import load_csv  # noqa: E402
 from src.ensemble import cdf_mean, load_runs, rank_mean  # noqa: E402
 from src.inference import find_run, has_model, predict_run, validate_submission  # noqa: E402
@@ -75,7 +75,9 @@ def main():
     ap.add_argument("--cached", action="store_true", help="use stored test predictions instead of the saved models")
     ap.add_argument("--device", default=None, help="auto | cuda | cuda:<i> | mps | cpu (torch models only)")
     ap.add_argument("--check", default=None, help="only validate this submission CSV")
+    ap.add_argument("--data-dir", default=None, help="folder with the Kaggle CSVs (default: $HOA_DATA_DIR, ./data, common/data.py)")
     args = ap.parse_args()
+    set_data_dir(args.data_dir)
 
     cfg = load_config("tfidf_logreg")  # default.yaml paths only
     sample_file = cfg["data"]["sample_submission_file"]

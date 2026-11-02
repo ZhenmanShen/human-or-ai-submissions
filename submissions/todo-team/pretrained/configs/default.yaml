@@ -24,6 +24,8 @@ data:
   eval_files: []
   # Fraction of each fold's training data to keep (learning-curve experiments).
   train_frac: 1.0
+  # Or an absolute number of training rows, nested across sizes (500 < 1000 < ...; see src/data.subsample_n).
+  train_n: null
 
 # Text cleaning applied to train / val / test / unlabeled alike.
 # See src/preprocessing.py for what each step does. Formatting carries signal
@@ -44,7 +46,10 @@ cv:
   # cluster    : clusters train by topic (KMeans on TF-IDF) and holds whole
   #              clusters out -> estimates performance on unseen domains
   # holdout    : single stratified split (val_size), good for slow models
+  # fixed      : the course protocol - train on 8,000 rows, validate on the 2,000 ids in val_ids_file
+  #              (shared with the classical track). Also records train AUROC on the 8,000 rows.
   scheme: stratified
+  val_ids_file: ../common/val_ids.csv
   n_folds: 5
   val_size: 0.2
   n_clusters: 8

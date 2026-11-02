@@ -49,8 +49,8 @@ import pandas as pd
 import yaml
 from tqdm.auto import tqdm
 
-from src.config import load_config, resolve
-from src.data import load_competition_data, load_csv, load_external, make_splits, subsample
+from src.config import load_config, resolve, set_data_dir
+from src.data import load_competition_data, load_csv, load_external, make_splits, subsample, subsample_n
 from src.leaderboard import update_agents_md
 from src.models import build_model, get_model_class
 from src.preprocessing import preprocess
@@ -72,6 +72,7 @@ def parse_args(argv=None):
     ap.add_argument("--quick", action="store_true", help="use train_starter_2000.csv and 3 folds")
     ap.add_argument("--no-log", action="store_true", help="don't append to experiments/results.csv")
     ap.add_argument("--device", help="auto | cuda | cuda:<i> | mps | cpu (overrides config `device:`)")
+    ap.add_argument("--data-dir", help="folder with the Kaggle CSVs (default: $HOA_DATA_DIR, ./data, common/data.py)")
     return ap.parse_args(argv)
 
 
@@ -162,6 +163,7 @@ def write_json(path, obj):
 
 
 def run(args) -> dict:
+    set_data_dir(args.data_dir)
     overrides = list(args.set)
     if args.quick:
         overrides += ["data.train_file=data/train_starter_2000.csv", "cv.n_folds=3"]
@@ -264,10 +266,12 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
 
     # ------------------------------------------------------------ cross-validation
     if not args.no_cv:
-        splits = make_splits(train_texts, y, cfg["cv"], cfg["seed"])
+        splits = make_splits(train_texts, y, cfg["cv"], cfg["seed"], ids=dfs["train"]["id"].to_numpy())
+        fixed = cfg["cv"]["scheme"] == "fixed"
+        train_pred = np.full(len(y), np.nan)  # fixed scheme: in-sample predictions on the training rows
         oof = np.full(len(y), np.nan)
         fold_of = np.full(len(y), -1)
-        fold_aucs, fold_times, histories = [], [], []
+        fold_aucs, fold_times, fit_times, histories = [], [], [], []
         eval_fold_preds = {k: [] for k in evals}
         need = (["test", "unl"] if fold_avg else []) + [f"eval_{k}" for k in evals]
         for f, (tr, va) in enumerate(tqdm(splits, desc=f"CV ({cfg['cv']['scheme']})")):
@@ -277,6 +281,8 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
             if done is not None:  # finished by an earlier attempt of this run (run_all --resume)
                 meta, arrs = done
                 oof[va], fold_of[va] = arrs["oof"], f
+                if fixed and "train" in arrs:
+                    train_pred = arrs["train"]
                 if fold_avg:
                     test_fold_preds.append(arrs["test"])
                     unl_fold_preds.append(arrs["unl"])
@@ -284,19 +290,25 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
                     eval_fold_preds[k].append(arrs[f"eval_{k}"])
                 fold_aucs.append(meta["auc"])
                 fold_times.append(meta["time_s"])
+                fit_times.append(meta.get("fit_s", meta["time_s"]))
                 histories.append(meta.get("history", []))
                 tqdm.write(f"  fold {f + 1}/{len(splits)}: AUROC {meta['auc']:.4f}  (done in an earlier attempt)")
                 continue
             seed_everything(cfg["seed"] + f)  # a fold's randomness doesn't depend on which folds were skipped
             tr = subsample(tr, y, cfg["data"]["train_frac"], cfg["seed"] + f)
+            tr = subsample_n(tr, y, cfg["data"].get("train_n"), cfg["seed"])
             X_tr = [train_texts[i] for i in tr] + list(ext_texts)
             y_tr = np.concatenate([y[tr], ext_y])
             X_va = [train_texts[i] for i in va]
             model = fit_model(make, cfg, X_tr, y_tr, X_va, y[va], pools, unsup_texts,
                               ckpt_dir=ckpt_root / f"fold_{f}")
+            fit_s = round(time.time() - t0, 1)
             oof[va] = model.predict_proba(X_va)
             fold_of[va] = f
             arrs = {"oof": oof[va]}
+            if fixed:
+                train_pred[tr] = model.predict_proba([train_texts[i] for i in tr])
+                arrs["train"] = train_pred
             if fold_avg:
                 test_fold_preds.append(model.predict_proba(test_texts))
                 unl_fold_preds.append(model.predict_proba(unl_texts))
@@ -311,7 +323,8 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
             del model
             fold_aucs.append(auroc(y[va], oof[va]))
             fold_times.append(round(time.time() - t0, 1))
-            save_fold(fold_dir, f, {"fingerprint": fp, "auc": fold_aucs[-1], "time_s": fold_times[-1],
+            fit_times.append(fit_s)
+            save_fold(fold_dir, f, {"fingerprint": fp, "auc": fold_aucs[-1], "time_s": fold_times[-1], "fit_s": fit_s,
                                     "n_train": len(X_tr), "history": histories[-1]}, arrs)
             if not out_cfg.get("keep_checkpoints", False):  # the fold's predictions are on disk now
                 shutil.rmtree(ckpt_root / f"fold_{f}", ignore_errors=True)
@@ -336,6 +349,14 @@ def _run(args, cfg, run_name, run_dir, model_name, config_name, dev) -> dict:
                        oof_metrics=binary_metrics(y[seen], oof[seen]), n_oof=int(seen.sum()))
         pd.DataFrame({"id": dfs["train"]["id"], "label": y, "fold": fold_of, "pred": oof}).to_csv(
             run_dir / "oof.csv", index=False)
+        if fixed:  # cv_auc above is the validation AUROC on the 2,000 fixed rows
+            fit_rows = ~np.isnan(train_pred)
+            metrics.update(val_auc=cv_auc, train_auc=auroc(y[fit_rows], train_pred[fit_rows]),
+                           n_train=int(fit_rows.sum()), fit_time_s=fit_times[0])
+            pd.DataFrame({"id": dfs["train"]["id"], "label": y, "pred": train_pred})[fit_rows].to_csv(
+                run_dir / "train_pred.csv", index=False)
+            print(f"Fixed split: train AUROC {metrics['train_auc']:.4f} (n={fit_rows.sum()}), "
+                  f"val AUROC {cv_auc:.4f} (n={len(splits[0][1])}), fit {fit_times[0]:.0f}s")
         print(f"\nCV AUROC ({cfg['cv']['scheme']}, {len(splits)} fold(s)): {cv_auc:.4f}  "
               f"[folds: {', '.join(f'{a:.4f}' for a in fold_aucs)}]  "
               f"TPR@1%FPR {metrics['oof_metrics']['tpr_at_1fpr']:.3f}")
