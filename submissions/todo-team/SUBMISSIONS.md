@@ -8,6 +8,7 @@ uploaded to Kaggle say "not submitted". Kaggle private scores are blank until th
 |---|---|---|---|---|---|---|---|---|---|
 | 2026-11-01 | classical | linear_svm |  | [`2e086bb`](https://github.com/ZhenmanShen/human-or-ai-submissions/commit/2e086bbb3bb0efdcacd05c2be84f7e85ffe978c2) | Max Shen | 0.96235 | not submitted |  |  |
 | 2026-11-01 | classical | nbsvm |  | [`548c608`](https://github.com/ZhenmanShen/human-or-ai-submissions/commit/548c60872335e543fad8c65b94096f8d8f8b2735) | Max Shen | 0.96987 | not submitted |  |  |
+| 2026-11-01 | classical | rf_stylo |  | [`f55543e`](https://github.com/ZhenmanShen/human-or-ai-submissions/commit/f55543e976e781ddbcd225c6526447a7bee9e358) | Max Shen | 0.99691 | not submitted |  |  |
 | 2026-11-01 | classical | stylo_gbm | `classical/kaggle_submissions/2026-11-01_stylo_gbm.csv` |  | Max Shen | 0.99831 | pending upload |  |  |
 | 2026-11-01 | classical | tfidf_lr | `classical/kaggle_submissions/2026-11-01_tfidf_lr.csv` |  | Max Shen | 0.96256 | pending upload |  |  |
 | 2026-11-01 | classical | transformer_scratch | `classical/kaggle_submissions/2026-11-01_transformer_scratch.csv` |  | Max Shen | 0.98500 | pending upload |  |  |

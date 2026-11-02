@@ -4,3 +4,4 @@ date,track,model,file,commit,author,val_auroc,kaggle_public,kaggle_private,notes
 2026-11-01,classical,transformer_scratch,classical/kaggle_submissions/2026-11-01_transformer_scratch.csv,,Max Shen,0.98500,pending upload,,
 2026-11-01,classical,linear_svm,,2e086bbb3bb0efdcacd05c2be84f7e85ffe978c2,Max Shen,0.96235,not submitted,,
 2026-11-01,classical,nbsvm,,548c60872335e543fad8c65b94096f8d8f8b2735,Max Shen,0.96987,not submitted,,
+2026-11-01,classical,rf_stylo,,f55543e976e781ddbcd225c6526447a7bee9e358,Max Shen,0.99691,not submitted,,
