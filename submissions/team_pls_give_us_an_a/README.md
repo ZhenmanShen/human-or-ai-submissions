@@ -1,4 +1,4 @@
-# [TODO: Kaggle team name] — Human or AI?
+# team_pls_give_us_an_A — Human or AI?
 
 Code for the CS5785 "Human or AI?" Kaggle competition. Six models were submitted, three from each of two
 tracks, and every model is scored on the same fixed 2,000-row validation split.
@@ -19,7 +19,7 @@ tracks, and every model is scored on the same fixed 2,000-row validation split.
 ## Folder map
 
 ```
-submissions/todo-team/
+submissions/team_pls_give_us_an_a/
 ├── README.md              this file: setup, commands, seeds, AI-use disclosure
 ├── AGENTS.md              one-page briefing for AI assistants and new teammates (CLAUDE.md loads it)
 ├── SUBMISSIONS.md         every Kaggle upload and its score (generated from submission_log.csv)
@@ -68,10 +68,10 @@ Notes:
   - `pretrained/AGENTS.md` is the research repo's log of every experiment, carried over with the pretrained track.
     `pretrained/scripts/` still update its results table, so leave it where it is.
 - **Why the deep path.** The course only accepts PRs that touch `submissions/<team-name>/`, so all our files
-  live in this folder. Rename it once the Kaggle team name is fixed (see `AGENTS.md`).
+  live in this folder, named after our Kaggle team (lowercase, as the course asks).
 - **Branches.**
   - `main` holds everything; work there, or on a short-lived branch merged into `main`.
-  - `submission/todo-team` is the branch the course PR will be opened from. It equals `main` minus the two
+  - `submission/team_pls_give_us_an_a` is the branch the course PR will be opened from. It equals `main` minus the two
     pointer files at the repo root (`AGENTS.md`, `CLAUDE.md`), which point AI assistants here and must stay out of
     the PR. `AGENTS.md` shows how to update it.
   - `pretrained`, `classical` and `model/*` are older per-track and per-model branches. They are already merged into
@@ -79,7 +79,7 @@ Notes:
 
 ## 1. Team
 
-- Kaggle team name: `[TODO]`
+- Kaggle team name: `team_pls_give_us_an_A`
 - Members (name, NetID): `[TODO]`
 
 ## 2. Environment
