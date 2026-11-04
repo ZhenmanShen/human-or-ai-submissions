@@ -14,12 +14,14 @@ tracks, and every model is scored on the same fixed 2,000-row validation split.
 | Add a new model | [`classical/CONTRIBUTING.md`](classical/CONTRIBUTING.md) |
 | Run the pretrained (GPU) pipeline | [`pretrained/README.md`](pretrained/README.md) |
 | See what is still to do | search the repo for `[TODO` |
+| Brief an AI assistant (Claude Code, Codex, ...) | [`AGENTS.md`](AGENTS.md): task, layout, models, rules, TODOs in one page |
 
 ## Folder map
 
 ```
 submissions/todo-team/
 ├── README.md              this file: setup, commands, seeds, AI-use disclosure
+├── AGENTS.md              one-page briefing for AI assistants and new teammates (CLAUDE.md loads it)
 ├── SUBMISSIONS.md         every Kaggle upload and its score (generated from submission_log.csv)
 ├── submission_log.csv
 ├── reports/               THE REPORT: kaggle_report.tex + build_tables.py (picks rows from the track tables)
@@ -61,13 +63,19 @@ Notes:
   - To compile it in Overleaf, upload the whole team folder; the report reads `../common`, `../pretrained` and `../classical`.
   - `pretrained/reports/kaggle_pretrained_report.tex` and `classical/reports/kaggle_classical_report.tex` are
     longer single-track drafts that cover every model. They are background only and not submitted.
-- **AI-assistant files.** `pretrained/AGENTS.md` and `pretrained/CLAUDE.md` are context files for AI assistants,
-  carried over from the research repo. You don't need them to use the code.
+- **AI-assistant files.**
+  - [`AGENTS.md`](AGENTS.md) in this folder is the team-wide briefing.
+  - `pretrained/AGENTS.md` is the research repo's log of every experiment, carried over with the pretrained track.
+    `pretrained/scripts/` still update its results table, so leave it where it is.
+- **Why the deep path.** The course only accepts PRs that touch `submissions/<team-name>/`, so all our files
+  live in this folder. Rename it once the Kaggle team name is fixed (see `AGENTS.md`).
 - **Branches.**
-  - `main` holds everything.
-  - `submission/todo-team` is the branch the course PR will be opened from; keep it equal to `main`.
-  - `pretrained`, `classical` and `model/*` are the per-track and per-model branches. All of them are already merged
-    into `main`, and they are kept only so the commit history shows how each model was built.
+  - `main` holds everything; work there, or on a short-lived branch merged into `main`.
+  - `submission/todo-team` is the branch the course PR will be opened from. It equals `main` minus the two
+    pointer files at the repo root (`AGENTS.md`, `CLAUDE.md`), which point AI assistants here and must stay out of
+    the PR. `AGENTS.md` shows how to update it.
+  - `pretrained`, `classical` and `model/*` are older per-track and per-model branches. They are already merged into
+    `main` and kept only for the commit history.
 
 ## 1. Team
 

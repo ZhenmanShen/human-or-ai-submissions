@@ -7,12 +7,12 @@ results files and the testing history.
 ## 1. Get set up
 
 1. Ask the fork owner to add you as a collaborator on `github.com/ZhenmanShen/human-or-ai-submissions`.
-2. Clone the fork and branch off `classical`, using your own git identity so the history shows who did what:
+2. Clone the fork and branch off `main`, using your own git identity so the history shows who did what:
 
    ```bash
    git clone git@github.com:ZhenmanShen/human-or-ai-submissions.git
    cd human-or-ai-submissions
-   git checkout classical
+   git checkout main
    git checkout -b model/<your-name>-<model>
    git config user.name  "Your Name"
    git config user.email "you@cornell.edu"
@@ -64,7 +64,7 @@ Use these message prefixes (graders read the history):
 3. `sub(<model>): refit on 10k, write kaggle_submissions/<date>_<model>.csv` - only if it goes to Kaggle.
 
 Run `git status` before each commit: no data, no `artifacts/`, no weights. Then push your branch and open a
-pull request **in the fork** with base `classical` (not to the course repo). Someone else on the team reviews and
+pull request **in the fork** with base `main` (not to the course repo). Someone else on the team reviews and
 merges it with `--no-ff`.
 
 ## 5. Kaggle uploads
@@ -94,7 +94,7 @@ Not taken yet, pick one and put your name next to it in your PR:
 
 - char-CNN over raw characters (keeps case, punctuation and line breaks)
 - BiLSTM over BPE tokens (train the BPE like `transformer_scratch` does)
-- random forest / extra trees on the stylometric features (`features/stylometry.py`)
+- extra trees on the stylometric features (`features/stylometry.py`; random forest is done: `rf_stylo`)
 - k-NN on TF-IDF vectors (cosine distance)
 - perceptron / averaged perceptron / Pegasos SVM from class, on TF-IDF
 - a self-training variant of `tfidf_lr` using `unlabeled_texts`
