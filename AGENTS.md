@@ -6,5 +6,5 @@ it covers the task, layout, models, rules and open TODOs.
 
 - The course rules only let our PR touch `submissions/<team-name>/`. Never edit the root `README.md`,
   `STAFF.md`, `.github/` or `submissions/_example_team/`.
-- This file and the root `CLAUDE.md` exist only on the fork's `main`. They must not be in the course PR
-  (branch `submission/team_pls_give_us_an_a`).
+- This file and the root `CLAUDE.md` exist only on the fork's `main`. They must not be in the course PR; the
+  team AGENTS.md ("Branches") shows how the PR branch is made without them.

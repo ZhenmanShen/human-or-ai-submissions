@@ -7,6 +7,7 @@ tracks, and every model is scored on the same fixed 2,000-row validation split.
 
 | I want to... | Go to |
 |---|---|
+| Understand how each model is built | [`MODELS.md`](MODELS.md): pipelines of all six submitted models |
 | Read the report | [`reports/kaggle_report.tex`](reports/kaggle_report.tex) (the one report we submit) |
 | See every Kaggle upload and its score | [`SUBMISSIONS.md`](SUBMISSIONS.md) |
 | See the six models side by side | [`common/results/compare_tracks.csv`](common/results/compare_tracks.csv), [`common/figures/six_models.pdf`](common/figures/six_models.pdf) |
@@ -21,7 +22,10 @@ tracks, and every model is scored on the same fixed 2,000-row validation split.
 ```
 submissions/team_pls_give_us_an_a/
 ├── README.md              this file: setup, commands, seeds, AI-use disclosure
+├── MODELS.md              how each of the six submitted models is built
 ├── AGENTS.md              one-page briefing for AI assistants and new teammates (CLAUDE.md loads it)
+├── train.py predict.py    team entry points (like the course's _example_team); they call the track scripts
+├── requirements.txt       both tracks (classical/requirements.txt alone for a laptop)
 ├── SUBMISSIONS.md         every Kaggle upload and its score (generated from submission_log.csv)
 ├── submission_log.csv
 ├── reports/               THE REPORT: kaggle_report.tex + build_tables.py (picks rows from the track tables)
@@ -48,13 +52,15 @@ submissions/team_pls_give_us_an_a/
 
 The six submitted models:
 
-| Model | Track | Code |
+| Model (`--model` name) | Track | Code |
 |---|---|---|
-| Blend A (best public score, 0.99161) | pretrained | `pretrained/make_submission.py`, weights 3 3 2 1 1 1 1 |
-| Blend B, Blend C | pretrained | same script, equal weights |
-| C1 TF-IDF + logistic regression | classical | [`classical/models/tfidf_lr.py`](classical/models/tfidf_lr.py) |
-| C2 stylometric LightGBM (best classical) | classical | [`classical/models/stylo_gbm.py`](classical/models/stylo_gbm.py) |
-| C3 small Transformer from scratch | classical | [`classical/models/transformer_scratch.py`](classical/models/transformer_scratch.py) |
+| Blend A `blend_a` (best public score, 0.99161) | pretrained | `pretrained/make_submission.py`, weights 3 3 2 1 1 1 1 |
+| Blend B `blend_b`, Blend C `blend_c` | pretrained | same script, equal weights |
+| C1 TF-IDF + logistic regression `tfidf_lr` | classical | [`classical/models/tfidf_lr.py`](classical/models/tfidf_lr.py) |
+| C2 stylometric LightGBM `stylo_gbm` (best classical) | classical | [`classical/models/stylo_gbm.py`](classical/models/stylo_gbm.py) |
+| C3 small Transformer from scratch `transformer_scratch` | classical | [`classical/models/transformer_scratch.py`](classical/models/transformer_scratch.py) |
+
+See [`MODELS.md`](MODELS.md) for each model's pipeline.
 
 Notes:
 
@@ -69,13 +75,10 @@ Notes:
     `pretrained/scripts/` still update its results table, so leave it where it is.
 - **Why the deep path.** The course only accepts PRs that touch `submissions/<team-name>/`, so all our files
   live in this folder, named after our Kaggle team (lowercase, as the course asks).
-- **Branches.**
-  - `main` holds everything; work there, or on a short-lived branch merged into `main`.
-  - `submission/team_pls_give_us_an_a` is the branch the course PR will be opened from. It equals `main` minus the two
-    pointer files at the repo root (`AGENTS.md`, `CLAUDE.md`), which point AI assistants here and must stay out of
-    the PR. `AGENTS.md` shows how to update it.
-  - `pretrained`, `classical` and `model/*` are older per-track and per-model branches. They are already merged into
-    `main` and kept only for the commit history.
+- **`_example_team/`** next to this folder belongs to the course (its README says not to modify it), so it stays.
+  Our layout follows it: `README.md`, `requirements.txt`, `train.py` and `predict.py` at the top of the team folder.
+- **Branches.** There is one branch, `main`. The course PR has to come from a branch named
+  `submission/team_pls_give_us_an_a`; `AGENTS.md` shows how to create it from `main` when we open the PR.
 
 ## 1. Team
 
@@ -84,22 +87,25 @@ Notes:
 
 ## 2. Environment
 
-Python 3.12. Use one environment per track; the classical one is a subset:
+Python 3.12.
 
 ```bash
-pip install -r classical/requirements.txt     # numpy, pandas, scikit-learn, lightgbm, pyyaml, matplotlib, torch, tokenizers
-pip install -r pretrained/requirements.txt    # adds transformers etc.
+python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
+pip install -r requirements.txt                       # both tracks
+pip install -r classical/requirements.txt             # or: classical track only (laptop CPU is enough)
 ```
 
-An RTX 50-series GPU needs a CUDA 12.8+ PyTorch build; see `pretrained/README.md`. The classical track runs on a laptop CPU.
+The pretrained track needs a 12 GB NVIDIA GPU. An RTX 50-series card needs a CUDA 12.8+ PyTorch build, installed
+before the requirements; see `pretrained/README.md`.
 
 Competition data is never committed. Put `train.csv`, `test.csv`, `unlabeled.csv` and `sample_submission.csv` in
-`submissions/<team>/data/` (git-ignored), or point to them with `--data-dir PATH` or `HOA_DATA_DIR`.
+`data/` inside this folder (git-ignored), or pass `--data-dir PATH`, or set `HOA_DATA_DIR`.
 
 ## 3. Validation protocol and train/evaluate commands
 
+All commands run from this folder.
+
 ```bash
-cd submissions/<team>
 python common/make_split.py          # must print "OK: val_ids.csv reproduced exactly"
 ```
 
@@ -110,59 +116,37 @@ python common/make_split.py          # must print "OK: val_ids.csv reproduced ex
 - Hyperparameters are chosen by 5-fold CV inside the 8,000 rows, never on the validation set or on Kaggle.
 - Final Kaggle models are refit on all 10,000 rows.
 
-Classical (from `classical/`):
-
 ```bash
-python train.py --model stylo_gbm            # also tfidf_lr, transformer_scratch, linear_svm, nbsvm, rf_stylo, ensemble_c123
-python experiments.py curve | semisup | errors
-python report_tables.py
+python train.py --model stylo_gbm --seed 20261023    # train on 8k, score the fixed 2k -> classical/results/stylo_gbm/
+                                                     # also tfidf_lr, transformer_scratch, linear_svm, nbsvm, rf_stylo, ensemble_c123
+python train.py --model blend_b                      # pretrained: retrain a blend's members, 5-fold CV (GPU, hours)
 ```
 
-Pretrained (from `pretrained/`):
+Report experiments:
 
 ```bash
-python run_all.py --profile fixed
-python scripts/report_experiments.py collect --session outputs/sessions/<session>   # then: hpsearch, curve, semisup, errors, debias
-python scripts/report_tables.py
-```
-
-Both tracks (from the team folder):
-
-```bash
-python common/compare_tracks.py              # six-model table + figures
-python common/describe_splits.py             # line-structure profile of each split
+cd classical  && python experiments.py curve | semisup | errors && python report_tables.py && cd ..
+cd pretrained && python run_all.py --profile fixed && python scripts/report_experiments.py collect --session outputs/sessions/<session>
+              # then: hpsearch, curve, semisup, errors, debias; then python scripts/report_tables.py
+python common/compare_tracks.py && python reports/build_tables.py    # six-model table, figures, report tables
 ```
 
 ## 4. Command that writes `submission.csv`
 
-Final submission: `[TODO: team decision]`. Best public score so far: pretrained blend A, 0.99161. Every uploaded file is
-committed, and its row in `SUBMISSIONS.md` links the commit that added it.
+Final submission: `[TODO: team decision]`. Best public score so far: pretrained blend A, 0.99161. Every uploaded
+file is committed (`*/kaggle_submissions/`), and its row in `SUBMISSIONS.md` links the commit that added it.
 
-- **Pretrained blend A**:
+```bash
+python predict.py --model blend_a --committed --out submission.csv   # the exact uploaded file, no compute
+python train.py --model stylo_gbm --final                            # classical: refit on 10k (~10 s CPU)
+python predict.py --model stylo_gbm --out submission.csv             #   then predict from the saved model
+python predict.py --model blend_a --out submission.csv               # pretrained: re-predict from the saved runs
+```
 
-  ```bash
-  python run_all.py --profile ood
-  ```
-
-  This trains the 5-fold models (seed 42, ~4 h on two 12 GB GPUs). Then:
-
-  ```bash
-  python make_submission.py --run <7 runs> --weights 3 3 2 1 1 1 1 --name final_A_greedy_proxy
-  ```
-
-  This writes `pretrained/outputs/submissions/final_A_greedy_proxy.csv`, which matches
-  `pretrained/kaggle_submissions/2026-10-31_final_A_greedy_proxy.csv` exactly when run on the saved models
-  (`pretrained/results/reproduction.csv`).
-
-- **Classical C2** (laptop CPU, ~10 s):
-
-  ```bash
-  python train.py --model stylo_gbm --final
-  python predict.py --model stylo_gbm --out submission.csv
-  ```
-
-  The first command writes `classical/kaggle_submissions/<date>_stylo_gbm.csv`. The second re-creates the same file
-  from `artifacts/`.
+- Pretrained blends re-predict test with the saved 5-fold runs, which are too large for git (0.3–1.7 GB per
+  fold). They live in the research repo's `outputs/runs/`, or pass `--runs-dir`.
+- Run on those runs, this reproduces all three uploaded files exactly (`pretrained/results/reproduction.csv`).
+- Retraining them from scratch takes about 4 h on two 12 GB GPUs; see `MODELS.md`.
 
 ## 5. Seeds and important config
 

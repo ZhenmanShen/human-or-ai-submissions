@@ -24,6 +24,9 @@ human-or-ai-submissions/            the team's fork of the course repo
     └── team_pls_give_us_an_a/      EVERYTHING of ours (Kaggle team name team_pls_give_us_an_A, lowercased)
         ├── AGENTS.md               this file
         ├── README.md               setup, commands, seeds, AI-use disclosure (required by the course)
+        ├── MODELS.md               how each of the six submitted models is built (pipelines, settings)
+        ├── train.py, predict.py    team entry points, shaped like _example_team; they call the track scripts
+        ├── requirements.txt        both tracks
         ├── SUBMISSIONS.md          every model and Kaggle upload; generated from submission_log.csv
         ├── reports/                kaggle_report.tex, the one report we submit; build_tables.py
         ├── common/                 shared by both tracks: val split, data loading, metrics, log, comparison
@@ -88,6 +91,14 @@ weighted average (`src/ensemble.py: cdf_mean`). Every member scores every text: 
 - `python train.py --model <name>` runs the search, fits on the 8k rows and scores the fixed 2k. It writes
   `results/<name>/` and updates `submission_log.csv`.
 - `--final` refits on 10k rows and writes `kaggle_submissions/<date>_<name>.csv`.
+
+### Entry points (team folder)
+
+- `python train.py --model <classical model> [--final]` forwards to `classical/train.py`.
+- `python train.py --model blend_a|blend_b|blend_c` retrains that blend's members (`pretrained/run_all.py`, GPU, hours).
+- `python predict.py --model <name> --out submission.csv` predicts from saved models or runs. Add `--committed` to
+  copy the uploaded file instead.
+- The full pipelines of all six submitted models are in `MODELS.md`.
 - Full guide: `classical/CONTRIBUTING.md`.
 
 ## Rules for any change
@@ -114,20 +125,24 @@ weighted average (`src/ensemble.py: cdf_mean`). Every member scores every text: 
 
 ## Branches
 
-- `main` holds everything; work here or on a short-lived branch merged into `main`.
-- `submission/team_pls_give_us_an_a` is the branch the course PR will be opened from. It equals `main` without the root
-  pointer files. To update it:
+There is one branch, `main`; work there, or on a short-lived branch merged back into `main` and then deleted. The
+older per-track and per-model branches (`pretrained`, `classical`, `model/*`) were merged and deleted on
+2026-11-04; their commits are all in `main`'s history.
 
-  ```bash
-  # from the repo root
-  git checkout submission/team_pls_give_us_an_a
-  git merge main
-  git rm -q --ignore-unmatch AGENTS.md CLAUDE.md   # root pointers only; the team folder's copies stay
-  git commit -m "Keep root pointer files out of the course PR"
-  ```
+The course PR must come from a branch named `submission/team_pls_give_us_an_a`, without the two root pointer files.
+Create it only when opening the PR (ask a human first):
 
-  After the first removal, later merges keep them out.
-- `pretrained`, `classical` and `model/*` are old branches, already merged, and kept for history.
+```bash
+# from the repo root
+git checkout -b submission/team_pls_give_us_an_a main
+git rm -q AGENTS.md CLAUDE.md          # root pointers only; the team folder's copies stay
+git commit -m "Keep the fork's root pointer files out of the course PR"
+git push -u origin submission/team_pls_give_us_an_a
+git checkout main
+```
+
+To update the PR later, merge `main` into that branch; the pointer files stay deleted there. Never merge the PR
+branch back into `main`, because that would delete the pointers from `main`.
 
 ## Regenerating everything (after new results)
 
