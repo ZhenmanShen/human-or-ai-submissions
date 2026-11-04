@@ -115,7 +115,8 @@ def main():
                 df.at[i, "date"] = dt.date.today().isoformat()
         if not args.commit:
             if df.at[i, "file"]:  # the commit that added the submission file (blank until it is committed)
-                args.commit = git("log", "-1", "--format=%H", "--", df.at[i, "file"]) or None
+                added = git("log", "--follow", "--diff-filter=A", "--format=%H", "--", df.at[i, "file"])
+                args.commit = added.split()[-1] if added else None  # oldest add, across folder renames
             elif args.val is not None or not df.at[i, "commit"]:  # code version that produced the val score
                 args.commit = git("rev-parse", "HEAD")
         for col, val in [("date", args.date), ("author", args.author), ("val_auroc", args.val),
