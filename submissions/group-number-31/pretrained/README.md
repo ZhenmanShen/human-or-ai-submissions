@@ -8,7 +8,7 @@ Project context, model list and results so far: **[AGENTS.md](AGENTS.md)**.
 ## In the course repo (`submissions/<team>/pretrained/`)
 
 This folder is the research repo imported with its history and trimmed to the pipeline behind the three
-uploaded files (`kaggle_submissions/final_{A,B,C}_*.csv`). Differences from the sections below:
+uploaded files (`kaggle_submissions/2026-10-31_final_{A,B,C}_*.csv`). Differences from the sections below:
 
 - **Data** stays outside git. `data/...` paths resolve through `--data-dir PATH`, `$HOA_DATA_DIR`, `./data`,
   or the team default in `../common/data.py`.

@@ -39,7 +39,7 @@ BLENDS = {
 
 def committed_file(model: str) -> Path:
     if model in BLENDS:
-        files = sorted((TEAM / "pretrained" / "kaggle_submissions").glob(f"{BLENDS[model][0]}.csv"))
+        files = sorted((TEAM / "pretrained" / "kaggle_submissions").glob(f"*_{BLENDS[model][0]}.csv"))
     else:
         files = sorted((TEAM / "classical" / "kaggle_submissions").glob(f"final_?_{model}.csv"))
     if not files:
