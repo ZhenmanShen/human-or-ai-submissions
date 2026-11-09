@@ -2,10 +2,10 @@
 
   python train.py --model tfidf_lr                    # inner-CV search (if the config has one), fit on the
                                                       # 8,000 rows, score the fixed 2,000 validation rows
-  python train.py --model tfidf_lr --final --letter G # refit on all 10,000 rows with the chosen params and
-                                                      # write kaggle_submissions/final_G_tfidf_lr.csv, named
-                                                      # like the pretrained track's final_A/B/C (one letter
-                                                      # per upload; without --letter: tfidf_lr.csv)
+  python train.py --model tfidf_lr --final            # refit on all 10,000 rows with the chosen params and
+                                                      # write kaggle_submissions/final_E_tfidf_lr.csv: one file
+                                                      # per model, lettered after the pretrained track's A-C
+                                                      # (LETTERS; a new model passes --letter <next free>)
   python train.py --model tfidf_lr --set C=8 --no-search --tag c8   # a variant, saved as results/tfidf_lr@c8/
 
 Validation run writes results/<name>/metrics.json (chosen params, train/val AUROC, fit time, hardware),
@@ -45,6 +45,7 @@ from models import get_model_class  # noqa: E402
 from validate_submission import problems  # noqa: E402
 
 RESULTS, ARTIFACTS, SUBS = HERE / "results", HERE / "artifacts", HERE / "kaggle_submissions"
+LETTERS = {"stylo_gbm": "D", "tfidf_lr": "E", "transformer_scratch": "F"}  # one Kaggle file per model (A-C: pretrained)
 
 
 # ------------------------------------------------------------------ helpers
@@ -145,7 +146,8 @@ def main(argv=None):
     ap.add_argument("--data-dir", default=None)
     ap.add_argument("--author", default=None, help="for the testing history (default: git user.name)")
     ap.add_argument("--no-log", action="store_true", help="don't touch submission_log.csv")
-    ap.add_argument("--letter", default=None, help="--final: name the file and log row final_<letter>_<model>")
+    ap.add_argument("--letter", default=None, help="--final: name the file and log row final_<letter>_<model> "
+                                                   "(default: the model's letter in LETTERS)")
     args = ap.parse_args(argv)
 
     cfg = load_config(args.model)
@@ -183,6 +185,8 @@ def main(argv=None):
         "hardware": hardware(model), "searched": bool(cfg["search"] and not args.no_search),
         "timestamp": dt.datetime.now().isoformat(timespec="seconds"), "git_commit": git("rev-parse", "HEAD"),
     }
+    if hasattr(model, "weights"):  # blends: the member weights chosen inside fit()
+        metrics["blend_weights"] = model.weights
     if hasattr(model, "history"):
         pd.DataFrame(model.history).to_csv(out_dir / "training_curve.csv", index=False, lineterminator="\n")
     (out_dir / "metrics.json").write_text(json.dumps(metrics, indent=2, default=str) + "\n", encoding="utf-8")
@@ -212,7 +216,8 @@ def final(args, cfg, name, out_dir, params, unl, author):
     (ARTIFACTS / name / "params.json").write_text(json.dumps({"model": cfg["model"], "params": params,
                                                               "seed": args.seed}, default=str), encoding="utf-8")
     SUBS.mkdir(exist_ok=True)
-    sub_name = f"final_{args.letter}_{name}" if args.letter else name
+    letter = args.letter or LETTERS.get(name)
+    sub_name = f"final_{letter}_{name}" if letter else name
     path = SUBS / f"{sub_name}.csv"  # the build date is in submission_log.csv
     sub.to_csv(path, index=False, lineterminator="\n", float_format="%.6f")
     meta = {"model": name, "params": params, "seed": args.seed, "n_train": len(train), "fit_time_s": round(fit_s, 1),
