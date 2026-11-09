@@ -11,15 +11,15 @@
     "greedy_iters": 20
   },
   "seed": 20261023,
-  "train_auroc": 0.9999999999999999,
-  "val_auroc": 0.998683,
-  "val_tpr_at_1fpr": 0.99,
+  "train_auroc": 1.0,
+  "val_auroc": 0.9988809999999999,
+  "val_tpr_at_1fpr": 0.989,
   "n_train": 8000,
   "n_val": 2000,
-  "fit_time_s": 239.7,
-  "val_predict_time_s": 4.1,
+  "fit_time_s": 276.1,
+  "val_predict_time_s": 5.6,
   "hardware": "NVIDIA GeForce RTX 5070",
   "searched": false,
-  "timestamp": "2026-11-01T17:40:45",
-  "git_commit": "892b43a29a1e30c365caf2140116a60a4bed0019"
+  "timestamp": "2026-11-09T07:03:13",
+  "git_commit": "dc302d22e1432fce759bd2a2851ae09dfd5fce0e"
 }
