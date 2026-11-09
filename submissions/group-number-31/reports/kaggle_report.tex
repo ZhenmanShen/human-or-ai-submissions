@@ -467,7 +467,16 @@ python predict.py --model tfidf_lr --out submission.csv
 \item We made every Kaggle upload and checked that every number in this report comes from committed results files.
 \end{itemize}
 
-\textbf{Rules followed.} No external LLM API labelled or scored test passages, and no hidden labels were retrieved. The generated and Gutenberg proxy text was used only for evaluation, never as training labels. All pretrained weights are disclosed in Appendix A.
+\textbf{Rules followed, specifically.}
+\begin{itemize}
+\item \textbf{Supervised labels come only from \texttt{train.csv}.} Every model, in both tracks, is fit on \texttt{train.csv} rows: 8,000 for validation experiments, all 10,000 for the Kaggle files. \texttt{unlabeled.csv} is used without labels, for C3's tokenizer and the self-training experiment (Q3), where pseudo-labels come from our own model.
+\item \textbf{The proxy is held-out evaluation text, not training data.} The proxy is 1,358 AI passages we generated locally with seven open models plus 681 human passages from held-out Project Gutenberg books. No model was ever fit on it: all 72 logged pretrained runs list no external training files, and the classical models load only the competition CSVs.
+\item \textbf{We used the proxy for model selection.} It chose blend A's seven weights over existing, already-trained models (Q5.2), and it decided between the v1 and v2 representations of C1 and C3. It never chose a hyperparameter; those come from 5-fold CV inside the 8,000 training rows. We report this selection, and the optimism it adds, in Q5.4.
+\item \textbf{No outside model touched the test set.} The seven generators ran locally and only wrote new text; none labelled, scored or saw a test or validation passage. No external LLM API was used anywhere. Test passages were scored only by our own submitted models.
+\item \textbf{No hidden labels.} We did not search for or use test labels, generator names or domain information from any source. The only feedback from Kaggle was the public score of each upload. We made 8 uploads (Appendix B), and each new version was uploaded once, not tuned against the leaderboard.
+\item \textbf{Validation was not used for tuning.} The 2,000 validation rows are in no CV fold and were used only to report the chosen settings.
+\item \textbf{All pretrained weights are disclosed} in Appendix A, including the generators and the models we tried but did not submit. The from-scratch models (C1--C3) use no pretrained weights.
+\end{itemize}
 
 \textbf{AI policy.} You may use AI assistants for coding, debugging, explanations, brainstorming, and editing. We expect each team to exercise its own judgment, run experiments, check outputs, and understand its submitted approach. Sending the entire assignment to an AI tool and submitting its unverified output without meaningful involvement does not satisfy the objectives of this project. We will use the PR history, reproducible experiments and report together as evidence of engagement. \emph{Commit counts and the presence of AI-generated code are not themselves grading criteria.} Do not fabricate results or retrieve hidden test labels.
 
