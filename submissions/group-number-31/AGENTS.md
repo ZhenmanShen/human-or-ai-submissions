@@ -51,8 +51,8 @@ picked by 5-fold CV inside the 8,000 rows, never on the validation rows. Final K
 | pretrained | Blend B (4 LM-feature models, equal weights) | 0.99985 | 0.98848 |
 | pretrained | Blend C (B + RoBERTa-base, equal weights) | 0.99987 | 0.98845 |
 | classical | D: C2 `stylo_gbm`: 101 stylometric features → LightGBM | 0.99831 | 0.95995 |
-| classical | E: C1 `tfidf_lr` v2: word + raw char + distorted-text TF-IDF → logistic regression | 0.99678 | pending upload |
-| classical | F: C3 `transformer_scratch` v2: lines joined, text distorted, BPE + 4-layer Transformer, random init | 0.98903 | pending upload |
+| classical | E: C1 `tfidf_lr` v2: word + raw char + distorted-text TF-IDF → logistic regression | 0.99678 | 0.96374 |
+| classical | F: C3 `transformer_scratch` v2: lines joined, text distorted, BPE + 4-layer Transformer, random init | 0.98903 | 0.91502 |
 
 Source of these numbers: `submission_log.csv` / `SUBMISSIONS.md`. Always re-read them there; this table is a
 snapshot.
@@ -171,7 +171,7 @@ python reports/build_tables.py
 ## Open TODOs (search for `[TODO`)
 
 - Member names and NetIDs.
-- Kaggle public scores for E (tfidf_lr v2) and F (transformer_scratch v2): files ready, not uploaded yet. D is logged.
+- Which classical file to mark as a final Kaggle selection, if any (E 0.96374 is the best classical public score).
 - Private scores (after the deadline, Nov 11, 2026).
 - Which file is the final Kaggle selection.
 - The PR URL.

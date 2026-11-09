@@ -15,8 +15,8 @@ is made of, what was trained, and the exact pipeline and commands. Every number 
 | 2 | Blend B | pretrained | `pretrained/kaggle_submissions/2026-10-31_final_B_lm4.csv` | 0.99985 | 0.98848 |
 | 3 | Blend C | pretrained | `pretrained/kaggle_submissions/2026-10-31_final_C_lm4_roberta.csv` | 0.99987 | 0.98845 |
 | 4 | D: C2 `stylo_gbm` | classical | `classical/kaggle_submissions/final_D_stylo_gbm.csv` | 0.99831 | 0.95995 |
-| 5 | E: C1 `tfidf_lr` (v2) | classical | `classical/kaggle_submissions/final_E_tfidf_lr.csv` | 0.99678 | pending upload |
-| 6 | F: C3 `transformer_scratch` (v2) | classical | `classical/kaggle_submissions/final_F_transformer_scratch.csv` | 0.98903 | pending upload |
+| 5 | E: C1 `tfidf_lr` (v2) | classical | `classical/kaggle_submissions/final_E_tfidf_lr.csv` | 0.99678 | 0.96374 |
+| 6 | F: C3 `transformer_scratch` (v2) | classical | `classical/kaggle_submissions/final_F_transformer_scratch.csv` | 0.98903 | 0.91502 |
 
 All six files are committed and validated: 3,000 rows each, ids match `sample_submission.csv`, values in [0, 1].
 None of them needs retraining to be uploaded or reported.
@@ -266,9 +266,9 @@ evaluation sets, never trained on. Everything is pooled into one `proxy_auc`, mi
 | Model | Val | Unseen generators | Creative | Human verse flagged* | Proxy | Public |
 |---|---|---|---|---|---|---|
 | C1 v1 (`final_E` v1) | 0.9626 | 0.8728 | 0.7801 | 7% | 0.8708 | 0.88583 |
-| C1 v2 (`final_E`) | 0.9968 | 0.9538 | 0.9237 | 31% | 0.9555 | pending |
+| C1 v2 (`final_E`) | 0.9968 | 0.9538 | 0.9237 | 31% | 0.9555 | 0.96374 |
 | C3 v1 (`final_F` v1) | 0.9817 | 0.8791 | 0.6105 | 71% | 0.7699 | 0.83201 |
-| C3 v2 (`final_F`) | 0.9881 | 0.8694 | 0.9329 | 24% | 0.9258 | pending |
+| C3 v2 (`final_F`) | 0.9881 | 0.8694 | 0.9329 | 24% | 0.9258 | 0.91502 |
 | C2 (`final_D`, unchanged) | 0.9983 | 0.9665 | 0.9343 | 78% | 0.9650 | 0.95995 |
 
 \* share of held-out Gutenberg human poems/stories scored above the threshold that flags 5% of validation humans.

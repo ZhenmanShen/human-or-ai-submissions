@@ -56,12 +56,12 @@ The six submitted models:
 |---|---|---|
 | Blend A `blend_a` (best public score, 0.99161) | pretrained | `pretrained/make_submission.py`, weights 3 3 2 1 1 1 1 |
 | Blend B `blend_b`, Blend C `blend_c` | pretrained | same script, equal weights |
-| D: C2 stylometric LightGBM `stylo_gbm` (best classical public score, 0.95995) | classical | [`classical/models/stylo_gbm.py`](classical/models/stylo_gbm.py) |
-| E: C1 TF-IDF + logistic regression `tfidf_lr` | classical | [`classical/models/tfidf_lr.py`](classical/models/tfidf_lr.py) |
+| D: C2 stylometric LightGBM `stylo_gbm` (public 0.95995) | classical | [`classical/models/stylo_gbm.py`](classical/models/stylo_gbm.py) |
+| E: C1 TF-IDF + logistic regression `tfidf_lr` (best classical public score, 0.96374) | classical | [`classical/models/tfidf_lr.py`](classical/models/tfidf_lr.py) |
 | F: C3 small Transformer from scratch `transformer_scratch` | classical | [`classical/models/transformer_scratch.py`](classical/models/transformer_scratch.py) |
 
 See [`MODELS.md`](MODELS.md) for each model's pipeline. E and F were rebuilt (v2) after their first uploads scored
-0.88583 and 0.83201. MODELS.md explains why v1 fell on Kaggle and what changed.
+0.88583 and 0.83201; v2 scored 0.96374 and 0.91502. MODELS.md explains why v1 fell on Kaggle and what changed.
 
 Notes:
 
