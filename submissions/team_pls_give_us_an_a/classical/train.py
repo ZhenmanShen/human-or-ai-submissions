@@ -2,10 +2,10 @@
 
   python train.py --model tfidf_lr                    # inner-CV search (if the config has one), fit on the
                                                       # 8,000 rows, score the fixed 2,000 validation rows
-  python train.py --model tfidf_lr --final            # refit on all 10,000 rows with the chosen params and
-                                                      # write kaggle_submissions/<date>_tfidf_lr.csv
-  python train.py --model tfidf_lr --final --letter G # ... named <date>_final_G_tfidf_lr.csv, like the
-                                                      # pretrained track's final_A/B/C (one letter per upload)
+  python train.py --model tfidf_lr --final --letter G # refit on all 10,000 rows with the chosen params and
+                                                      # write kaggle_submissions/final_G_tfidf_lr.csv, named
+                                                      # like the pretrained track's final_A/B/C (one letter
+                                                      # per upload; without --letter: tfidf_lr.csv)
   python train.py --model tfidf_lr --set C=8 --no-search --tag c8   # a variant, saved as results/tfidf_lr@c8/
 
 Validation run writes results/<name>/metrics.json (chosen params, train/val AUROC, fit time, hardware),
@@ -213,7 +213,7 @@ def final(args, cfg, name, out_dir, params, unl, author):
                                                               "seed": args.seed}, default=str), encoding="utf-8")
     SUBS.mkdir(exist_ok=True)
     sub_name = f"final_{args.letter}_{name}" if args.letter else name
-    path = SUBS / f"{dt.date.today().isoformat()}_{sub_name}.csv"
+    path = SUBS / f"{sub_name}.csv"  # the build date is in submission_log.csv
     sub.to_csv(path, index=False, lineterminator="\n", float_format="%.6f")
     meta = {"model": name, "params": params, "seed": args.seed, "n_train": len(train), "fit_time_s": round(fit_s, 1),
             "hardware": hardware(model), "file": str(path.relative_to(TEAM)).replace("\\", "/"),

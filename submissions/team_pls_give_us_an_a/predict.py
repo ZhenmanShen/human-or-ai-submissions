@@ -39,12 +39,12 @@ BLENDS = {
 
 def committed_file(model: str) -> Path:
     if model in BLENDS:
-        files = sorted((TEAM / "pretrained" / "kaggle_submissions").glob(f"*_{BLENDS[model][0]}.csv"))
+        files = sorted((TEAM / "pretrained" / "kaggle_submissions").glob(f"{BLENDS[model][0]}.csv"))
     else:
-        files = sorted((TEAM / "classical" / "kaggle_submissions").glob(f"*_{model}.csv"))
+        files = sorted((TEAM / "classical" / "kaggle_submissions").glob(f"final_?_{model}.csv"))
     if not files:
         raise SystemExit(f"no committed Kaggle file for {model}")
-    return files[-1]  # newest date
+    return files[-1]  # latest upload letter = current version (e.g. final_G_tfidf_lr over final_E_tfidf_lr)
 
 
 def main() -> None:

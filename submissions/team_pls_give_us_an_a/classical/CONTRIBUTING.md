@@ -47,12 +47,14 @@ cp configs/template.yaml configs/<model>.yaml
 
 ```bash
 python train.py --model <model>              # search (if any) -> fit on 8,000 -> score the fixed 2,000
-python train.py --model <model> --final      # only if you want a Kaggle file: refit on 10,000 rows
+python train.py --model <model> --final --letter <X>   # only for a Kaggle file: refit on 10,000 rows
+python ood_eval.py --model <model>           # optional: score on held-out shifted text (proxy for Kaggle)
 ```
 
 The first command writes `results/<model>/metrics.json`, `val_pred.csv` and `search.csv`, and adds or updates
 your model's row in `submission_log.csv` / `SUBMISSIONS.md` ("not submitted"). The second writes
-`kaggle_submissions/<date>_<model>.csv` (already validated) and marks the row "pending upload".
+`kaggle_submissions/final_<X>_<model>.csv` (already validated) and adds a `final_<X>_<model>` row marked
+"pending upload". `<X>` is the next unused upload letter (see `SUBMISSIONS.md`).
 
 ## 4. Commit in steps, push, open a PR inside the fork
 
@@ -61,7 +63,7 @@ Use these message prefixes (graders read the history):
 1. `feat(<model>): add model` - the model file, config and registry line, no results.
 2. `exp(<model>): fixed-split validation + hyperparameter search` - `results/<model>/`, `submission_log.csv`,
    `SUBMISSIONS.md`. Put the val AUROC in the message, and what you learned if anything.
-3. `sub(<model>): refit on 10k, write kaggle_submissions/<date>_<model>.csv` - only if it goes to Kaggle.
+3. `sub(<model>): refit on 10k, write kaggle_submissions/final_<X>_<model>.csv` - only if it goes to Kaggle.
 
 Run `git status` before each commit: no data, no `artifacts/`, no weights. Then push your branch and open a
 pull request **in the fork** with base `main` (not to the course repo). Someone else on the team reviews and
@@ -74,8 +76,8 @@ the score in a `log(<model>): Kaggle public <score>` commit:
 
 ```bash
 cd submissions/<team>
-python common/update_submission_log.py --track classical --model <model> \
-    --file classical/kaggle_submissions/<date>_<model>.csv --public <score> --author "Your Name"
+python common/update_submission_log.py --track classical --model final_<X>_<model> \
+    --file classical/kaggle_submissions/final_<X>_<model>.csv --public <score> --author "Your Name"
 ```
 
 ## Rules
