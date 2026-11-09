@@ -187,13 +187,16 @@ def q5():
                                  for _, r in d.iterrows()])
 
 
+BREAK = chr(92) + 'allowbreak{}'  # long model names may wrap at underscores
+
+
 def appendix():
     log = pd.read_csv(TEAM / "submission_log.csv", dtype=str, keep_default_na=False).sort_values(["date", "track", "model"])
     url = "https://github.com/ZhenmanShen/human-or-ai-submissions/commit/"
     rows = []
     for _, r in log.iterrows():
         commit = f"\\href{{{url}{r.commit}}}{{\\texttt{{{r.commit[:7]}}}}}" if r.commit else ""
-        rows.append(f"{r.date} & {r.track} & \\texttt{{{tex(r.model)}}} & {commit} & {f5(r.val_auroc) if r.val_auroc else '--'} & "
+        rows.append(f"{r.date} & {r.track} & \\texttt{{{tex(r.model).replace('_', '_' + BREAK)}}} & {commit} & {f5(r.val_auroc) if r.val_auroc else '--'} & "
                     f"{tex(r.kaggle_public)} & {tex(r.kaggle_private) or '--'} \\\\")
     write("appendix_submissions.tex", rows)
 

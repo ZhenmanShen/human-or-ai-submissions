@@ -63,7 +63,7 @@ We compared two families of detectors on one fixed 2,000-row validation split. T
 \vspace{0.06in}
 \begin{tabularx}{\linewidth}{@{}>{\bfseries}p{1.58in}Y@{}}
 Team / members & [TODO: names and NetIDs] \\
-Kaggle team name & \texttt{team\_pls\_give\_us\_an\_A} \\
+Kaggle team name & Group Number 31 (code in \texttt{submissions/group-number-31/}) \\
 GitHub PR URL & [TODO: PR URL] \\
 \end{tabularx}
 \vspace{0.06in}
@@ -104,7 +104,7 @@ Each model's score is mapped through the empirical CDF of its own out-of-fold tr
 
 The weights were chosen by greedy selection on a held-out proxy: AI text from seven unseen generators plus held-out human poetry and fiction. Cross-validation on train could not separate the candidates.
 
-Our best model trained entirely from scratch, a LightGBM on 101 stylometric features, is 0.0016 behind on validation. It trains in 7 seconds on a CPU.
+Our best models trained entirely from scratch are close behind. A LightGBM on 101 stylometric features is 0.0016 behind on validation and trains in 7 seconds on a CPU. On the public leaderboard, the best from-scratch model is a TF-IDF logistic regression with topic-free, text-distorted n-grams: 0.96374, against 0.99161 for blend A.
 
 \question{Q0.3 [0 points].}{Record your final scores (enter private score only once it is revealed).}
 \begin{tabularx}{\linewidth}{@{}Yp{1.8in}@{}}\toprule Metric & Your score \\ \midrule Validation AUROC (blend A, fixed 2,000 rows) & 0.99990 \\ Kaggle public AUROC & 0.99161 \\ Kaggle private AUROC & [TODO: after reveal] \\ \bottomrule\end{tabularx}
@@ -132,7 +132,9 @@ The six models we submitted to Kaggle, three per track, all on the same 8,000 / 
 Model & Text representation & Train AUROC & Val. AUROC & Train time & Kaggle public \\ \midrule
 \tabinput{../common/tables/six_models_q12.tex}
 \bottomrule\end{tabularx}}
-\smallnote{Train time is one fit on the 8,000 rows; blends sum their members' times. Blends ran on an RTX 5070 and an RTX 3060 (DeBERTa-v3-large); their LM members read cached LM features, so the times exclude feature extraction (1.3--30 min per LM in the original 5-fold runs). C1 and C2 ran on a Ryzen 5 9600X CPU, C3 on the RTX 5070. C1 and C3 are v2 (files E and F, not yet uploaded); their v1 uploads scored 0.88583 and 0.83201 (Q5.3).}
+\smallnote{Train time is one fit on the 8,000 rows; blends sum their members' times. Blends ran on an RTX 5070 and an RTX 3060 (DeBERTa-v3-large); their LM members read cached LM features, so the times exclude feature extraction (1.3--30 min per LM in the original 5-fold runs). C1 and C2 ran on a Ryzen 5 9600X CPU, C3 on the RTX 5070. C1 and C3 are v2 (Kaggle files E and F). Their v1 uploads scored 0.88583 and 0.83201 (Q5.3).}
+
+\textbf{What the comparison shows.} On validation every model scores at least 0.989, and the ranking is pretrained blends $>$ C2 $>$ C1 $>$ C3. The public leaderboard spreads them much further apart (0.915--0.992), and it reorders the classical models: C1 0.96374 $>$ C2 0.95995 $>$ C3 0.91502. Our reading: the pretrained features hold up best under the test shift because LM predictability depends little on topic or layout. Among the from-scratch models, the one with the most topic-free representation (C1's distorted n-grams) transfers best. The Transformer learns everything from 8,000 passages, and it transfers worst.
 
 \begin{center}\includegraphics[width=0.49\linewidth]{../common/figures/six_models.pdf}\hfill\includegraphics[width=0.49\linewidth]{../common/figures/cost_vs_auroc.pdf}\end{center}
 \smallnote{Right: cost of one training run (log scale; LM feature extraction added back for pretrained models) against validation AUROC. The scatter also shows every other model we validated. Their individual numbers, and the 5-fold CV figures from development, are in \texttt{common/results/compare\_tracks.csv} and Appendix A.}
@@ -156,7 +158,9 @@ Model & Text representation & Train AUROC & Val. AUROC & Train time & Kaggle pub
 
 \textbf{Cost.} A is the most expensive submission: about 54 GPU-minutes of fine-tuning plus LM feature extraction. B uses only frozen LMs and would be the fallback if cost mattered.
 
-\textbf{The from-scratch alternative.} Among the classical models, C2 is best: 0.99831 against 0.99678 for C1 and 0.98903 for C3. It is also stable (inner-CV fold standard deviation 0.0005) and the cheapest model we have (7 s on a CPU). It sits 0.0016 below A on validation and scored 0.95995 on the public leaderboard. The first versions of C1 and C3 scored only 0.88583 and 0.83201 there, despite 0.963 and 0.985 on validation. Q5 explains the drop and the fix: the out-of-distribution proxy now puts C2 at 0.965, C1 at 0.955 and C3 at 0.926. Submission history: Appendix A.
+\textbf{The from-scratch alternative.} Among the classical models, the best on validation is C2: 0.99831 against 0.99678 for C1 and 0.98903 for C3. It is also stable (inner-CV fold standard deviation 0.0005) and the cheapest model we have (7 s on a CPU). On the public leaderboard, C1 (0.96374) and C2 (0.95995) are within 0.004, which is within the noise of 900 rows. Either is a reasonable from-scratch choice, and both are about 0.03 below A.
+
+\textbf{Why we changed two models.} The first versions of C1 and C3 scored 0.88583 and 0.83201 on the public leaderboard, despite 0.963 and 0.985 on validation. We did not tune against the leaderboard. Instead, we scored the classical models on the same held-out shifted text used to choose blend A (Q5). It reproduced the Kaggle ranking and showed the causes: C1 relied on topic words, and C3 had learned that short lines mean AI. We changed the representations, not the hyperparameters, chose the new designs on that proxy, and uploaded each new version once. They scored 0.96374 (C1) and 0.91502 (C3). Submission history: Appendix A.
 
 \section{Effect of training data size (10 points)}
 \textbf{Learning goal:} understand the effect of the number of labeled examples on fitting and generalization. This is an empirical exercise; no formal sample-complexity theory is required.
@@ -226,7 +230,7 @@ Such examples add no information, and any wrong ones are confirmed rather than c
 
 \textbf{Why the in-distribution gap is small.} The pretrained features do not depend on the labels, and the training distribution is well sampled.
 
-\textbf{The gap that matters is to test.} Blend A drops from 0.99990 on validation to 0.99161 on the public leaderboard. The likely cause is distribution shift: test has unseen generators and far more verse (16.6\% of passages, against 1.6\% of training rows). The out-of-distribution proxy shows every model is weaker on such text (Q5). Validation comes from the training distribution and cannot show this.
+\textbf{The gap that matters is to test.} Blend A drops from 0.99990 on validation to 0.99161 on the public leaderboard. The likely cause is distribution shift: test has unseen generators and far more verse (16.6\% of passages, against 1.6\% of training rows). The out-of-distribution proxy shows every model is weaker on such text (Q5). Validation comes from the training distribution and cannot show this. The shift costs the from-scratch models far more than the gap to training does: C2 falls from 0.99831 on validation to 0.95995 on the public leaderboard, and C3 from 0.98903 to 0.91502.
 
 \question{Q4.2 [5 points].}{Evaluate performance over at least three text-length bins (define the bins), or another observable subgroup available in your data. Explain why you chose the grouping.}
 Blend A (final model), with C2 for comparison:
@@ -313,7 +317,7 @@ This is itself a finding: the subgroup that matters most for test is almost abse
 {\small\begin{tabularx}{\linewidth}{@{}Yrrrrrr@{}}\toprule Model & Val. & Unseen gen. & Creative & Verse FPR & Proxy & Public \\ \midrule
 \tabinput{../classical/reports/tables/q53_ood.tex}
 \bottomrule\end{tabularx}}
-\smallnote{All AUROC except ``Verse FPR'': the share of held-out Gutenberg human poems and stories scored above the threshold that flags 5\% of validation humans. Same fit on the 8,000 rows throughout. v2 files E and F are not yet uploaded.}
+\smallnote{All AUROC except ``Verse FPR'': the share of held-out Gutenberg human poems and stories scored above the threshold that flags 5\% of validation humans. Same fit on the 8,000 rows throughout. ``Public'' is the Kaggle file refit on all 10,000 rows: E (C1), F (C3) and D (C2); each v1 and v2 was uploaded once.}
 
 \textbf{Removing formatting cues} (``debiased'' = no blank lines, double spaces, curly quotes, zero-width characters or homoglyphs; ``join\_lines'' = all lines joined):
 
@@ -329,7 +333,7 @@ This is itself a finding: the subgroup that matters most for test is almost abse
 \item \textbf{C3 v1 learned ``short lines = AI''.} In train, human passages have long lines and AI passages short ones. C3 v1 flagged 71\% of held-out human verse, and its creative AUROC was 0.61. Joining single line breaks removed the shortcut. With distortion on top, creative AUROC rose to 0.93 and the proxy to 0.926 (0.916--0.924 over three seeds). Window cropping and a smaller model did not help.
 \item \textbf{C1 v1 read topic.} Its word and in-word character n-grams are blind to layout, and topic does not transfer to unseen domains. The raw-character and distorted views raised unseen-generator AUROC from 0.87 to 0.95 and the proxy from 0.871 to 0.955. Validation rose too, 0.963 $\to$ 0.997.
 \end{itemize}
-Both v2 files are built, but their public scores are not yet known.
+\textbf{Kaggle confirmed the fix.} C1 rose from 0.88583 to 0.96374 on the public leaderboard and C3 from 0.83201 to 0.91502, each from a single upload. The proxy was within about 0.01 of both new scores (0.955 against 0.964, and 0.926 against 0.915). It ranked C2 slightly above C1 v2 (0.965 against 0.955), while Kaggle put C1 v2 slightly ahead (0.964 against 0.960). Both gaps are below what 112 unseen-generator rows or 900 public rows can resolve.
 
 \textbf{The from-scratch blend helped a little,} +0.0007 validation AUROC over C2 (0.99898), with TPR at 1\% FPR rising from 0.983 to 0.988. With the v2 members, C1 now earns weight 0.30. With v1 members the blend was 0.9 C2 / 0.1 C1 / 0 C3, at 0.99868.
 
@@ -341,7 +345,8 @@ Both v2 files are built, but their public scores are not yet known.
 \item The proxy's generators and its archaic Gutenberg human text are a guess at test.
 \item One comparison on the 900-row public leaderboard is weak evidence.
 \item The 0.0007 classical blend gain is within the noise of 2,000 rows.
-\item The classical proxy has only 112 unseen-generator rows, and C1 v2 and C3 v2 were chosen after looking at it, so their proxy scores are somewhat optimistic until Kaggle confirms them.
+\item The classical proxy has only 112 unseen-generator rows, and C1 v2 and C3 v2 were chosen after looking at it, so their proxy scores are somewhat optimistic. C3's public score did come in 0.011 below its proxy.
+\item The v1 public scores prompted the investigation. The new designs were chosen on the proxy, not by trying variants on Kaggle (one upload per version), but the leaderboard did tell us \emph{which} models to look at.
 \end{itemize}
 
 \textbf{Next:}
@@ -349,35 +354,47 @@ Both v2 files are built, but their public scores are not yet known.
 \item Select the blend on half of the generators and score it on the other half, to measure the selection optimism.
 \item The formatting augmentation from Q4.4.
 \item Bootstrap confidence intervals for small gains.
+\item C3 is still the weakest model on unseen generators (0.87). Self-supervised pretraining of the same small Transformer on train + unlabeled text, from scratch, might give it a better representation than 8,000 labels can.
 \end{itemize}
 
 \section{Code submission, reproducibility and AI assistance (10 points)}
 \textbf{Submission format:} Submit a \textbf{GitHub PR URL} against the course repository. We will inspect the final code and its development history, not just the final snapshot. Do not squash away meaningful intermediate commits before review. Template \href{https://github.com/sekhari/human-or-ai-submissions}{here}.
 
 \question{Q6.1 [5 points].}{Provide the PR URL, the entrypoint for training/evaluation, and the command used to generate \texttt{submission.csv}. State dependencies and random seeds.}
-PR: [TODO: PR URL]. All code is in \texttt{submissions/<team>/}; the README there covers setup and every command. We use Python 3.12. Install with \texttt{pip install -r} the track's \texttt{requirements.txt}; the pretrained track needs PyTorch with CUDA 12.8+ for an RTX 50-series GPU. Kaggle CSVs stay outside git and are passed with \texttt{--data-dir} or \texttt{HOA\_DATA\_DIR}.
+PR: [TODO: PR URL]. All code is in \texttt{submissions/group-number-31/}; its \texttt{README.md} covers setup and every command, and \texttt{MODELS.md} gives each submitted model's full pipeline. Entry points at the top of that folder: \texttt{train.py} (train and evaluate on the fixed split, or \texttt{--final} for Kaggle) and \texttt{predict.py} (writes \texttt{submission.csv}). We use Python 3.12. Install with \texttt{pip install -r} the track's \texttt{requirements.txt}; the pretrained track needs PyTorch with CUDA 12.8+ for an RTX 50-series GPU. Kaggle CSVs stay outside git and are passed with \texttt{--data-dir} or \texttt{HOA\_DATA\_DIR}.
 {\footnotesize\begin{verbatim}
 python common/make_split.py                         # verifies the shared validation split
-cd classical && python train.py --model stylo_gbm   # search, fit on 8,000, score the 2,000
-python train.py --model stylo_gbm --final           # refit on 10,000 -> kaggle_submissions/
-python predict.py --model stylo_gbm --out submission.csv
+python predict.py --model blend_a --committed --out submission.csv  # the final (uploaded) file
+python train.py --model tfidf_lr                    # classical: search, fit on 8,000, score the 2,000
+python train.py --model tfidf_lr --final            # refit on 10,000 -> final_E_tfidf_lr.csv
+python predict.py --model tfidf_lr --out submission.csv   # same file from the saved model
+cd classical && python ood_eval.py --model tfidf_lr # held-out shifted-text proxy (Q5)
 cd ../pretrained && python run_all.py --profile fixed   # fixed split
 python run_all.py --profile ood                     # 5-fold models behind the uploads (~4 h, 2 GPUs)
 python make_submission.py --run <7 runs> --weights 3 3 2 1 1 1 1 \
        --name final_A_greedy_proxy
 \end{verbatim}}
-{\raggedright Seeds: 20261023 for the split, the CV folds and every fixed-split experiment. The original 5-fold runs behind the pretrained uploads used seed 42. In a fresh clone, C2's \texttt{--final} and \texttt{predict.py} reproduce the committed file exactly. Blend A, rebuilt from the saved models, matches with Spearman 1.000000; the saved models are not in git. GPU bf16 inference can differ in the last digits.\par}
+{\raggedright Seeds: 20261023 for the split, the CV folds and every fixed-split experiment. The original 5-fold runs behind the pretrained uploads used seed 42. In a fresh clone, C2's \texttt{--final} and \texttt{predict.py} reproduce the committed file exactly, and \texttt{predict.py} reproduces files E and F exactly from the saved C1 and C3 models. Blend A, rebuilt from the saved models, matches with Spearman 1.000000; the saved models are not in git. GPU bf16 inference can differ in the last digits.\par}
 
 \question{Q6.2 [3 points].}{Give two or three examples of changes you made during development. Link to relevant commits or PR discussion and briefly explain what the experiments taught you.}
 \begin{itemize}
 \item \commit{1fc181fef044ef79830a9a0db09f32bc305f38e0}{1fc181f} (full benchmark, 35 jobs): every reasonable model reached 0.990--0.999 CV AUROC. Training-set CV was saturated, so we built the out-of-distribution proxy, \commit{ed4ad2daeabbb6f05fc791791dff0edf34ced42e}{ed4ad2d}. It ranked models differently, and the blend chosen on it won on Kaggle, \commit{77663a46bfcbc667df49d3aeb81d00485319b2f8}{77663a4}.
 \item \commit{345aaab6ff162b0dd75461b219afda13866aed63}{345aaab}: the from-scratch Transformer's inner-split AUROC peaks at epochs 6--7, then falls while training loss keeps dropping. With 7,200 passages a 6.4M-parameter model overfits fast, so early stopping on an inner split, not the validation set, is essential.
 \item \commit{6fb8406709d375571d760b4d23b11a131c61c44e}{6fb8406} and \commit{3754f3b7f2d07855ff6e01a9ef753e7f575d4698}{3754f3b}: removing layout from C2 costs 0.011 AUROC, and removing formatting cues hurts the pretrained models too. Formatting is real signal, not just an artefact, which is why we kept it.
-\item \commit{fb3df12d56cf3f45b3d7664818888d9128c4523d}{fb3df12} and \commit{efb72f048cb76989e9d33f94779eb7106bfc4196}{efb72f0}: after C1 and C3 scored 0.886 and 0.832 on Kaggle, we scored the classical models on the same held-out shifted text. It reproduced the Kaggle ranking and showed C3 had learned ``short lines = AI''. Joining single line breaks fixed that, the one place where removing a formatting cue helped. Text distortion made C1 robust to topic.
+\item \commit{fb3df12d56cf3f45b3d7664818888d9128c4523d}{fb3df12} and \commit{efb72f048cb76989e9d33f94779eb7106bfc4196}{efb72f0}: after C1 and C3 scored 0.886 and 0.832 on Kaggle, we scored the classical models on the same held-out shifted text. It reproduced the Kaggle ranking and showed C3 had learned ``short lines = AI''. Joining single line breaks fixed that, the one place where removing a formatting cue helped. Text distortion made C1 robust to topic. The rebuilt models scored 0.96374 and 0.91502 on Kaggle (\commit{6316699fb7a326deb625b7bc0776a3a87533e1b3}{6316699}, \commit{dc302d22e1432fce759bd2a2851ae09dfd5fce0e}{dc302d2}). The lesson: when validation and the leaderboard disagree, build a held-out set that looks like test rather than tuning on the leaderboard.
 \end{itemize}
 
 \question{Q6.3 [2 points].}{How did you use AI tools (such as Claude, ChatGPT or Copilot) for code, debugging, analysis or writing? What did you verify or modify yourself?}
-[TODO: team to edit.] Claude Code (Anthropic) wrote most of the code in both tracks, ran the experiments on our machines and drafted this report. Every table number is generated by scripts from committed results files. [TODO: what the team verified or changed themselves.]
+\textbf{How we used it.} Claude Code (Anthropic) wrote most of the code in both tracks, ran the experiments on our machines and drafted this report.
+
+\textbf{What we did and decided ourselves.}
+\begin{itemize}
+\item We made every Kaggle upload and recorded each score.
+\item After the first classical uploads (0.886 and 0.832) disagreed with validation (0.963 and 0.985), we asked for the gap to be investigated and the two models to be fixed, and we uploaded each fix once.
+\item We set the submission structure: one Kaggle file per model, the team folder name, and the uploaded pretrained files left untouched.
+\end{itemize}
+
+\textbf{Safeguards.} Every table number is generated by scripts from committed results files, so the numbers in this report can be re-derived from the repository. [TODO: team to state what you checked yourselves, e.g. re-ran \texttt{python common/make\_split.py} and \texttt{predict.py --committed}, read the model code, spot-checked tables against \texttt{SUBMISSIONS.md}, and edited sections of this report.]
 
 The out-of-distribution proxy used text generated locally by seven open models and Project Gutenberg books, for evaluation and blend selection only, never as training labels. No external LLM API labelled or scored test passages, and no hidden labels were retrieved. The classical track uses no pretrained weights.
 
