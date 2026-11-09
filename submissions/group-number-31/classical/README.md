@@ -25,7 +25,7 @@ Writes `results/<name>/metrics.json` (chosen params, train/val AUROC, fit time, 
 ## Kaggle submission
 
 ```bash
-python train.py --model <name> --final --letter <X>   # refit on all 10,000 rows
+python train.py --model <name> --final                # refit on all 10,000 rows (--letter <X> for a new model)
                                                        # -> kaggle_submissions/final_<X>_<name>.csv
 python predict.py --model <name> --out submission.csv   # re-create the file from artifacts/<name>/
 ```

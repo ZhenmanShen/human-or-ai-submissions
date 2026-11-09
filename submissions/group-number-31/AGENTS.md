@@ -50,12 +50,21 @@ picked by 5-fold CV inside the 8,000 rows, never on the validation rows. Final K
 | pretrained | Blend A (7 members, weights 3 3 2 1 1 1 1) | 0.99990 | 0.99161 |
 | pretrained | Blend B (4 LM-feature models, equal weights) | 0.99985 | 0.98848 |
 | pretrained | Blend C (B + RoBERTa-base, equal weights) | 0.99987 | 0.98845 |
-| classical | C1 `tfidf_lr`: word + char TF-IDF → logistic regression | 0.96256 | pending upload |
-| classical | C2 `stylo_gbm`: 101 stylometric features → LightGBM | 0.99831 | pending upload |
-| classical | C3 `transformer_scratch`: BPE + 4-layer Transformer, random init | 0.98500 | pending upload |
+| classical | D: C2 `stylo_gbm`: 101 stylometric features → LightGBM | 0.99831 | 0.95995 |
+| classical | E: C1 `tfidf_lr` v2: word + raw char + distorted-text TF-IDF → logistic regression | 0.99678 | pending upload |
+| classical | F: C3 `transformer_scratch` v2: lines joined, text distorted, BPE + 4-layer Transformer, random init | 0.98903 | pending upload |
 
 Source of these numbers: `submission_log.csv` / `SUBMISSIONS.md`. Always re-read them there; this table is a
 snapshot.
+
+One Kaggle file per model. Pretrained: `pretrained/kaggle_submissions/2026-10-31_final_{A,B,C}_*.csv`, as uploaded;
+**never rename or rewrite them**. Classical: `classical/kaggle_submissions/final_{D,E,F}_<model>.csv`, no date.
+E and F were first uploaded as v1 (public 0.88583 and 0.83201) and then replaced by v2 under the same names. The v1
+scores are in the log as `final_E_tfidf_lr@v1` / `final_F_transformer_scratch@v1`.
+
+**Validation does not predict Kaggle here.** Test has unseen generators and far more verse. To compare designs,
+use `classical/ood_eval.py` (classical) or `pretrained/scripts/eval_ood.py` (pretrained): both score held-out
+shifted text and tracked the public scores. See MODELS.md, "Why C1 and C3 v1 fell on Kaggle".
 
 ### pretrained/ — how the blends work
 
@@ -90,7 +99,11 @@ weighted average (`src/ensemble.py: cdf_mean`). Every member scores every text: 
   (params and an optional `search:` grid) + one line in `models/__init__.py` `REGISTRY`.
 - `python train.py --model <name>` runs the search, fits on the 8k rows and scores the fixed 2k. It writes
   `results/<name>/` and updates `submission_log.csv`.
-- `--final` refits on 10k rows and writes `kaggle_submissions/<date>_<name>.csv`.
+- `--final` refits on 10k rows and writes `kaggle_submissions/final_<X>_<name>.csv` (X: D, E, F; a new model
+  passes `--letter`). It replaces
+  that model's file and resets its log row to "pending upload".
+- `python ood_eval.py --model <name> [--set k=v --tag t]` scores a design on held-out shifted text
+  (`results/ood_eval.csv`).
 
 ### Entry points (team folder)
 
@@ -158,7 +171,7 @@ python reports/build_tables.py
 ## Open TODOs (search for `[TODO`)
 
 - Member names and NetIDs.
-- Kaggle scores for C1–C3 (files ready, not uploaded yet).
+- Kaggle public scores for E (tfidf_lr v2) and F (transformer_scratch v2): files ready, not uploaded yet. D is logged.
 - Private scores (after the deadline, Nov 11, 2026).
 - Which file is the final Kaggle selection.
 - The PR URL.

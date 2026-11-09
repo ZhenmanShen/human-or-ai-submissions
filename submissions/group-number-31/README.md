@@ -37,9 +37,9 @@ submissions/group-number-31/
 ├── classical/             from-scratch models, no pretrained weights (CPU-friendly)
 │   ├── models/              one file per model: tfidf_lr (C1), stylo_gbm (C2), transformer_scratch (C3), + extras
 │   ├── configs/             one YAML per model, including its hyperparameter grid
-│   ├── train.py predict.py experiments.py report_tables.py
+│   ├── train.py predict.py experiments.py report_tables.py ood_eval.py
 │   ├── results/             metrics + predictions per model (all report numbers come from here)
-│   ├── kaggle_submissions/  the uploaded CSVs
+│   ├── kaggle_submissions/  one CSV per model: final_D_stylo_gbm, final_E_tfidf_lr, final_F_transformer_scratch
 │   └── reports/             tables/figures used by the report (+ a longer classical-only draft)
 └── pretrained/            frozen-LM features + fine-tuned encoders, blended (needs a GPU)
     ├── src/ configs/        the pipeline, imported with its history from the research repo
@@ -56,11 +56,12 @@ The six submitted models:
 |---|---|---|
 | Blend A `blend_a` (best public score, 0.99161) | pretrained | `pretrained/make_submission.py`, weights 3 3 2 1 1 1 1 |
 | Blend B `blend_b`, Blend C `blend_c` | pretrained | same script, equal weights |
-| C1 TF-IDF + logistic regression `tfidf_lr` | classical | [`classical/models/tfidf_lr.py`](classical/models/tfidf_lr.py) |
-| C2 stylometric LightGBM `stylo_gbm` (best classical) | classical | [`classical/models/stylo_gbm.py`](classical/models/stylo_gbm.py) |
-| C3 small Transformer from scratch `transformer_scratch` | classical | [`classical/models/transformer_scratch.py`](classical/models/transformer_scratch.py) |
+| D: C2 stylometric LightGBM `stylo_gbm` (best classical public score, 0.95995) | classical | [`classical/models/stylo_gbm.py`](classical/models/stylo_gbm.py) |
+| E: C1 TF-IDF + logistic regression `tfidf_lr` | classical | [`classical/models/tfidf_lr.py`](classical/models/tfidf_lr.py) |
+| F: C3 small Transformer from scratch `transformer_scratch` | classical | [`classical/models/transformer_scratch.py`](classical/models/transformer_scratch.py) |
 
-See [`MODELS.md`](MODELS.md) for each model's pipeline.
+See [`MODELS.md`](MODELS.md) for each model's pipeline. E and F were rebuilt (v2) after their first uploads scored
+0.88583 and 0.83201. MODELS.md explains why v1 fell on Kaggle and what changed.
 
 Notes:
 
@@ -74,7 +75,8 @@ Notes:
   - `pretrained/AGENTS.md` is the research repo's log of every experiment, carried over with the pretrained track.
     `pretrained/scripts/` still update its results table, so leave it where it is.
 - **Why the deep path.** The course only accepts PRs that touch `submissions/<team-name>/`, so all our files
-  live in this folder, named after our Kaggle team (lowercase, as the course asks).
+  live in this folder, named after our Kaggle team "Group Number 31" (lowercase, hyphens for spaces, as the
+  course asks).
 - **`_example_team/`** next to this folder belongs to the course (its README says not to modify it), so it stays.
   Our layout follows it: `README.md`, `requirements.txt`, `train.py` and `predict.py` at the top of the team folder.
 - **Branches.** There is one branch, `main`. The course PR has to come from a branch named
@@ -139,6 +141,7 @@ file is committed (`*/kaggle_submissions/`), and its row in `SUBMISSIONS.md` lin
 ```bash
 python predict.py --model blend_a --committed --out submission.csv   # the exact uploaded file, no compute
 python train.py --model stylo_gbm --final                            # classical: refit on 10k (~10 s CPU)
+                                                                     #   -> classical/kaggle_submissions/final_D_stylo_gbm.csv
 python predict.py --model stylo_gbm --out submission.csv             #   then predict from the saved model
 python predict.py --model blend_a --out submission.csv               # pretrained: re-predict from the saved runs
 ```

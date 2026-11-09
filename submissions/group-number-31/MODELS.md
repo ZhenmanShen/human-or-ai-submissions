@@ -1,9 +1,9 @@
 # MODELS.md — what the six submitted models are and how they were built
 
-We sent six files to Kaggle: three blends of pretrained models (track `pretrained/`) and three models trained from
-scratch (track `classical/`). This page describes, for each one, what it is made of, what was trained, and the exact
-pipeline and commands. Every number here comes from `submission_log.csv` (shown in `SUBMISSIONS.md`) or from the
-results files named next to it.
+Six models have a Kaggle file, one file each: three blends of pretrained models (track `pretrained/`, files A–C)
+and three models trained from scratch (track `classical/`, files D–F). This page describes, for each one, what it
+is made of, what was trained, and the exact pipeline and commands. Every number here comes from
+`submission_log.csv` (shown in `SUBMISSIONS.md`) or from the results files named next to it.
 
 - **Val AUROC**: model trained on 8,000 rows of `train.csv`, scored on the fixed 2,000 ids in `common/val_ids.csv`
   (seed 20261023). The same for all models.
@@ -14,12 +14,17 @@ results files named next to it.
 | 1 | Blend A | pretrained | `pretrained/kaggle_submissions/2026-10-31_final_A_greedy_proxy.csv` | 0.99990 | **0.99161** |
 | 2 | Blend B | pretrained | `pretrained/kaggle_submissions/2026-10-31_final_B_lm4.csv` | 0.99985 | 0.98848 |
 | 3 | Blend C | pretrained | `pretrained/kaggle_submissions/2026-10-31_final_C_lm4_roberta.csv` | 0.99987 | 0.98845 |
-| 4 | C1 `tfidf_lr` | classical | `classical/kaggle_submissions/2026-11-01_tfidf_lr.csv` | 0.96256 | pending upload |
-| 5 | C2 `stylo_gbm` | classical | `classical/kaggle_submissions/2026-11-01_stylo_gbm.csv` | 0.99831 | pending upload |
-| 6 | C3 `transformer_scratch` | classical | `classical/kaggle_submissions/2026-11-01_transformer_scratch.csv` | 0.98500 | pending upload |
+| 4 | D: C2 `stylo_gbm` | classical | `classical/kaggle_submissions/final_D_stylo_gbm.csv` | 0.99831 | 0.95995 |
+| 5 | E: C1 `tfidf_lr` (v2) | classical | `classical/kaggle_submissions/final_E_tfidf_lr.csv` | 0.99678 | pending upload |
+| 6 | F: C3 `transformer_scratch` (v2) | classical | `classical/kaggle_submissions/final_F_transformer_scratch.csv` | 0.98903 | pending upload |
 
 All six files are committed and validated: 3,000 rows each, ids match `sample_submission.csv`, values in [0, 1].
 None of them needs retraining to be uploaded or reported.
+
+E and F hold v2 of C1 and C3. Their v1 files, uploaded under the same names, scored public **0.88583** (C1) and
+**0.83201** (C3) with val 0.96256 and 0.98500. They are kept in the log as `final_E_tfidf_lr@v1` and
+`final_F_transformer_scratch@v1`, linked to the commits that hold them. Why v1 dropped and what v2 changed:
+[Part 2, "Why C1 and C3 v1 fell on Kaggle"](#why-c1-and-c3-v1-fell-on-kaggle).
 
 ---
 
@@ -178,8 +183,9 @@ text for C3's tokenizer).
 3. Fit on the 8,000 rows with the chosen settings, then score the 2,000 rows. This writes
    `classical/results/<model>/metrics.json`, `val_pred.csv` and `search.csv`.
 4. `--final`: refit on all 10,000 rows and predict `test.csv`. This writes
-   `classical/kaggle_submissions/<date>_<model>.csv`, validates it, and saves the model to `classical/artifacts/`
-   (git-ignored).
+   `classical/kaggle_submissions/final_<X>_<model>.csv`, validates it, and saves the model to `classical/artifacts/`
+   (git-ignored). Each model keeps its letter (D, E, F); a refit replaces its file and resets the log row to
+   "pending upload".
 
 All seeds are 20261023.
 
@@ -187,14 +193,22 @@ All seeds are 20261023.
 
 Code: `classical/models/tfidf_lr.py`. Config: `classical/configs/tfidf_lr.yaml`.
 
-1. Word TF-IDF over 1–2-grams (min_df 2) **plus** character TF-IDF over 2–5-grams within word boundaries
-   (min_df 3). Each uses sublinear term frequency and up to 300k features. Vocabulary and IDF are fit on training
-   rows only.
-2. The two sparse matrices are stacked side by side.
+1. Three TF-IDF views, each with sublinear term frequency and up to 300k features, vocabulary and IDF fit on the
+   training rows only:
+   - word 1–2-grams (min_df 2);
+   - character 1–5-grams over the **raw** text (min_df 3, case kept), so line breaks, blank lines and spacing
+     are features;
+   - word 1–3-grams over **text-distorted** input (`classical/features/distortion.py`, Stamatatos 2017): every
+     word outside the 300 most frequent training words becomes `*` (or `#` if capitalised), and line breaks are
+     tokens. This keeps function-word, punctuation and line patterns and drops topic.
+2. The three sparse matrices are stacked side by side.
 3. L2 logistic regression (liblinear).
 
-Search: C ∈ {1, 4, 16, 64} × lowercase ∈ {yes, no}. Chosen: **C = 64, case kept**. Fit time 16 s on CPU.
-Val AUROC 0.96256.
+Search: C ∈ {4, 16, 64} × lowercase ∈ {yes, no}. Chosen: **C = 64, lowercase** (inner CV 0.9956; the grid is
+flat within 0.0005). Fit time 23 s on CPU. Val AUROC 0.99678.
+
+v1 (the first `final_E` upload, public 0.88583) had only word 1–2-grams and character 2–5-grams *inside* word
+boundaries (`char_wb`), val 0.96256.
 
 ### C2 `stylo_gbm` — stylometric features + LightGBM (best classical model)
 
@@ -220,30 +234,67 @@ What we learned: layout features carry 50.4% of the model's split gain, blank li
 
 Code: `classical/models/transformer_scratch.py`. Config: `classical/configs/transformer_scratch.yaml`.
 
-1. **Tokenizer trained here.** A byte-level BPE with a 12k vocabulary, trained on the training rows plus
-   `unlabeled.csv`, and never on validation or test text. Byte-level keeps case, spaces and line breaks.
-2. **Model.** Learned token and position embeddings (max 512 tokens) feed a **4-layer pre-norm Transformer
+1. **Input.** Single line breaks are joined into spaces (blank lines, i.e. paragraph and stanza breaks, stay),
+   and the text is distorted like C1's third view (words outside the 300 most frequent training words masked).
+2. **Tokenizer trained here.** A byte-level BPE with a 12k vocabulary, trained on that input for the training
+   rows plus `unlabeled.csv`, and never on validation or test text. Byte-level keeps case, spaces and blank lines.
+3. **Model.** Learned token and position embeddings (max 512 tokens) feed a **4-layer pre-norm Transformer
    encoder** (d_model 256, 4 heads, feed-forward 1024, dropout 0.1). Token outputs are mean-pooled into a linear
    head. All weights start random.
-3. **Training.**
+4. **Training.**
    - AdamW: learning rate 3e-4, weight decay 0.01, 6% warmup then linear decay, batch 32, bf16 on GPU.
    - Up to 20 epochs, with early stopping (patience 3) on a stratified 10% inner split of the *training* rows;
      the best epoch is restored.
 
-No grid search: the architecture was fixed up front because a 5-fold grid would take hours. Fit time 38 s on the
-RTX 5070. Val AUROC 0.98500.
+No grid search: the architecture was fixed up front because a 5-fold grid would take hours. Fit time 32 s on the
+RTX 5070. Val AUROC 0.98903.
+
+v1 (the first `final_F` upload, public 0.83201) read the raw text without line joining or distortion, val 0.98500.
+
+### Why C1 and C3 v1 fell on Kaggle
+
+v1 of C1 and C3 looked fine on validation (0.963 and 0.985) but scored 0.886 and 0.832 on the public
+leaderboard. The fixed validation split comes from train's distribution, so it cannot show the test shift:
+unseen generators and about 17% verse, against 1.6% of train (`common/results/split_profile.csv`).
+
+`classical/ood_eval.py` measures this without touching Kaggle. It fits on the 8,000 training rows and scores
+held-out text: AI rewrites by 7 generators not in train (only rewrites of validation passages), and human vs AI
+poems/stories with the human side from held-out Project Gutenberg books. These are the pretrained track's
+evaluation sets, never trained on. Everything is pooled into one `proxy_auc`, mixed like test. Results:
+`classical/results/ood_eval.csv`.
+
+| Model | Val | Unseen generators | Creative | Human verse flagged* | Proxy | Public |
+|---|---|---|---|---|---|---|
+| C1 v1 (`final_E` v1) | 0.9626 | 0.8728 | 0.7801 | 7% | 0.8708 | 0.88583 |
+| C1 v2 (`final_E`) | 0.9968 | 0.9538 | 0.9237 | 31% | 0.9555 | pending |
+| C3 v1 (`final_F` v1) | 0.9817 | 0.8791 | 0.6105 | 71% | 0.7699 | 0.83201 |
+| C3 v2 (`final_F`) | 0.9881 | 0.8694 | 0.9329 | 24% | 0.9258 | pending |
+| C2 (`final_D`, unchanged) | 0.9983 | 0.9665 | 0.9343 | 78% | 0.9650 | 0.95995 |
+
+\* share of held-out Gutenberg human poems/stories scored above the threshold that flags 5% of validation humans.
+
+- The proxy put the three v1 models in the same order as Kaggle, 0.01–0.06 below their public scores.
+- **C1 v1** read topic: word n-grams and in-word character n-grams never see layout, and topic does not carry
+  over to unseen domains. Raw character n-grams and the distorted-text view fixed most of it.
+- **C3 v1** learned "short lines = AI": in train, human passages have long lines and AI ones short lines, so it
+  scored most human verse as AI. Joining single line breaks removed that shortcut (creative AUROC 0.61 → 0.93).
+  Distortion helped on top. Cropping to random windows and a smaller model did not (variants in `ood_eval.csv`).
+- The C3 v2 design gave proxy 0.916–0.924 over three seeds.
+- The proxy was used to compare designs only. Hyperparameters are still chosen by inner CV, never on validation
+  or Kaggle.
 
 ### Commands
 
 ```bash
 python train.py --model stylo_gbm                              # validate on the fixed split
-python train.py --model stylo_gbm --final                      # refit on 10k, write the Kaggle CSV + artifacts
+python train.py --model stylo_gbm --final                      # refit on 10k, write final_D_stylo_gbm.csv + artifacts
 python predict.py --model stylo_gbm --out submission.csv       # re-create it from artifacts/
 python predict.py --model stylo_gbm --committed --out submission.csv   # copy the committed file
+python ood_eval.py --model stylo_gbm                           # score on the held-out shifted text
 ```
 
-The same commands work for `tfidf_lr` and `transformer_scratch`. A fresh clone reproduced C2's committed file
-exactly.
+The same commands work for `tfidf_lr` (file E) and `transformer_scratch` (file F). A fresh clone
+reproduced C2's committed file exactly, and `predict.py` reproduces E and F exactly from the saved models.
 
 ### Other classical models (validated, not submitted)
 
@@ -252,5 +303,6 @@ These are in `classical/results/` and appear in the report as comparisons:
 - `linear_svm` 0.9623
 - `nbsvm` 0.9699
 - `rf_stylo` 0.9969
-- `ensemble_c123` 0.99868: a percentile blend of C1–C3. Its weights come from greedy selection on out-of-fold
-  predictions inside the 8,000 training rows, and they ended up 0.9 C2 / 0.1 C1 / 0 C3.
+- `ensemble_c123` 0.99898: a percentile blend of C1–C3 (v2 C1 and C3). Its weights come from greedy selection on out-of-fold
+  predictions inside the 8,000 training rows, and they ended up 0.65 C2 / 0.30 C1 / 0.05 C3 (`results/ensemble_c123/metrics.json`).
+  With v1 C1 and C3 they were 0.9 / 0.1 / 0 and val 0.99868.

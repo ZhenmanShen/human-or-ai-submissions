@@ -114,13 +114,13 @@ Our best model trained entirely from scratch, a LightGBM on 101 stylometric feat
 \textbf{Learning goal:} demonstrate sensible representation choices, comparisons of at least three approaches, appropriate hyperparameter selection, and evidence-based selection of the final classifier.
 
 \question{Q1.1 [3 points].}{How did you preprocess and represent the text? Specify tokenization, normalization, word/character features or embeddings, and any feature extraction choices. Why?}
-We do no normalisation in either track: case, spacing, line breaks and Unicode are kept. Formatting carries signal: removing it costs every model we tested (Q5).
+We do almost no normalisation in either track: case, spacing, line breaks and Unicode are kept. Formatting carries signal: removing it costs most models we tested (Q5). The exception is C3, which joins single line breaks, because it otherwise learned ``short lines = AI'' and flagged human verse.
 
 Representations, from cheapest to most expensive:
 \begin{itemize}
-\item \textbf{C1:} word 1--2-grams (sklearn regex tokenizer \cite{sklearn}) and character 2--5-grams within word boundaries, sublinear TF-IDF, vocabulary fit on the training rows.
+\item \textbf{C1:} three sublinear TF-IDF views, vocabulary fit on the training rows: word 1--2-grams (sklearn regex tokenizer \cite{sklearn}); character 1--5-grams over the raw text, so line breaks and spacing are features; and word 1--3-grams over \emph{text-distorted} input \cite{stamatatos2017}, where every word outside the 300 most frequent training words is masked, keeping function words, punctuation and line structure but not topic.
 \item \textbf{C2:} 101 closed-form stylometric measurements, partly following Ma et al.\ \cite{ma2023}: sentence-length burstiness, type--token ratio, repetition, punctuation and function-word rates, readability, blank lines and line structure, zero-width and homoglyph counts. Classified with LightGBM \cite{lightgbm}, as are the LM-feature heads.
-\item \textbf{C3:} a 12k byte-level BPE tokenizer \cite{bpe} that we trained on the training rows and \texttt{unlabeled.csv}, which keeps spaces and newlines, feeding a small Transformer encoder \cite{transformer} trained from random initialisation.
+\item \textbf{C3:} single line breaks joined into spaces (blank lines kept) and the same text distortion as C1, then a 12k byte-level BPE tokenizer \cite{bpe} that we trained on the training rows and \texttt{unlabeled.csv}, feeding a small Transformer encoder \cite{transformer} trained from random initialisation. Line joining is the one normalisation we use; Q5 shows why.
 \item \textbf{Pretrained features:} GPT-2 and GPT-2-medium \cite{gpt2} and Qwen2.5 \cite{qwen25}, each with its own tokenizer (512 tokens), summarised by statistics of token log-probability, rank and entropy. The Binoculars score \cite{binoculars} adds a base/instruct cross-perplexity ratio. These features measure how predictable the text is to an LM, which transfers across topics.
 \item \textbf{Fine-tuned encoders:} RoBERTa-base \cite{roberta}, DeBERTa-v3-large \cite{debertav3} and OpenAI's GPT-2-output detector \cite{solaiman2019}, loaded with Hugging Face Transformers \cite{hftransformers}, read sub-word tokens end to end.
 \end{itemize}
@@ -132,7 +132,7 @@ The six models we submitted to Kaggle, three per track, all on the same 8,000 / 
 Model & Text representation & Train AUROC & Val. AUROC & Train time & Kaggle public \\ \midrule
 \tabinput{../common/tables/six_models_q12.tex}
 \bottomrule\end{tabularx}}
-\smallnote{Train time is one fit on the 8,000 rows; blends sum their members' times. Blends ran on an RTX 5070 and an RTX 3060 (DeBERTa-v3-large); their LM members read cached LM features, so the times exclude feature extraction (1.3--30 min per LM in the original 5-fold runs). C1 and C2 ran on a Ryzen 5 9600X CPU, C3 on the RTX 5070. Classical public scores: [TODO once uploaded].}
+\smallnote{Train time is one fit on the 8,000 rows; blends sum their members' times. Blends ran on an RTX 5070 and an RTX 3060 (DeBERTa-v3-large); their LM members read cached LM features, so the times exclude feature extraction (1.3--30 min per LM in the original 5-fold runs). C1 and C2 ran on a Ryzen 5 9600X CPU, C3 on the RTX 5070. C1 and C3 are v2 (files E and F, not yet uploaded); their v1 uploads scored 0.88583 and 0.83201 (Q5.3).}
 
 \begin{center}\includegraphics[width=0.49\linewidth]{../common/figures/six_models.pdf}\hfill\includegraphics[width=0.49\linewidth]{../common/figures/cost_vs_auroc.pdf}\end{center}
 \smallnote{Right: cost of one training run (log scale; LM feature extraction added back for pretrained models) against validation AUROC. The scatter also shows every other model we validated. Their individual numbers, and the 5-fold CV figures from development, are in \texttt{common/results/compare\_tracks.csv} and Appendix A.}
@@ -147,7 +147,7 @@ Model & Text representation & Train AUROC & Val. AUROC & Train time & Kaggle pub
 
 \textbf{What the searches showed.}
 \begin{itemize}
-\item TF-IDF prefers weak regularisation and keeping case. C = 64 is the edge of the grid, but only +0.0004 over C = 16.
+\item TF-IDF (C1 v2) is nearly flat: 0.9951--0.9956 over C $\in$ \{4, 16, 64\} and both casings. C = 64 is the edge of the grid, but only +0.0001 over C = 16.
 \item C2 and the LM head are flat across their grids (0.9979--0.9981 and 0.9990--0.9992), so their remaining error is not in the hyperparameters.
 \end{itemize}
 
@@ -156,7 +156,7 @@ Model & Text representation & Train AUROC & Val. AUROC & Train time & Kaggle pub
 
 \textbf{Cost.} A is the most expensive submission: about 54 GPU-minutes of fine-tuning plus LM feature extraction. B uses only frozen LMs and would be the fallback if cost mattered.
 
-\textbf{The from-scratch alternative.} Among the classical models, C2 is clearly best: 0.99831 against 0.98500 for C3 and 0.96256 for C1. It is also stable (inner-CV fold standard deviation 0.0005) and the cheapest model we have (7 s on a CPU). It sits 0.0016 below A on validation. How it compares on test, where domains and generators shift, is [TODO: C1--C3 public scores]. Submission history: Appendix A.
+\textbf{The from-scratch alternative.} Among the classical models, C2 is best: 0.99831 against 0.99678 for C1 and 0.98903 for C3. It is also stable (inner-CV fold standard deviation 0.0005) and the cheapest model we have (7 s on a CPU). It sits 0.0016 below A on validation and scored 0.95995 on the public leaderboard. The first versions of C1 and C3 scored only 0.88583 and 0.83201 there, despite 0.963 and 0.985 on validation. Q5 explains the drop and the fix: the out-of-distribution proxy now puts C2 at 0.965, C1 at 0.955 and C3 at 0.926. Submission history: Appendix A.
 
 \section{Effect of training data size (10 points)}
 \textbf{Learning goal:} understand the effect of the number of labeled examples on fitting and generalization. This is an empirical exercise; no formal sample-complexity theory is required.
@@ -177,10 +177,10 @@ Configuration: C2 with its chosen hyperparameters. Subsets are nested and strati
 \begin{itemize}
 \item \texttt{lm\_gpt2} reaches 0.9972 with only 500 examples. The pretrained LM supplies the representation, and labels only calibrate a small head.
 \item C2 starts at 0.9910 and gains about 0.002 per doubling, to 0.9983. A hundred well-chosen features need few examples.
-\item C1 starts at 0.896 and gains about 0.015 per doubling. It is still rising at 8,000 rows, the high-variance curve of a 600k-feature sparse model.
+\item C1 starts at 0.984 and gains about 0.003 per doubling, to 0.9968. It is still rising slightly at 8,000 rows, as a model with close to a million sparse features would. Its first version, without the raw-character and distorted-text views, started at 0.896 and gained about 0.015 per doubling: the topic-free views make it far less hungry for labels.
 \end{itemize}
 
-\textbf{Value of more data.} More labels of the same kind would help C1, but would do little for C2 or the LM features. Test differs from train in domain and generator, so more \emph{diverse} labels (verse, new generators) would plausibly matter more. That is a hypothesis we could not test with the data available.
+\textbf{Value of more data.} More labels of the same kind would help C1 a little, but would do little for C2 or the LM features. Test differs from train in domain and generator, so more \emph{diverse} labels (verse, new generators) would plausibly matter more. That is a hypothesis we could not test with the data available.
 
 \section{Learning from unlabeled data (5 points)}
 \textbf{Learning goal:} test whether the additional 3,000 unlabeled passages help.
@@ -204,7 +204,7 @@ We ran 1 and 3 rounds; each round re-selects pseudo-labels from the newest model
 \tabinput{tables/q32_semisup.tex}
 \bottomrule\end{tabularx}
 \question{Q3.3 [1 point].}{Did it help? Give a concrete, evidence-based explanation (including possible noise in pseudo-labels).}
-No. Every change is within $\pm$0.0006, and most are within $\pm$0.0001.
+No. Every change is within $\pm$0.0001.
 
 \textbf{Why:} the selected pseudo-labels are passages the model is already certain about.
 \begin{itemize}
@@ -277,7 +277,7 @@ This is itself a finding: the subgroup that matters most for test is almost abse
 \question{Q5.1 [3 points].}{What specific question or hypothesis motivated your improvement? What weakness or opportunity did you observe?}
 \textbf{The weakness.} After a 35-job benchmark, every reasonable model scored at least 0.990 in 5-fold cross-validation. The best dozen runs lay within 0.0005 of each other (fold standard deviation about 0.0005), so CV could not rank them. Yet test differs from train: it has unseen generators, much more creative writing, and 16.6\% verse-like passages against 1.6\%.
 
-\textbf{Hypothesis.} A held-out set that imitates this shift will rank models and blends differently from CV, and choosing the blend on it will improve the leaderboard score. A secondary question, in the from-scratch track: do the three classical models make different errors, so that blending them helps? And how much of C2's strength comes from layout, the cue most likely to break on verse?
+\textbf{Hypothesis.} A held-out set that imitates this shift will rank models and blends differently from CV, and choosing the blend on it will improve the leaderboard score. Secondary questions, in the from-scratch track: why did C1 and C3 score 0.963 and 0.985 on validation but only 0.886 and 0.832 on the public leaderboard, and can the same proxy diagnose and fix that without spending uploads? Do the three classical models make different errors, so that blending them helps? And how much of C2's strength comes from layout, the cue most likely to break on verse?
 
 \question{Q5.2 [4 points].}{What exactly did you change? Describe the baseline, the new approach and what you held fixed for a fair comparison.}
 \textbf{The proxy} (evaluation only, never trained on) combines:
@@ -293,7 +293,12 @@ This is itself a finding: the subgroup that matters most for test is almost abse
 
 \textbf{Held fixed:} the trained models, the CDF blending rule and the training data.
 
-\textbf{Secondary, from scratch:} C2 alone against a C1+C2+C3 blend. The blend's weights come from greedy selection on 5-fold out-of-fold predictions inside the 8,000 rows, with the members' hyperparameters fixed. We also ran ablations of C2 without its 8 layout features.
+\textbf{Secondary, from scratch.}
+\begin{itemize}
+\item \textbf{C1 and C3, v1 against v2} (\texttt{classical/ood\_eval.py}). Each model is fit on the 8,000 rows and scored on the validation rows, on the unseen-generator rewrites of \emph{validation} passages (112 rows), and on the creative set. These are pooled with the same weights as \texttt{proxy\_auc}. C1 v2 adds two views: raw-text character n-grams and text-distorted word n-grams \cite{stamatatos2017}. C3 v2 joins single line breaks and reads distorted text. Held fixed: the training rows, the fixed split, the architectures, and the rule that hyperparameters come from inner CV only. The proxy compared designs and never tuned a parameter.
+\item \textbf{Blend.} C2 alone against a C1+C2+C3 blend. The blend's weights come from greedy selection on 5-fold out-of-fold predictions inside the 8,000 rows, with the members' hyperparameters fixed.
+\item \textbf{Ablation.} C2 without its 8 layout features.
+\end{itemize}
 
 \question{Q5.3 [4 points].}{What were the measured results?}
 {\small\begin{tabularx}{\linewidth}{@{}YrrY@{}}\toprule Configuration & Val. AUROC & Runtime & Relevant difference \\ \midrule
@@ -301,7 +306,14 @@ This is itself a finding: the subgroup that matters most for test is almost abse
 \midrule
 \tabinput{../classical/reports/tables/q53_improvement.tex}
 \bottomrule\end{tabularx}}
-\smallnote{Validation = fixed 2,000 rows; runtime = fit on the 8,000 rows. Proxy and unseen-generator AUROC are from \texttt{pretrained/experiments/ood\_eval.csv}. Classical blend weights from inner out-of-fold predictions: C2 0.9, C1 0.1, C3 0.0.}
+\smallnote{Validation = fixed 2,000 rows; runtime = fit on the 8,000 rows. Proxy and unseen-generator AUROC are from \texttt{pretrained/experiments/ood\_eval.csv}. Classical blend (v2 C1 and C3) weights from inner out-of-fold predictions: C2 0.65, C1 0.30, C3 0.05.}
+
+\textbf{C1 and C3 under the test shift} (\texttt{classical/results/ood\_eval.csv}; Kaggle scores from Appendix A):
+
+{\small\begin{tabularx}{\linewidth}{@{}Yrrrrrr@{}}\toprule Model & Val. & Unseen gen. & Creative & Verse FPR & Proxy & Public \\ \midrule
+\tabinput{../classical/reports/tables/q53_ood.tex}
+\bottomrule\end{tabularx}}
+\smallnote{All AUROC except ``Verse FPR'': the share of held-out Gutenberg human poems and stories scored above the threshold that flags 5\% of validation humans. Same fit on the 8,000 rows throughout. v2 files E and F are not yet uploaded.}
 
 \textbf{Removing formatting cues} (``debiased'' = no blank lines, double spaces, curly quotes, zero-width characters or homoglyphs; ``join\_lines'' = all lines joined):
 
@@ -312,16 +324,24 @@ This is itself a finding: the subgroup that matters most for test is almost abse
 \question{Q5.4 [4 points].}{What did you learn? Did the results support the hypothesis? What limits the conclusion, and what would you try next?}
 \textbf{The main hypothesis held.} The proxy ranked the candidates differently from CV: the CV-greedy blend was the best on CV (0.99964) but scored only 0.9862 on the proxy. The proxy put A first, and Kaggle agreed (0.99161 against 0.98848). The fixed split could not see any of this: A and B differ by 0.00005 on validation. The proxy was 0.001--0.003 above the public scores, while CV was 0.008--0.011 above.
 
-\textbf{The from-scratch blend helped a little,} +0.0004 AUROC, with TPR at 1\% FPR rising from 0.983 to 0.990. The gain came from the n-gram model; the Transformer got zero weight.
+\textbf{The proxy explained the classical drop, and the fix followed from it.} It ranked the three v1 classical models the way Kaggle did (C2 0.965, C1 0.871, C3 0.770 against public 0.960, 0.886, 0.832), so its diagnosis is credible:
+\begin{itemize}
+\item \textbf{C3 v1 learned ``short lines = AI''.} In train, human passages have long lines and AI passages short ones. C3 v1 flagged 71\% of held-out human verse, and its creative AUROC was 0.61. Joining single line breaks removed the shortcut. With distortion on top, creative AUROC rose to 0.93 and the proxy to 0.926 (0.916--0.924 over three seeds). Window cropping and a smaller model did not help.
+\item \textbf{C1 v1 read topic.} Its word and in-word character n-grams are blind to layout, and topic does not transfer to unseen domains. The raw-character and distorted views raised unseen-generator AUROC from 0.87 to 0.95 and the proxy from 0.871 to 0.955. Validation rose too, 0.963 $\to$ 0.997.
+\end{itemize}
+Both v2 files are built, but their public scores are not yet known.
 
-\textbf{Formatting cues are real signal.} Removing them hurt everywhere: on validation, and on unseen generators (stylometric proxy 0.974 $\to$ 0.915). Without its layout features, C2 falls from 0.9983 to 0.9872, and those features carry 50.4\% of its split gain (\texttt{classical/results/stylo\_gbm/importances.csv}).
+\textbf{The from-scratch blend helped a little,} +0.0007 validation AUROC over C2 (0.99898), with TPR at 1\% FPR rising from 0.983 to 0.988. With the v2 members, C1 now earns weight 0.30. With v1 members the blend was 0.9 C2 / 0.1 C1 / 0 C3, at 0.99868.
+
+\textbf{Formatting cues are real signal, with one exception.} Removing them hurt the feature-based models on validation and on unseen generators (stylometric proxy 0.974 $\to$ 0.915). The from-scratch Transformer is the exception: it has no hand-made features to balance the line-length shortcut, and joining single lines (blank lines kept) helped it. Without its layout features, C2 falls from 0.9983 to 0.9872, and those features carry 50.4\% of its split gain (\texttt{classical/results/stylo\_gbm/importances.csv}).
 
 \textbf{Limits.}
 \begin{itemize}
 \item The blend selection is in-sample for the proxy, so A's proxy score is optimistic.
 \item The proxy's generators and its archaic Gutenberg human text are a guess at test.
 \item One comparison on the 900-row public leaderboard is weak evidence.
-\item The 0.0004 classical gain is within the noise of 2,000 rows.
+\item The 0.0007 classical blend gain is within the noise of 2,000 rows.
+\item The classical proxy has only 112 unseen-generator rows, and C1 v2 and C3 v2 were chosen after looking at it, so their proxy scores are somewhat optimistic until Kaggle confirms them.
 \end{itemize}
 
 \textbf{Next:}
@@ -353,6 +373,7 @@ python make_submission.py --run <7 runs> --weights 3 3 2 1 1 1 1 \
 \item \commit{1fc181fef044ef79830a9a0db09f32bc305f38e0}{1fc181f} (full benchmark, 35 jobs): every reasonable model reached 0.990--0.999 CV AUROC. Training-set CV was saturated, so we built the out-of-distribution proxy, \commit{ed4ad2daeabbb6f05fc791791dff0edf34ced42e}{ed4ad2d}. It ranked models differently, and the blend chosen on it won on Kaggle, \commit{77663a46bfcbc667df49d3aeb81d00485319b2f8}{77663a4}.
 \item \commit{345aaab6ff162b0dd75461b219afda13866aed63}{345aaab}: the from-scratch Transformer's inner-split AUROC peaks at epochs 6--7, then falls while training loss keeps dropping. With 7,200 passages a 6.4M-parameter model overfits fast, so early stopping on an inner split, not the validation set, is essential.
 \item \commit{6fb8406709d375571d760b4d23b11a131c61c44e}{6fb8406} and \commit{3754f3b7f2d07855ff6e01a9ef753e7f575d4698}{3754f3b}: removing layout from C2 costs 0.011 AUROC, and removing formatting cues hurts the pretrained models too. Formatting is real signal, not just an artefact, which is why we kept it.
+\item \commit{fb3df12d56cf3f45b3d7664818888d9128c4523d}{fb3df12} and \commit{efb72f048cb76989e9d33f94779eb7106bfc4196}{efb72f0}: after C1 and C3 scored 0.886 and 0.832 on Kaggle, we scored the classical models on the same held-out shifted text. It reproduced the Kaggle ranking and showed C3 had learned ``short lines = AI''. Joining single line breaks fixed that, the one place where removing a formatting cue helped. Text distortion made C1 robust to topic.
 \end{itemize}
 
 \question{Q6.3 [2 points].}{How did you use AI tools (such as Claude, ChatGPT or Copilot) for code, debugging, analysis or writing? What did you verify or modify yourself?}
@@ -395,6 +416,7 @@ Pretrained weights used by the pretrained track (Hugging Face):
 \bibitem{ma2023} Y.~Ma et al. AI vs.\ Human -- Differentiation Analysis of Scientific Content Generation. arXiv:2301.10416, 2023.
 \bibitem{bpe} R.~Sennrich, B.~Haddow, A.~Birch. Neural Machine Translation of Rare Words with Subword Units. ACL 2016.
 \bibitem{transformer} A.~Vaswani et al. Attention Is All You Need. NeurIPS 2017.
+\bibitem{stamatatos2017} E.~Stamatatos. Authorship Attribution Using Text Distortion. EACL 2017.
 \bibitem{caruana2004} R.~Caruana, A.~Niculescu-Mizil, G.~Crew, A.~Ksikes. Ensemble Selection from Libraries of Models. ICML 2004.
 \bibitem{llama3} Llama Team, AI @ Meta. The Llama 3 Herd of Models. arXiv:2407.21783, 2024 (Llama 3.2 checkpoints).
 \bibitem{qwen3} Qwen Team. Qwen3 Technical Report. arXiv:2505.09388, 2025.

@@ -58,6 +58,8 @@
 
 \textbf{Github Repository Template: }\href{https://github.com/sekhari/human-or-ai-submissions}{REPO}
 
+\noindent\fbox{\parbox{\dimexpr\linewidth-2\fboxsep}{\small\textbf{Note (2026-11-09).} This classical-only draft is background and is not submitted. Its prose describes v1 of C1 and C3, which scored 0.88583 and 0.83201 on Kaggle. Its generated tables already show v2. For v2 (raw-text and distorted-text TF-IDF; a line-joined, distorted-input Transformer), see \texttt{MODELS.md} and Q5 of \texttt{reports/kaggle\_report.tex}.}}
+
 This track uses only models trained from scratch on the competition data: no pretrained weights, embeddings or tokenizers. Its three headline models are a TF-IDF n-gram logistic regression (C1), 101 hand-crafted stylometric features with LightGBM (C2), and a small Transformer encoder with its own byte-level BPE, trained from random initialisation (C3). All of them run on a laptop CPU, and C3 also on a GPU. They are compared on the same fixed 2,000-row validation split as the team's pretrained-model track.
 
 \vspace{0.06in}

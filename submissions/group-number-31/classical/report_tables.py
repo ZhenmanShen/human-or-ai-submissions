@@ -3,7 +3,7 @@
   python report_tables.py
 
 Writes reports/tables/*.tex (table bodies) and reports/figures/*.pdf from results/*/metrics.json,
-results/*/search.csv, results/experiments/*.csv and ../submission_log.csv. The FP/FN hypotheses are the
+results/*/search.csv, results/experiments/*.csv, results/ood_eval.csv and ../submission_log.csv. The FP/FN hypotheses are the
 one hand-written input (reports/fp_fn_notes_stylo_gbm.yaml). Nothing is typed by hand.
 """
 from __future__ import annotations
@@ -26,11 +26,12 @@ RES, EXP = HERE / "results", HERE / "results" / "experiments"
 TAB, FIG = HERE / "reports" / "tables", HERE / "reports" / "figures"
 
 ROWS = [  # (results dir, label, representation)
-    ("tfidf_lr", "C1 \\texttt{tfidf\\_lr}", "word 1--2 + char\\_wb 2--5 TF-IDF $\\to$ logistic regression"),
+    ("tfidf_lr", "C1 \\texttt{tfidf\\_lr}",
+     "word 1--2 + raw char 1--5 + distorted-text word 1--3 TF-IDF $\\to$ logistic regression"),
     ("stylo_gbm", "C2 \\texttt{stylo\\_gbm}", "101 hand-crafted stylometric features $\\to$ LightGBM"),
     ("transformer_scratch", "C3 \\texttt{transformer\\_scratch}",
-     "12k byte-level BPE $\\to$ 4-layer Transformer encoder, random init"),
-    ("linear_svm", "\\texttt{linear\\_svm}", "C1 features $\\to$ linear SVM"),
+     "lines joined, text distorted, 12k byte-level BPE $\\to$ 4-layer Transformer encoder, random init"),
+    ("linear_svm", "\\texttt{linear\\_svm}", "C1 v1 features (word + char\\_wb) $\\to$ linear SVM"),
     ("nbsvm", "\\texttt{nbsvm}", "binary n-grams scaled by NB log-count ratio $\\to$ LR"),
     ("rf_stylo", "\\texttt{rf\\_stylo}", "C2 features $\\to$ random forest"),
     ("ensemble_c123", "\\texttt{ensemble\\_c123}", "C1+C2+C3 CDF blend, weights from inner-CV OOF"),
@@ -150,6 +151,29 @@ def q5():
     write("q53_improvement.tex", rows)
 
 
+OOD_ROWS = [  # (ood_eval.csv row, label, Kaggle upload in submission_log.csv)
+    ("tfidf_lr@v1", "C1 v1: word + char\\_wb TF-IDF", "final_E_tfidf_lr@v1"),
+    ("tfidf_lr", "C1 v2: + raw char, distorted word n-grams", "final_E_tfidf_lr"),
+    ("transformer_scratch@v1", "C3 v1: raw text", "final_F_transformer_scratch@v1"),
+    ("transformer_scratch", "C3 v2: lines joined, text distorted", "final_F_transformer_scratch"),
+    ("stylo_gbm", "C2 (unchanged, reference)", "final_D_stylo_gbm"),
+]
+
+
+def q5_ood():
+    """C1/C3 before and after the shift-robust changes: fixed split, OOD proxy (ood_eval.py), Kaggle public."""
+    o = pd.read_csv(RES / "ood_eval.csv").set_index("model")
+    log = pd.read_csv(TEAM / "submission_log.csv", dtype=str, keep_default_na=False).set_index("model")
+    rows = []
+    for name, label, sub in OOD_ROWS:
+        r = o.loc[name]
+        pub = log.loc[sub, "kaggle_public"] if sub in log.index else "--"
+        pub = f"{float(pub):.5f}" if pub.replace(".", "", 1).isdigit() else tex(pub)
+        rows.append(f"{label} & {r.val_auc:.4f} & {r.newgen_auc:.4f} & {r.creative_auc:.4f} & {r.creative_fpr5:.2f} & "
+                    f"{r.proxy_auc:.4f} & {pub} \\\\")
+    write("q53_ood.tex", rows)
+
+
 def appendix():
     log = pd.read_csv(TEAM / "submission_log.csv", dtype=str, keep_default_na=False).sort_values(["date", "track", "model"])
     url = "https://github.com/ZhenmanShen/human-or-ai-submissions/commit/"
@@ -162,5 +186,5 @@ def appendix():
 
 
 if __name__ == "__main__":
-    for step in ("q12", "q13", "q2", "q3", "q4", "q5", "appendix"):
+    for step in ("q12", "q13", "q2", "q3", "q4", "q5", "q5_ood", "appendix"):
         globals()[step]()

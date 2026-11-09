@@ -12,12 +12,12 @@ pretrained,ft_openai_detector_large,0.999348,0.998363,0.981,551.7,613.2,RTX 5070
 pretrained,final_A_greedy_proxy,0.999997,0.999898,0.999,3217.3,4279,RTX 5070 + RTX 3060,0.99161
 pretrained,final_B_lm4,1,0.999849,0.999,15.6,662.22,RTX 5070 + RTX 3060,0.98848
 pretrained,final_C_lm4_roberta,1,0.999875,0.997,260,1270.5,RTX 5070 + RTX 3060,0.98845
-classical,ensemble_c123,1,0.998683,0.99,239.7,239.7,RTX 5070,not submitted
+classical,ensemble_c123,1,0.998977,0.988,292.4,292.4,RTX 5070,not submitted
 classical,linear_svm,1,0.962346,0.72,13.6,13.6,CPU,not submitted
 classical,nbsvm,1,0.969865,0.769,15.3,15.3,CPU,not submitted
 classical,rf_stylo,1,0.996915,0.977,7.3,7.3,CPU,not submitted
-classical,stylo_gbm,1,0.998311,0.983,7.3,7.3,CPU,pending upload
+classical,stylo_gbm,1,0.998311,0.983,7.3,7.3,CPU,0.95995
 classical,stylo_gbm@no_added,1,0.998248,0.98,8.7,8.7,CPU,not submitted
 classical,stylo_gbm@no_layout,1,0.987245,0.865,9.4,9.4,CPU,not submitted
-classical,tfidf_lr,1,0.962562,0.719,16.1,16.1,CPU,pending upload
-classical,transformer_scratch,0.997874,0.984999,0.846,38.3,38.3,RTX 5070,pending upload
+classical,tfidf_lr,1,0.996784,0.958,23.3,23.3,CPU,pending upload
+classical,transformer_scratch,0.996907,0.989033,0.901,31.5,31.5,RTX 5070,pending upload
