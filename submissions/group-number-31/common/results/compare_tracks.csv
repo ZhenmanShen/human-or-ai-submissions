@@ -19,5 +19,5 @@ classical,rf_stylo,1,0.996915,0.977,7.3,7.3,CPU,not submitted
 classical,stylo_gbm,1,0.998311,0.983,7.3,7.3,CPU,0.95995
 classical,stylo_gbm@no_added,1,0.998248,0.98,8.7,8.7,CPU,not submitted
 classical,stylo_gbm@no_layout,1,0.987245,0.865,9.4,9.4,CPU,not submitted
-classical,tfidf_lr,1,0.996784,0.958,23.3,23.3,CPU,pending upload
-classical,transformer_scratch,0.996907,0.989033,0.901,31.5,31.5,RTX 5070,pending upload
+classical,tfidf_lr,1,0.996784,0.958,23.3,23.3,CPU,0.96374
+classical,transformer_scratch,0.996907,0.989033,0.901,31.5,31.5,RTX 5070,0.91502

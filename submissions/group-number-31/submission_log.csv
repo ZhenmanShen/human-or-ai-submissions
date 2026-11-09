@@ -22,6 +22,6 @@ date,track,model,file,commit,author,val_auroc,kaggle_public,kaggle_private,notes
 2026-11-01,pretrained,ft_deberta_v3_large,,28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb,Max Shen,0.99613,not submitted,,fixed-split re-run (seed 20261023); member of a submitted blend
 2026-11-01,pretrained,ft_openai_detector_large,,28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb,Max Shen,0.99836,not submitted,,fixed-split re-run (seed 20261023); member of a submitted blend
 2026-11-09,classical,transformer_scratch,,efb72f048cb76989e9d33f94779eb7106bfc4196,Max Shen,0.98903,not submitted,,
-2026-11-09,classical,final_F_transformer_scratch,classical/kaggle_submissions/final_F_transformer_scratch.csv,05e04170434cf5204e08a0a844ad4e91aaf9045f,Max Shen,0.98903,pending upload,,"C3 v2 (lines joined, text distorted; replaces v1 under the same name); OOD proxy 0.926"
+2026-11-09,classical,final_F_transformer_scratch,classical/kaggle_submissions/final_F_transformer_scratch.csv,05e04170434cf5204e08a0a844ad4e91aaf9045f,Max Shen,0.98903,0.91502,,"C3 v2 (lines joined, text distorted; replaces v1 under the same name); OOD proxy 0.926"
 2026-11-09,classical,tfidf_lr,,dc302d22e1432fce759bd2a2851ae09dfd5fce0e,Max Shen,0.99678,not submitted,,
-2026-11-09,classical,final_E_tfidf_lr,classical/kaggle_submissions/final_E_tfidf_lr.csv,05e04170434cf5204e08a0a844ad4e91aaf9045f,Max Shen,0.99678,pending upload,,C1 v2 (raw char + distorted word n-grams; replaces v1 under the same name); OOD proxy 0.955
+2026-11-09,classical,final_E_tfidf_lr,classical/kaggle_submissions/final_E_tfidf_lr.csv,05e04170434cf5204e08a0a844ad4e91aaf9045f,Max Shen,0.99678,0.96374,,C1 v2 (raw char + distorted word n-grams; replaces v1 under the same name); OOD proxy 0.955
