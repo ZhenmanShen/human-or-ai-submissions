@@ -40,6 +40,22 @@ def git(*args) -> str:
     return subprocess.run(["git", *args], cwd=TEAM_DIR, capture_output=True, text=True).stdout.strip()
 
 
+def content_commit(path: str) -> str | None:
+    """Oldest commit whose copy of `path` (followed across renames) equals the committed version: survives
+    renames, and moves forward when a refit replaces the file under the same name."""
+    head = git("rev-parse", f"HEAD:./{path}")
+    if not head:
+        return None
+    hist = git("log", "--follow", "--format=%H", "--name-only", "--", path).split()
+    pairs = list(zip(hist[::2], hist[1::2]))  # newest first: (commit, path in that commit)
+    found = None
+    for commit, p in pairs:
+        if git("rev-parse", f"{commit}:{p}") != head:
+            break
+        found = commit
+    return found
+
+
 def read_log() -> pd.DataFrame:
     if LOG.exists():
         return pd.read_csv(LOG, dtype=str, keep_default_na=False)[COLUMNS]
@@ -114,9 +130,8 @@ def main():
             if not args.date:
                 df.at[i, "date"] = dt.date.today().isoformat()
         if not args.commit:
-            if df.at[i, "file"]:  # the commit that added the submission file (blank until it is committed)
-                added = git("log", "--follow", "--diff-filter=A", "--format=%H", "--", df.at[i, "file"])
-                args.commit = added.split()[-1] if added else None  # oldest add, across folder renames
+            if df.at[i, "file"]:  # the commit that added the file's current content (blank until committed)
+                args.commit = content_commit(df.at[i, "file"])
             elif args.val is not None or not df.at[i, "commit"]:  # code version that produced the val score
                 args.commit = git("rev-parse", "HEAD")
         for col, val in [("date", args.date), ("author", args.author), ("val_auroc", args.val),
