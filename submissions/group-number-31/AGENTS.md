@@ -21,7 +21,7 @@ human-or-ai-submissions/            the team's fork of the course repo
 ├── README.md, STAFF.md, .github/   course files: never edit
 └── submissions/
     ├── _example_team/              course example: never edit
-    └── team_pls_give_us_an_a/      EVERYTHING of ours (Kaggle team name team_pls_give_us_an_A, lowercased)
+    └── group-number-31/            EVERYTHING of ours (Kaggle team name "Group Number 31", lowercased, hyphens)
         ├── AGENTS.md               this file
         ├── README.md               setup, commands, seeds, AI-use disclosure (required by the course)
         ├── MODELS.md               how each of the six submitted models is built (pipelines, settings)
@@ -103,7 +103,7 @@ weighted average (`src/ensemble.py: cdf_mean`). Every member scores every text: 
 
 ## Rules for any change
 
-1. Only add or modify files inside `submissions/team_pls_give_us_an_a/`. The single exception is the pointer
+1. Only add or modify files inside `submissions/group-number-31/`. The single exception is the pointer
    `AGENTS.md`/`CLAUDE.md` at the repo root on `main`, which must not go into the course PR (see Branches).
 2. Never commit competition CSVs (`data/`), Kaggle credentials, `.env`, model weights, checkpoints, `outputs/`,
    `artifacts/` or caches. Run `git status` and check the staged list before every commit. The course root
@@ -129,15 +129,15 @@ There is one branch, `main`; work there, or on a short-lived branch merged back 
 older per-track and per-model branches (`pretrained`, `classical`, `model/*`) were merged and deleted on
 2026-11-04; their commits are all in `main`'s history.
 
-The course PR must come from a branch named `submission/team_pls_give_us_an_a`, without the two root pointer files.
+The course PR must come from a branch named `submission/group-number-31`, without the two root pointer files.
 Create it only when opening the PR (ask a human first):
 
 ```bash
 # from the repo root
-git checkout -b submission/team_pls_give_us_an_a main
+git checkout -b submission/group-number-31 main
 git rm -q AGENTS.md CLAUDE.md          # root pointers only; the team folder's copies stay
 git commit -m "Keep the fork's root pointer files out of the course PR"
-git push -u origin submission/team_pls_give_us_an_a
+git push -u origin submission/group-number-31
 git checkout main
 ```
 
@@ -147,7 +147,7 @@ branch back into `main`, because that would delete the pointers from `main`.
 ## Regenerating everything (after new results)
 
 ```bash
-cd submissions/team_pls_give_us_an_a
+cd submissions/group-number-31
 python classical/report_tables.py
 python pretrained/scripts/report_tables.py
 python common/compare_tracks.py

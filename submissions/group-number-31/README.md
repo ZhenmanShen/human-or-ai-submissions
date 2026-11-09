@@ -1,4 +1,4 @@
-# team_pls_give_us_an_A — Human or AI?
+# Group Number 31 — Human or AI?
 
 Code for the CS5785 "Human or AI?" Kaggle competition. Six models were submitted, three from each of two
 tracks, and every model is scored on the same fixed 2,000-row validation split.
@@ -20,7 +20,7 @@ tracks, and every model is scored on the same fixed 2,000-row validation split.
 ## Folder map
 
 ```
-submissions/team_pls_give_us_an_a/
+submissions/group-number-31/
 ├── README.md              this file: setup, commands, seeds, AI-use disclosure
 ├── MODELS.md              how each of the six submitted models is built
 ├── AGENTS.md              one-page briefing for AI assistants and new teammates (CLAUDE.md loads it)
@@ -78,11 +78,11 @@ Notes:
 - **`_example_team/`** next to this folder belongs to the course (its README says not to modify it), so it stays.
   Our layout follows it: `README.md`, `requirements.txt`, `train.py` and `predict.py` at the top of the team folder.
 - **Branches.** There is one branch, `main`. The course PR has to come from a branch named
-  `submission/team_pls_give_us_an_a`; `AGENTS.md` shows how to create it from `main` when we open the PR.
+  `submission/group-number-31`; `AGENTS.md` shows how to create it from `main` when we open the PR.
 
 ## 1. Team
 
-- Kaggle team name: `team_pls_give_us_an_A`
+- Kaggle team name: `Group Number 31` (folder and PR branch: `group-number-31`)
 - Members (name, NetID): `[TODO]`
 
 ## 2. Environment
