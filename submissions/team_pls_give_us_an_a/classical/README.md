@@ -30,8 +30,10 @@ python train.py --model <name> --final --letter <X>   # refit on all 10,000 rows
 python predict.py --model <name> --out submission.csv   # re-create the file from artifacts/<name>/
 ```
 
-Each upload gets the next free letter after the pretrained track's A-C: D = `stylo_gbm`, E = `tfidf_lr` v1,
-F = `transformer_scratch` v1, G = `tfidf_lr` v2, H = `transformer_scratch` v2 (scores in `../SUBMISSIONS.md`).
+One Kaggle file per model, lettered after the pretrained track's A-C: D = `stylo_gbm`, E = `tfidf_lr`,
+F = `transformer_scratch`. An improved version replaces its model's file under the same letter (E and F now
+hold v2); the v1 scores stay in `../SUBMISSIONS.md` as `final_E_tfidf_lr@v1` / `final_F_transformer_scratch@v1`,
+linked to the commits that hold the v1 files.
 
 ## Checking a model against the test shift
 

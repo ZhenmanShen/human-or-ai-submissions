@@ -54,7 +54,7 @@ python ood_eval.py --model <model>           # optional: score on held-out shift
 The first command writes `results/<model>/metrics.json`, `val_pred.csv` and `search.csv`, and adds or updates
 your model's row in `submission_log.csv` / `SUBMISSIONS.md` ("not submitted"). The second writes
 `kaggle_submissions/final_<X>_<model>.csv` (already validated) and adds a `final_<X>_<model>` row marked
-"pending upload". `<X>` is the next unused upload letter (see `SUBMISSIONS.md`).
+"pending upload". `<X>` is the model's letter (D stylo_gbm, E tfidf_lr, F transformer_scratch; a new model takes the next free one).
 
 ## 4. Commit in steps, push, open a PR inside the fork
 

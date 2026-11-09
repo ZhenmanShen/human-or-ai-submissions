@@ -221,7 +221,8 @@ def final(args, cfg, name, out_dir, params, unl, author):
     (out_dir / "final.json").write_text(json.dumps(meta, indent=2, default=str) + "\n", encoding="utf-8")
     print(f"{name}: refit on {len(train)} rows in {fit_s:.0f}s -> {meta['file']} (validated OK)")
     if not args.no_log:
-        log_row(model=sub_name, file=meta["file"], author=author,
+        # a refit replaces the model's file under the same name, so any earlier score no longer applies
+        log_row(model=sub_name, file=meta["file"], author=author, public="pending upload",
                 val=f"{val['val_auroc']:.5f}" if val and not args.set else None)
 
 
