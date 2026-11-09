@@ -1,13 +1,19 @@
-# C1: word (1-2) + char_wb (2-5) TF-IDF -> logistic regression (liblinear, L2).
+# C1: word (1-2) TF-IDF + raw char (1-5) TF-IDF (case, spacing and line breaks kept) + word (1-3)-grams over
+# text-distorted input (words outside the 300 most frequent training words masked) -> logistic regression.
+# v1 (uploaded as final_E, public 0.88583) used char_wb 2-5 and no distorted view; the two changes were compared
+# on held-out OOD text (ood_eval.py, results/ood_eval.csv: proxy 0.871 -> 0.955), never on val or Kaggle.
 model: tfidf_lr
 params:
   C: 4.0
   word_ngrams: [1, 2]
-  char_ngrams: [2, 5]
+  char_ngrams: [1, 5]
   word_min_df: 2
   char_min_df: 3
   max_features: 300000
   lowercase: true
+  char_analyzer: char
+  distort_k: 300
+  distort_ngrams: 3
 search:                 # 5-fold CV inside the 8,000 training rows
-  C: [1.0, 4.0, 16.0, 64.0]
+  C: [4.0, 16.0, 64.0]
   lowercase: [true, false]

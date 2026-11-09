@@ -4,6 +4,8 @@
                                                       # 8,000 rows, score the fixed 2,000 validation rows
   python train.py --model tfidf_lr --final            # refit on all 10,000 rows with the chosen params and
                                                       # write kaggle_submissions/<date>_tfidf_lr.csv
+  python train.py --model tfidf_lr --final --letter G # ... named <date>_final_G_tfidf_lr.csv, like the
+                                                      # pretrained track's final_A/B/C (one letter per upload)
   python train.py --model tfidf_lr --set C=8 --no-search --tag c8   # a variant, saved as results/tfidf_lr@c8/
 
 Validation run writes results/<name>/metrics.json (chosen params, train/val AUROC, fit time, hardware),
@@ -143,6 +145,7 @@ def main(argv=None):
     ap.add_argument("--data-dir", default=None)
     ap.add_argument("--author", default=None, help="for the testing history (default: git user.name)")
     ap.add_argument("--no-log", action="store_true", help="don't touch submission_log.csv")
+    ap.add_argument("--letter", default=None, help="--final: name the file and log row final_<letter>_<model>")
     args = ap.parse_args(argv)
 
     cfg = load_config(args.model)
@@ -193,8 +196,9 @@ def main(argv=None):
 
 def final(args, cfg, name, out_dir, params, unl, author):
     mfile = out_dir / "metrics.json"
-    if mfile.exists() and not args.set:  # the params chosen by the validation run
-        params = json.loads(mfile.read_text(encoding="utf-8"))["params"]
+    val = json.loads(mfile.read_text(encoding="utf-8")) if mfile.exists() else {}
+    if val and not args.set:  # the params chosen by the validation run
+        params = val["params"]
     train, test = load_csv("train", args.data_dir), load_csv("test", args.data_dir)
     t0 = time.time()
     model = build(cfg, params, args.seed, args.device).fit(train["text"].tolist(), train["label"].to_numpy(),
@@ -208,7 +212,8 @@ def final(args, cfg, name, out_dir, params, unl, author):
     (ARTIFACTS / name / "params.json").write_text(json.dumps({"model": cfg["model"], "params": params,
                                                               "seed": args.seed}, default=str), encoding="utf-8")
     SUBS.mkdir(exist_ok=True)
-    path = SUBS / f"{dt.date.today().isoformat()}_{name}.csv"
+    sub_name = f"final_{args.letter}_{name}" if args.letter else name
+    path = SUBS / f"{dt.date.today().isoformat()}_{sub_name}.csv"
     sub.to_csv(path, index=False, lineterminator="\n", float_format="%.6f")
     meta = {"model": name, "params": params, "seed": args.seed, "n_train": len(train), "fit_time_s": round(fit_s, 1),
             "hardware": hardware(model), "file": str(path.relative_to(TEAM)).replace("\\", "/"),
@@ -216,7 +221,8 @@ def final(args, cfg, name, out_dir, params, unl, author):
     (out_dir / "final.json").write_text(json.dumps(meta, indent=2, default=str) + "\n", encoding="utf-8")
     print(f"{name}: refit on {len(train)} rows in {fit_s:.0f}s -> {meta['file']} (validated OK)")
     if not args.no_log:
-        log_row(model=name, file=meta["file"], author=author)
+        log_row(model=sub_name, file=meta["file"], author=author,
+                val=f"{val['val_auroc']:.5f}" if val and not args.set else None)
 
 
 if __name__ == "__main__":

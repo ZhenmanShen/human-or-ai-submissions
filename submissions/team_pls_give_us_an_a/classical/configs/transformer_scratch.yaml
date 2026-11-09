@@ -1,5 +1,8 @@
 # C3: 4-layer Transformer encoder (d=256, 4 heads), byte-level BPE (12k) trained on train + unlabeled text,
 # random init. Early stopping on a stratified 10% inner split of the training rows (never the 2k val).
+# Input: single line breaks joined into spaces (blank lines kept) and text distortion (words outside the 300 most
+# frequent training words masked). v1 (uploaded as final_F, public 0.83201) read raw text and scored most human
+# verse as AI; the change was chosen on held-out OOD text (ood_eval.py, results/ood_eval.csv: proxy 0.770 -> 0.924).
 # No grid search (one GPU run is ~minutes, a 5-fold grid would be hours); the architecture is fixed up front.
 model: transformer_scratch
 params:
@@ -17,3 +20,5 @@ params:
   patience: 3
   warmup_frac: 0.06
   inner_val_frac: 0.1
+  distort_k: 300
+  join_lines: true
