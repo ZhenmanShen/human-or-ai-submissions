@@ -150,7 +150,7 @@ We keep case, spacing, line breaks and Unicode, because formatting is signal her
   \item \textbf{C2} computes 101 stylometric measurements \cite{ma2023}: burstiness, type--token ratio, punctuation and function-word rates, readability, line and blank-line structure, homoglyph counts.
   \item \textbf{C3} joins single line breaks (blank lines kept), distorts the text, and trains a 12k byte-level BPE \cite{bpe} on train plus \texttt{unlabeled.csv} for a small Transformer \cite{transformer}.
   \end{itemize}
-\item \textbf{Pretrained.} Frozen LMs summarise how predictable each token is, which transfers across topics. Encoders are fine-tuned on sub-word tokens. Every checkpoint is listed in Table~\ref{tab:pretrained}.
+\item \textbf{Pretrained.} Frozen LMs summarise how predictable each token is, which transfers across topics. Encoders are fine-tuned on sub-word tokens. The checkpoints in our blends are listed in Table~\ref{tab:pretrained} (Appendix A).
 \end{itemize}
 All vocabularies and word lists are fit on training rows only.
 
@@ -169,7 +169,7 @@ C2 stylometric GBM & 101 hand-crafted stylometric features $\to$ LightGBM & 1.00
 C3 Transformer (scratch) & lines joined, text distorted, 12k byte-level BPE $\to$ 4-layer Transformer, random init & 0.99691 & 0.98903 & 32 s & 0.91502 \\
 % gen>>
 \bottomrule\end{tabularx}}
-\smallnote{Train time is one fit on the 8,000 rows; blends sum their members' (LM features cached). C1 and C2 ran on a Ryzen 5 9600X CPU, C3 and the blends on an RTX 5070 / RTX 3060. C1 and C3 are the second versions; the first versions scored 0.88583 and 0.83201 public (Q5). We also validated 20+ other models: linear SVM, NB-SVM, random forest, sentence-embedding and other fine-tuned encoders (Appendix B).}
+\smallnote{Train time is one fit on the 8,000 rows; blends sum their members' (LM features cached). C1 and C2 ran on a Ryzen 5 9600X CPU, C3 and the blends on an RTX 5070 / RTX 3060. C1 and C3 are the second versions; the first versions scored 0.88583 and 0.83201 public (Q5). We also validated 20+ other models (linear SVM, NB-SVM, random forest, other encoders); all are listed in the repository's \texttt{SUBMISSIONS.md}.}
 
 \textbf{Finding.} Validation puts every model at 0.989 or above and cannot rank them usefully. The public leaderboard spreads them from 0.915 to 0.992. Pretrained LM statistics transfer best to the shifted test set, and the Transformer trained from scratch on 8,000 passages transfers worst.
 
@@ -363,7 +363,7 @@ verse (line structure; 4 AI) & 25 & 1.00000 \\
 \question{Q5.2 [4 points].}{What exactly did you change? Describe the baseline, the new approach and what you held fixed for a fair comparison.}
 \textbf{The proxy} (evaluation only, never trained on) contains:
 \begin{itemize}
-\item 542 AI rewrites of training human passages and 816 AI poems and stories, written locally by seven generators never used in training (Table~\ref{tab:pretrained});
+\item 542 AI rewrites of training human passages and 816 AI poems and stories, written locally by seven open models never used in training (Appendix A);
 \item 681 human poems and stories from held-out Project Gutenberg books \cite{gutenberg}.
 \end{itemize}
 These are pooled with validation scores into one AUROC, weighted so that 41\% is creative writing, like test. For the classical models, only rewrites of \emph{validation} passages are used, so no model has trained on a rewrite's source.
@@ -467,7 +467,7 @@ python predict.py --model tfidf_lr --out submission.csv
 \item We made every Kaggle upload and checked that every number in this report comes from committed results files.
 \end{itemize}
 
-\textbf{Rules followed.} No external LLM API labelled or scored test passages, and no hidden labels were retrieved. The generated and Gutenberg proxy text was used only for evaluation, never as training labels. All pretrained weights are disclosed in Table~\ref{tab:pretrained}.
+\textbf{Rules followed.} No external LLM API labelled or scored test passages, and no hidden labels were retrieved. The generated and Gutenberg proxy text was used only for evaluation, never as training labels. All pretrained weights are disclosed in Appendix A.
 
 \textbf{AI policy.} You may use AI assistants for coding, debugging, explanations, brainstorming, and editing. We expect each team to exercise its own judgment, run experiments, check outputs, and understand its submitted approach. Sending the entire assignment to an AI tool and submitting its unverified output without meaningful involvement does not satisfy the objectives of this project. We will use the PR history, reproducible experiments and report together as evidence of engagement. \emph{Commit counts and the presence of AI-generated code are not themselves grading criteria.} Do not fabricate results or retrieve hidden test labels.
 
@@ -483,79 +483,46 @@ python predict.py --model tfidf_lr --out submission.csv
 \end{itemize}
 
 \appendix
-\section*{Appendix A. Pretrained models used}
-\addcontentsline{toc}{section}{Appendix A. Pretrained models used}
-All checkpoints were downloaded from the Hugging Face Hub and used under their public licences. The from-scratch track (C1--C3) uses no pretrained weights. ``Submitted'' names the Kaggle blends that contain the model.
+\section*{Appendix A. Pretrained models in the submitted blends}
+All checkpoints come from the Hugging Face Hub. The from-scratch models (C1--C3, files D--F) use no pretrained weights.
 
 {\small\begin{longtable}{@{}p{2.2in}rp{2.35in}p{0.8in}@{}}
-\caption{Every pretrained checkpoint we used, how, and its source.}\label{tab:pretrained}\\
-\toprule Checkpoint (Hugging Face) & Params & How we used it & Submitted \\ \midrule\endfirsthead
-\toprule Checkpoint (Hugging Face) & Params & How we used it & Submitted \\ \midrule\endhead
+\caption{The pretrained checkpoints inside blends A--C, and how each is used.}\label{tab:pretrained}\\
+\toprule Checkpoint (Hugging Face) & Params & How we used it & In blends \\ \midrule\endfirsthead
+\toprule Checkpoint (Hugging Face) & Params & How we used it & In blends \\ \midrule\endhead
 \multicolumn{4}{@{}l}{\textit{Frozen language models: token statistics as features for a LightGBM head (weights never updated)}} \\
-\hf{openai-community/gpt2} \cite{gpt2} & 124M & per-token log-prob, rank, entropy (15 stats) & A (stats-only head), B, C \\
+\hf{openai-community/gpt2} \cite{gpt2} & 124M & per-token log-prob, rank, entropy (15 stats) & A, B, C \\
 \hf{openai-community/gpt2-medium} \cite{gpt2} & 355M & same statistics, larger LM & A, B, C \\
 \hf{Qwen/Qwen2.5-0.5B} + \hf{-Instruct} \cite{qwen25} & 0.5B & Binoculars observer/performer pair \cite{binoculars}: perplexity, cross-perplexity, Binoculars score & A, B, C \\
 \hf{Qwen/Qwen2.5-1.5B} + \hf{-Instruct} \cite{qwen25} & 1.5B & same, larger pair & A, B, C \\
 \midrule
-\multicolumn{4}{@{}l}{\textit{Encoders fine-tuned end to end as classifiers (5-fold, test = mean of fold models)}} \\
+\multicolumn{4}{@{}l}{\textit{Encoders fine-tuned end to end as classifiers (5-fold; test score = mean of the fold models)}} \\
 \hf{FacebookAI/roberta-base} \cite{roberta} & 125M & fine-tuned classifier & A, C \\
 \hf{microsoft/deberta-v3-large} \cite{debertav3} & 435M & fine-tuned classifier & A \\
 \hf{openai-community/roberta-large-openai-detector} \cite{solaiman2019} & 355M & GPT-2 output detector, fine-tuned further & A \\
-\hf{openai-community/roberta-base-openai-detector} \cite{solaiman2019} & 125M & fine-tuned classifier (explored) & -- \\
-\hf{microsoft/deberta-v3-base}, \hf{-small} \cite{debertav3} & 184M / 141M & fine-tuned classifiers; debiasing test (explored) & -- \\
-\hf{distilbert/distilroberta-base} \cite{distilbert} & 82M & fine-tuned classifier; debiasing test (explored) & -- \\
-\hf{answerdotai/ModernBERT-base} \cite{modernbert} & 149M & fine-tuned classifier (explored) & -- \\
-\hf{google/electra-base-discriminator} \cite{electra} & 110M & fine-tuned classifier (explored) & -- \\
-\midrule
-\multicolumn{4}{@{}l}{\textit{Frozen sentence encoders: embeddings $\to$ logistic regression (explored)}} \\
-\hf{BAAI/bge-base-en-v1.5} \cite{bge} & 110M & CLS embedding & -- \\
-\hf{intfloat/e5-base-v2} \cite{e5} & 110M & mean-pooled embedding & -- \\
-\midrule
-\multicolumn{4}{@{}l}{\textit{Text generators: wrote the AI half of the evaluation proxy only (never training data)}} \\
-\hf{meta-llama/Llama-3.2-3B-Instruct} \cite{llama3} & 3.2B & proxy AI text & -- \\
-\hf{Qwen/Qwen3-4B-Instruct-2507} \cite{qwen3} & 4.0B & proxy AI text & -- \\
-\hf{microsoft/Phi-3.5-mini-instruct} \cite{phi3} & 3.8B & proxy AI text & -- \\
-\hf{HuggingFaceTB/SmolLM2-1.7B-Instruct} \cite{smollm2} & 1.7B & proxy AI text & -- \\
-\hf{ibm-granite/granite-3.1-2b-instruct} \cite{granite} & 2.5B & proxy AI text & -- \\
-\hf{allenai/OLMo-2-0425-1B-Instruct} \cite{olmo2} & 1.5B & proxy AI text & -- \\
-\hf{EleutherAI/pythia-1.4b} \cite{pythia} & 1.4B & proxy AI text & -- \\
 \bottomrule
 \end{longtable}}
 
-\section*{Appendix B. Submission and testing history}
-Generated from \texttt{submission\_log.csv} (\texttt{SUBMISSIONS.md} in the repository). Every model validated on the fixed split, from both tracks. Kaggle files: A--C pretrained blends; D = C2, E = C1, F = C3 (the \texttt{@v1} rows are the first E and F uploads, replaced by v2). ``not submitted'' = validated only.
+\textbf{Used for evaluation only, not in any submitted model.} The out-of-distribution proxy (Q5) contains AI text that we generated locally with seven open models: Llama-3.2-3B-Instruct \cite{llama3}, Qwen3-4B-Instruct-2507 \cite{qwen3}, Phi-3.5-mini-instruct \cite{phi3}, SmolLM2-1.7B-Instruct \cite{smollm2}, Granite-3.1-2B-Instruct \cite{granite}, OLMo-2-1B-Instruct \cite{olmo2} and Pythia-1.4B \cite{pythia}. That text was scored, never trained on.
 
-{\footnotesize\begin{longtable}{@{}llp{1.75in}lrll@{}}\toprule
-Date & Track & Model & Commit & Val AUROC & Kaggle public & Private \\ \midrule\endhead
-% <<gen file:reports/tables/appendix_submissions.tex
-2026-10-31 & pretrained & \texttt{final\_\allowbreak{}A\_\allowbreak{}greedy\_\allowbreak{}proxy} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/c7c1e3e5c379f092b31d1ef745dbf2900d052f03}{\texttt{c7c1e3e}} & 0.99990 & 0.99161 & -- \\
-2026-10-31 & pretrained & \texttt{final\_\allowbreak{}B\_\allowbreak{}lm4} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/c7c1e3e5c379f092b31d1ef745dbf2900d052f03}{\texttt{c7c1e3e}} & 0.99985 & 0.98848 & -- \\
-2026-10-31 & pretrained & \texttt{final\_\allowbreak{}C\_\allowbreak{}lm4\_\allowbreak{}roberta} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/c7c1e3e5c379f092b31d1ef745dbf2900d052f03}{\texttt{c7c1e3e}} & 0.99987 & 0.98845 & -- \\
-2026-11-01 & classical & \texttt{ensemble\_\allowbreak{}c123} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/b14f82a50f8a4b927c054734ba4546de4639b25f}{\texttt{b14f82a}} & 0.99898 & not submitted & -- \\
-2026-11-01 & classical & \texttt{final\_\allowbreak{}D\_\allowbreak{}stylo\_\allowbreak{}gbm} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/08cde9152812e9dc60a72a394012065253065643}{\texttt{08cde91}} & 0.99831 & 0.95995 & -- \\
-2026-11-01 & classical & \texttt{final\_\allowbreak{}E\_\allowbreak{}tfidf\_\allowbreak{}lr@v1} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/d0cfc4c8c92c432b47f372ca6f7cf3db06f780c2}{\texttt{d0cfc4c}} & 0.96256 & 0.88583 & -- \\
-2026-11-01 & classical & \texttt{final\_\allowbreak{}F\_\allowbreak{}transformer\_\allowbreak{}scratch@v1} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/a0679175ad4b0fa0a04df438aad48b956f1b26f5}{\texttt{a067917}} & 0.98500 & 0.83201 & -- \\
-2026-11-01 & classical & \texttt{linear\_\allowbreak{}svm} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/2e086bbb3bb0efdcacd05c2be84f7e85ffe978c2}{\texttt{2e086bb}} & 0.96235 & not submitted & -- \\
-2026-11-01 & classical & \texttt{nbsvm} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/548c60872335e543fad8c65b94096f8d8f8b2735}{\texttt{548c608}} & 0.96987 & not submitted & -- \\
-2026-11-01 & classical & \texttt{rf\_\allowbreak{}stylo} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/f55543e976e781ddbcd225c6526447a7bee9e358}{\texttt{f55543e}} & 0.99691 & not submitted & -- \\
-2026-11-01 & classical & \texttt{stylo\_\allowbreak{}gbm@no\_\allowbreak{}added} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/7f9337d15dac14bceda39a5845d5a797d1a7e998}{\texttt{7f9337d}} & 0.99825 & not submitted & -- \\
-2026-11-01 & classical & \texttt{stylo\_\allowbreak{}gbm@no\_\allowbreak{}layout} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/7f9337d15dac14bceda39a5845d5a797d1a7e998}{\texttt{7f9337d}} & 0.98724 & not submitted & -- \\
-2026-11-01 & pretrained & \texttt{binoculars\_\allowbreak{}qwen05b} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb}{\texttt{28eaaa3}} & 0.99978 & not submitted & -- \\
-2026-11-01 & pretrained & \texttt{binoculars\_\allowbreak{}qwen15b} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb}{\texttt{28eaaa3}} & 0.99970 & not submitted & -- \\
-2026-11-01 & pretrained & \texttt{ft\_\allowbreak{}deberta\_\allowbreak{}v3\_\allowbreak{}large} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb}{\texttt{28eaaa3}} & 0.99613 & not submitted & -- \\
-2026-11-01 & pretrained & \texttt{ft\_\allowbreak{}openai\_\allowbreak{}detector\_\allowbreak{}large} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb}{\texttt{28eaaa3}} & 0.99836 & not submitted & -- \\
-2026-11-01 & pretrained & \texttt{ft\_\allowbreak{}roberta\_\allowbreak{}base} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb}{\texttt{28eaaa3}} & 0.99812 & not submitted & -- \\
-2026-11-01 & pretrained & \texttt{lm\_\allowbreak{}gpt2} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb}{\texttt{28eaaa3}} & 0.99972 & not submitted & -- \\
-2026-11-01 & pretrained & \texttt{lm\_\allowbreak{}gpt2\_\allowbreak{}medium} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb}{\texttt{28eaaa3}} & 0.99970 & not submitted & -- \\
-2026-11-01 & pretrained & \texttt{lm\_\allowbreak{}gpt2\_\allowbreak{}nostyle} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb}{\texttt{28eaaa3}} & 0.98591 & not submitted & -- \\
-2026-11-01 & pretrained & \texttt{stylometric\_\allowbreak{}gbm\_\allowbreak{}ext} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb}{\texttt{28eaaa3}} & 0.99836 & not submitted & -- \\
-2026-11-01 & pretrained & \texttt{tfidf\_\allowbreak{}logreg} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb}{\texttt{28eaaa3}} & 0.96093 & not submitted & -- \\
-2026-11-09 & classical & \texttt{final\_\allowbreak{}E\_\allowbreak{}tfidf\_\allowbreak{}lr} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/05e04170434cf5204e08a0a844ad4e91aaf9045f}{\texttt{05e0417}} & 0.99678 & 0.96374 & -- \\
-2026-11-09 & classical & \texttt{final\_\allowbreak{}F\_\allowbreak{}transformer\_\allowbreak{}scratch} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/05e04170434cf5204e08a0a844ad4e91aaf9045f}{\texttt{05e0417}} & 0.98903 & 0.91502 & -- \\
-2026-11-09 & classical & \texttt{tfidf\_\allowbreak{}lr} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/dc302d22e1432fce759bd2a2851ae09dfd5fce0e}{\texttt{dc302d2}} & 0.99678 & not submitted & -- \\
-2026-11-09 & classical & \texttt{transformer\_\allowbreak{}scratch} & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/efb72f048cb76989e9d33f94779eb7106bfc4196}{\texttt{efb72f0}} & 0.98903 & not submitted & -- \\
+\textbf{Tried during development, not submitted.} DeBERTa-v3-base/small \cite{debertav3}, DistilRoBERTa \cite{distilbert}, ModernBERT-base \cite{modernbert}, ELECTRA-base \cite{electra}, the RoBERTa-base GPT-2-output detector \cite{solaiman2019}, and BGE \cite{bge} and E5 \cite{e5} sentence embeddings.
+
+\section*{Appendix B. Kaggle submissions}
+Every file we uploaded, in upload order. E and F were first uploaded as v1 and then replaced by v2 under the same letter (Q5). Validation = the fixed 2,000 rows. The full testing history of every model we validated, including those never uploaded, is in \texttt{SUBMISSIONS.md} in the repository.
+
+{\small\begin{tabularx}{\linewidth}{@{}lYrrrl@{}}\toprule
+File & Model & Val. AUROC & Public & Private & Commit \\ \midrule
+% <<gen file:reports/tables/kaggle_uploads.tex
+A & Blend A (final): 7 models, proxy-chosen weights & 0.99990 & 0.99161 & -- & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/c7c1e3e5c379f092b31d1ef745dbf2900d052f03}{\texttt{c7c1e3e}} \\
+B & Blend B: 4 frozen-LM heads, equal weights & 0.99985 & 0.98848 & -- & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/c7c1e3e5c379f092b31d1ef745dbf2900d052f03}{\texttt{c7c1e3e}} \\
+C & Blend C: blend B + RoBERTa-base & 0.99987 & 0.98845 & -- & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/c7c1e3e5c379f092b31d1ef745dbf2900d052f03}{\texttt{c7c1e3e}} \\
+D & C2 stylometric GBM & 0.99831 & 0.95995 & -- & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/08cde9152812e9dc60a72a394012065253065643}{\texttt{08cde91}} \\
+E (v1) & C1 TF-IDF + LR, first version & 0.96256 & 0.88583 & -- & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/d0cfc4c8c92c432b47f372ca6f7cf3db06f780c2}{\texttt{d0cfc4c}} \\
+F (v1) & C3 Transformer, first version & 0.98500 & 0.83201 & -- & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/a0679175ad4b0fa0a04df438aad48b956f1b26f5}{\texttt{a067917}} \\
+E & C1 TF-IDF + LR, v2 (raw char + distorted n-grams) & 0.99678 & 0.96374 & -- & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/05e04170434cf5204e08a0a844ad4e91aaf9045f}{\texttt{05e0417}} \\
+F & C3 Transformer, v2 (lines joined, distorted) & 0.98903 & 0.91502 & -- & \href{https://github.com/ZhenmanShen/human-or-ai-submissions/commit/05e04170434cf5204e08a0a844ad4e91aaf9045f}{\texttt{05e0417}} \\
 % gen>>
-\bottomrule\end{longtable}}
+\bottomrule\end{tabularx}}
 
 {\small
 \begin{thebibliography}{99}\setlength{\itemsep}{1pt}

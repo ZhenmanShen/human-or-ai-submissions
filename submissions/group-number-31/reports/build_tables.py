@@ -36,6 +36,32 @@ def main():
           + rows(CLA / "q32_semisup.tex"))
     # Appendix: the log is shared, either track's copy is the same table
     write("appendix_submissions.tex", rows(PRE / "appendix_submissions.tex"))
+    write("kaggle_uploads.tex", kaggle_uploads())
+
+
+UPLOADS = [  # (log model, Kaggle file letter, model label): every upload, in upload order
+    ("final_A_greedy_proxy", "A", "Blend A (final): 7 models, proxy-chosen weights"),
+    ("final_B_lm4", "B", "Blend B: 4 frozen-LM heads, equal weights"),
+    ("final_C_lm4_roberta", "C", "Blend C: blend B + RoBERTa-base"),
+    ("final_D_stylo_gbm", "D", "C2 stylometric GBM"),
+    ("final_E_tfidf_lr@v1", "E (v1)", "C1 TF-IDF + LR, first version"),
+    ("final_F_transformer_scratch@v1", "F (v1)", "C3 Transformer, first version"),
+    ("final_E_tfidf_lr", "E", "C1 TF-IDF + LR, v2 (raw char + distorted n-grams)"),
+    ("final_F_transformer_scratch", "F", "C3 Transformer, v2 (lines joined, distorted)"),
+]
+
+
+def kaggle_uploads() -> list[str]:
+    """One row per Kaggle upload from submission_log.csv (the full testing history stays in SUBMISSIONS.md)."""
+    import pandas as pd
+    log = pd.read_csv(TEAM / "submission_log.csv", dtype=str, keep_default_na=False).set_index("model")
+    url = "https://github.com/ZhenmanShen/human-or-ai-submissions/commit/"
+    out = []
+    for model, letter, label in UPLOADS:
+        r = log.loc[model]
+        out.append(f"{letter} & {label} & {float(r.val_auroc):.5f} & {float(r.kaggle_public):.5f} & "
+                   f"{r.kaggle_private or '--'} & \\href{{{url}{r.commit}}}{{\\texttt{{{r.commit[:7]}}}}} \\\\")
+    return out
 
 
 if __name__ == "__main__":
