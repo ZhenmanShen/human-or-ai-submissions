@@ -28,7 +28,7 @@ submissions/group-number-31/
 ├── requirements.txt       both tracks (classical/requirements.txt alone for a laptop)
 ├── SUBMISSIONS.md         every Kaggle upload and its score (generated from submission_log.csv)
 ├── submission_log.csv
-├── reports/               THE REPORT: kaggle_report.tex + build_tables.py (picks rows from the track tables)
+├── reports/               THE REPORT: kaggle_report.tex (self-contained), build_tables.py, inline_tables.py
 ├── common/                shared by both tracks
 │   ├── val_ids.csv          the fixed validation split (2,000 ids, seed 20261023)
 │   ├── data.py metrics.py   data loading, AUROC, length/verse subgroups
@@ -67,7 +67,8 @@ Notes:
 
 - **The report.** Its tables are generated: run the track scripts, then `python common/compare_tracks.py` and
   `python reports/build_tables.py`.
-  - To compile it in Overleaf, upload the whole team folder; the report reads `../common`, `../pretrained` and `../classical`.
+  - The report is one self-contained file: `python reports/inline_tables.py` copies the generated tables and plot
+    data into it, and Overleaf needs only `reports/kaggle_report.tex`.
   - `pretrained/reports/kaggle_pretrained_report.tex` and `classical/reports/kaggle_classical_report.tex` are
     longer single-track drafts that cover every model. They are background only and not submitted.
 - **AI-assistant files.**
@@ -85,7 +86,7 @@ Notes:
 ## 1. Team
 
 - Kaggle team name: `Group Number 31` (folder and PR branch: `group-number-31`)
-- Members (name, NetID): `[TODO]`
+- Members (name, NetID): Zhenman Shen (zs476), Giorgi Samushia (gs799), Aynan Kareem (ak2896)
 
 ## 2. Environment
 
@@ -130,7 +131,7 @@ Report experiments:
 cd classical  && python experiments.py curve | semisup | errors && python report_tables.py && cd ..
 cd pretrained && python run_all.py --profile fixed && python scripts/report_experiments.py collect --session outputs/sessions/<session>
               # then: hpsearch, curve, semisup, errors, debias; then python scripts/report_tables.py
-python common/compare_tracks.py && python reports/build_tables.py    # six-model table, figures, report tables
+python common/compare_tracks.py && python reports/build_tables.py && python reports/inline_tables.py
 ```
 
 ## 4. Command that writes `submission.csv`
@@ -161,12 +162,26 @@ python predict.py --model blend_a --out submission.csv               # pretraine
 
 ## 6. AI-tool disclosure
 
-[TODO: team to edit; must match Q6.3 in the report.]
+Matches Q6.3 in the report.
 
-Claude Code (Anthropic) wrote most of the code in both tracks, ran the experiments on the team's machines and
-drafted both reports. Every reported number is generated from committed results files by scripts in this folder.
-[TODO: what the team verified or changed.]
+- **Our decisions.** We decided the overall structure (two tracks on one fixed validation split), the model
+  architectures, the candidate models and the analyses to run.
+- **Claude Code's role.** Claude Code (Anthropic) mainly wrote the code to those specifications and ran the
+  experiments on our machines. It also helped draft report text, which we edited.
+- **What we verified and changed.**
+  - We read the data ourselves and changed the pipelines along the way to match what we saw.
+  - We compared every local score with its Kaggle score. When they disagreed (C1 and C3 v1), we had the cause
+    investigated and changed the models accordingly.
+  - We made every Kaggle upload.
+  - Every reported number is generated from committed results files by scripts in this folder.
 
-Pretrained weights are used only in `pretrained/`: GPT-2 and GPT-2-medium, Qwen2.5-0.5B/1.5B (base and instruct),
-RoBERTa-base, DeBERTa-v3-large and the OpenAI RoBERTa-large GPT-2-output detector. `classical/` uses none.
-No external LLM API labelled or scored test passages, and no hidden labels were retrieved.
+Pretrained weights are used only in `pretrained/`. Appendix A of the report lists every checkpoint, how it was
+used and its citation:
+- submitted blends: GPT-2 and GPT-2-medium, Qwen2.5-0.5B/1.5B (base and instruct), RoBERTa-base,
+  DeBERTa-v3-large and the OpenAI RoBERTa-large GPT-2-output detector;
+- explored only: DeBERTa-v3-base/small, DistilRoBERTa, ModernBERT, ELECTRA, the base-size OpenAI detector,
+  BGE and E5 embeddings;
+- evaluation proxy only: seven open generators that wrote proxy text.
+
+`classical/` uses no pretrained weights. No external LLM API labelled or scored test passages, and no hidden labels
+were retrieved.

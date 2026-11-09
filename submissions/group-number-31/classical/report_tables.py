@@ -9,6 +9,7 @@ one hand-written input (reports/fp_fn_notes_stylo_gbm.yaml). Nothing is typed by
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 import matplotlib
@@ -174,6 +175,37 @@ def q5_ood():
     write("q53_ood.tex", rows)
 
 
+VERSIONS = [  # (label, Kaggle upload row in submission_log.csv, ood_eval.csv row, results dir)
+    ("Baseline: C1 v1 (word + in-word char TF-IDF)", "final_E_tfidf_lr@v1", "tfidf_lr@v1", "tfidf_lr"),
+    ("Improvement: C1 v2 (+ raw char, distorted n-grams)", "final_E_tfidf_lr", "tfidf_lr", "tfidf_lr"),
+    ("Baseline: C3 v1 (raw text)", "final_F_transformer_scratch@v1", "transformer_scratch@v1", "transformer_scratch"),
+    ("Improvement: C3 v2 (lines joined, distorted)", "final_F_transformer_scratch", "transformer_scratch",
+     "transformer_scratch"),
+]
+
+
+def old_metrics(commit: str, model: str) -> dict:
+    """results/<model>/metrics.json as of `commit` (the team folder was renamed since, so find its path)."""
+    files = subprocess.run(["git", "ls-tree", "-r", "--full-tree", "--name-only", commit], cwd=HERE, capture_output=True,
+                           text=True).stdout.split()
+    path = next(f for f in files if f.endswith(f"classical/results/{model}/metrics.json"))
+    return json.loads(subprocess.run(["git", "show", f"{commit}:{path}"], cwd=HERE, capture_output=True,
+                                     text=True).stdout)
+
+
+def q5_versions():
+    """Template Q5.3 rows for C1/C3 v1 vs v2: val and fit time from the version's own validation run, proxy
+    from results/ood_eval.csv, Kaggle public from the log. v1 metrics come from the commit of the v1 upload."""
+    o = pd.read_csv(RES / "ood_eval.csv").set_index("model")
+    log = pd.read_csv(TEAM / "submission_log.csv", dtype=str, keep_default_na=False).set_index("model")
+    rows = []
+    for label, sub, ood, model in VERSIONS:
+        m = old_metrics(log.loc[sub, "commit"], model) if sub.endswith("@v1") else metrics(model)
+        rows.append(f"{label} & {m['val_auroc']:.5f} & {secs(m['fit_time_s'])} & proxy {o.loc[ood, 'proxy_auc']:.4f}; "
+                    f"Kaggle public {float(log.loc[sub, 'kaggle_public']):.5f} \\\\")
+    write("q53_versions.tex", rows)
+
+
 BREAK = chr(92) + 'allowbreak{}'  # long model names may wrap at underscores
 
 
@@ -189,5 +221,5 @@ def appendix():
 
 
 if __name__ == "__main__":
-    for step in ("q12", "q13", "q2", "q3", "q4", "q5", "q5_ood", "appendix"):
+    for step in ("q12", "q13", "q2", "q3", "q4", "q5", "q5_ood", "q5_versions", "appendix"):
         globals()[step]()

@@ -165,12 +165,13 @@ python classical/report_tables.py
 python pretrained/scripts/report_tables.py
 python common/compare_tracks.py
 python reports/build_tables.py
-# compile reports/kaggle_report.tex (tectonic or Overleaf with the whole team folder uploaded)
+python reports/inline_tables.py      # copy the generated tables into the self-contained report
+# compile reports/kaggle_report.tex alone (tectonic, or upload just that file to Overleaf)
 ```
 
 ## Open TODOs (search for `[TODO`)
 
-- Member names and NetIDs.
+- Confirm the contribution notes in report Q0.1.
 - Which classical file to mark as a final Kaggle selection, if any (E 0.96374 is the best classical public score).
 - Private scores (after the deadline, Nov 11, 2026).
 - Which file is the final Kaggle selection.
