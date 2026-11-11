@@ -314,6 +314,5 @@ These are in `classical/results/` and appear in the report as comparisons:
 - `linear_svm` 0.9623
 - `nbsvm` 0.9699
 - `rf_stylo` 0.9969
-- `ensemble_c123` 0.99898: a percentile blend of C1–C3 (v2 C1 and C3). Its weights come from greedy selection on out-of-fold
-  predictions inside the 8,000 training rows, and they ended up 0.65 C2 / 0.30 C1 / 0.05 C3 (`results/ensemble_c123/metrics.json`).
-  With v1 C1 and C3 they were 0.9 / 0.1 / 0 and val 0.99868.
+- `ensemble_c123` 0.99877: a percentile blend of C1–C3 (v3 C1 and C3). Its weights come from greedy selection on out-of-fold
+  predictions inside the 8,000 training rows, and they ended up 0.7 C2 / 0.3 C1 / 0 C3 (`results/ensemble_c123/metrics.json`).

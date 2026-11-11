@@ -88,8 +88,8 @@ def q12():
 
 
 def q13():
-    rows = []
-    for name in ("tfidf_lr", "stylo_gbm", "linear_svm", "nbsvm", "rf_stylo"):
+    rows = [q13_tfidf_lr()]
+    for name in ("stylo_gbm", "linear_svm", "nbsvm", "rf_stylo"):
         s = pd.read_csv(RES / name / "search.csv")
         keys = [c for c in s.columns if c not in ("cv_auroc_mean", "cv_auroc_std", "cv_auroc_pooled", "time_s", "chosen")]
         grid = " $\\times$ ".join(f"{tex(k)} \\{{{', '.join(sorted(map(str, s[k].unique()), key=lambda v: (len(v), v)))}\\}}"
@@ -154,14 +154,18 @@ def q5():
 
 
 VERSIONS = [  # (label, Kaggle upload row in submission_log.csv, selection run, its candidate, results dir)
-    ("Baseline: C1 v1 (word + in-word char TF-IDF)", "final_E_tfidf_lr@v1", "tfidf_lr", "v1+C64+case", "tfidf_lr"),
-    ("Improvement: C1 v2 (+ raw char, distorted n-grams)", "final_E_tfidf_lr", "tfidf_lr", "raw_d300+C64+lc",
-     "tfidf_lr"),
-    ("Baseline: C3 v1 (raw text)", "final_F_transformer_scratch@v1", "transformer_scratch", "v1",
+    ("C1 v1: word + in-word char TF-IDF", "final_E_tfidf_lr@v1", "tfidf_lr", "v1+C64+case", "tfidf_lr"),
+    ("C1 v2: + raw char, distorted (k=300), C=64", "final_E_tfidf_lr@v2", "tfidf_lr", "raw_d300+C64+lc", "tfidf_lr"),
+    ("C1 v3: + raw char, distorted (k=100), C=4", "final_E_tfidf_lr", "tfidf_lr", "raw_d100+C4+lc", "tfidf_lr"),
+    ("C3 v1: raw text", "final_F_transformer_scratch@v1", "transformer_scratch", "v1", "transformer_scratch"),
+    ("C3 v2: lines joined, distorted (k=300)", "final_F_transformer_scratch@v2", "transformer_scratch", "d300_join",
      "transformer_scratch"),
-    ("Improvement: C3 v2 (lines joined, distorted)", "final_F_transformer_scratch", "transformer_scratch", "d300_join",
-     "transformer_scratch"),
+    ("C3 v3: lines joined", "final_F_transformer_scratch", "transformer_scratch", "join", "transformer_scratch"),
 ]
+
+
+# E v2's file entered in 05e0417 (its log commit) but its validation metrics were committed just after, in 6316699
+METRICS_AT = {"final_E_tfidf_lr@v2": "6316699"}
 
 
 def candidates(model: str) -> pd.DataFrame:
@@ -179,33 +183,48 @@ def old_metrics(commit: str, model: str) -> dict:
 
 
 def q5_versions():
-    """Q5.3 rows for C1/C3 v1 vs v2: val and fit time from the version's own validation run (v1: from the commit of
-    the v1 upload), topic-held-out inner CV from results/selection/, Kaggle public from the log."""
+    """Q5.3 rows for every C1/C3 version: val and fit time from that version's own validation run (earlier versions:
+    metrics.json at the commit of their upload), topic-held-out inner CV from results/selection/, Kaggle public from
+    the log."""
     log = pd.read_csv(TEAM / "submission_log.csv", dtype=str, keep_default_na=False).set_index("model")
     rows = []
     for label, sub, sel, cand, model in VERSIONS:
-        m = old_metrics(log.loc[sub, "commit"], model) if sub.endswith("@v1") else metrics(model)
+        m = old_metrics(METRICS_AT.get(sub, log.loc[sub, "commit"]), model) if "@" in sub else metrics(model)
         c = candidates(sel).loc[cand]
-        strat = f"; stratified CV {c.stratified_mean:.4f}" if "stratified_mean" in c else ""
-        rows.append(f"{label} & {m['val_auroc']:.5f} & {secs(m['fit_time_s'])} & topic-held-out CV {c.topic_mean:.4f} "
-                    f"$\\pm$ {c.topic_std:.4f}{strat}; Kaggle public {float(log.loc[sub, 'kaggle_public']):.5f} \\\\")
+        pub = log.loc[sub, "kaggle_public"]
+        pub = f"{float(pub):.5f}" if pub.replace(".", "", 1).isdigit() else "[TODO: upload]"
+        rows.append(f"{label} & {m['val_auroc']:.5f} & {secs(m['fit_time_s'])} & {c.topic_mean:.4f} $\\pm$ "
+                    f"{c.topic_std:.4f} & {pub} \\\\")
     write("q53_versions.tex", rows)
 
 
 def q5_topics():
-    """Per held-out topic fold: AUROC of C1/C3 v1 and v2 (topic CV folds; topics from results/topic_cv/clusters.csv)."""
+    """Per held-out topic fold: AUROC of every C1/C3 version (topic CV folds; topics from results/topic_cv/clusters.csv)."""
     cl = pd.read_csv(RES / "topic_cv" / "clusters.csv")
     cols = [(sel, cand) for _, _, sel, cand, _ in VERSIONS]
     folds = {k: [float(x) for x in candidates(k[0]).loc[k[1], "topic_folds"].split()] for k in cols}
     rows = []
     for f, g in cl.groupby("fold", sort=True):
-        topics = "; ".join(f"{' '.join(t.split()[:3])} ({int(n):,})" for t, n in zip(g.top_terms, g.n))
+        topics = "; ".join(f"{' '.join(t.split()[:2])} ({int(n):,})" for t, n in zip(g.top_terms, g.n))
         ai = (g.ai_share * g.n).sum() / g.n.sum()
         rows.append(f"{f + 1}: {tex(topics)} & {ai:.2f} & " + " & ".join(f"{folds[k][f]:.4f}" for k in cols) + " \\\\")
     rows.append("\\midrule")
-    rows.append("Mean $\\pm$ s.d.\\ over the 5 folds & & " + " & ".join(
-        f"{np.mean(folds[k]):.4f} $\\pm$ {np.std(folds[k]):.4f}" for k in cols) + " \\\\")
+    rows.append("Mean & & " + " & ".join(f"{np.mean(folds[k]):.4f}" for k in cols) + " \\\\")
+    rows.append("S.d. & & " + " & ".join(f"{np.std(folds[k]):.4f}" for k in cols) + " \\\\")
     write("q53_topics.tex", rows)
+
+
+def q13_tfidf_lr() -> str:
+    """C1's row: the design + hyperparameter grid chosen by topic-held-out CV (select_design.py)."""
+    sel = json.loads((RES / "selection" / "tfidf_lr" / "selection.json").read_text(encoding="utf-8"))
+    c = candidates("tfidf_lr")
+    w = c.loc[sel["winner"]]
+    p = sel["winner_params"]
+    return (f"\\texttt{{tfidf\\_lr}} & views \\{{word + char\\_wb 2--5; raw char 1--5; raw char + distorted word 1--3, "
+            f"k $\\in$ \\{{100, 300, 1000\\}}\\}} $\\times$ C \\{{4, 16, 64\\}} $\\times$ lowercase \\{{True, False\\}} "
+            f"({len(c)} settings, topic-held-out CV) & raw char + distorted, k={p['distort_k']}, C={p['C']:g}, "
+            f"lowercase={p['lowercase']}; topic CV {w.topic_mean:.4f} $\\pm$ {w.topic_std:.4f} "
+            f"(best {sel['best_mean']:.4f}; {len(sel['tied'])} tied, simplest chosen) \\\\")
 
 
 def q13_selection():
