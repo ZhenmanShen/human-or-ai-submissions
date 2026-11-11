@@ -169,7 +169,7 @@ C2 stylometric GBM & 101 hand-crafted stylometric features $\to$ LightGBM & 1.00
 C3 Transformer (scratch) & single line breaks joined, 12k byte-level BPE $\to$ 4-layer Transformer, random init & 0.99849 & 0.98590 & 34 s & 0.90826 \\
 % gen>>
 \bottomrule\end{tabularx}}
-\smallnote{Train time is one fit on the 8,000 rows; blends sum their members' (LM features cached). C1 and C2 ran on a Ryzen 5 9600X CPU, C3 and the blends on an RTX 5070 / RTX 3060. Blends A and C are their second versions, C1 and C3 their third (Q5); every earlier upload is in Appendix B. We also validated 16 other models and variants on this split (linear SVM, NB-SVM, random forest, a C1--C3 ensemble, two C2 feature ablations, and each blend member alone); they are listed in the repository's \texttt{SUBMISSIONS.md}. The other encoders and embeddings of Appendix A were compared by 5-fold CV in the pretrained track's 72-run log (\texttt{pretrained/experiments/results.csv}).}
+\smallnote{Train time is one fit on the 8,000 rows; blends sum their members' (LM features cached). C1 and C2 ran on a Ryzen 5 9600X CPU, C3 and the blends on an RTX 5070 / RTX 3060. Blends A and C are their second versions (Q1.4), C1 and C3 their third (Q5); every earlier upload is in Appendix B. We also validated 16 other models and variants on this split (linear SVM, NB-SVM, random forest, a C1--C3 ensemble, two C2 feature ablations, and each blend member alone); they are listed in the repository's \texttt{SUBMISSIONS.md}. The other encoders and embeddings of Appendix A were compared by 5-fold CV in the pretrained track's 72-run log (\texttt{pretrained/experiments/results.csv}).}
 
 \textbf{Finding.} Validation puts every model at 0.985 or above and cannot rank them usefully. The public leaderboard spread our earlier uploads from 0.832 to 0.992 (Appendix B). Pretrained LM statistics transfer best to the shifted test set, and the Transformer trained from scratch on 8,000 passages transfers worst.
 
@@ -324,6 +324,7 @@ verse (line structure; 4 AI) & 25 & 1.00000 \\
 \textbf{Observed.} Blend A is at or above 0.9998 in every group. C2 is weakest on long passages (0.9967) and short-line lists (0.9974). Verse scores perfectly, but on only 25 rows (4 AI), so it is not informative. That is itself a finding: the subgroup that matters most for test is almost absent from the labelled data.
 
 \question{Q4.3 [5 points].}{Analyze at least \textbf{five false positives and five false negatives} from your held-out validation set. Provide example IDs, predicted probabilities, and short failure hypotheses. Do not paste full passages unless essential.}
+\textit{Blend A (our final pretrained model): its one false positive, its four highest-scored humans below 0.5 (near misses), and its five most confident false negatives.}
 {\small\begin{tabularx}{\linewidth}{@{}p{0.45in}p{0.82in}p{0.42in}Y@{}}\toprule ID & Error type & P(AI) & Possible reason \\ \midrule
 % <<gen file:pretrained/reports/tables/q43_errors.tex
 \mbox{2696} & FP & 0.557 & Run-on, repetitive predictive-text-style ramble with no punctuation, whole phrases repeated; the GPT-2 token-stats-only member ranks it 0.93, the others 0.49-0.56 - repetitive low-perplexity text looks like small-model AI output. \\
@@ -534,7 +535,7 @@ All checkpoints come from the Hugging Face Hub. The from-scratch models (C1--C3,
 \textbf{Earlier versions and models tried during development.} Blend A v1 also used DeBERTa-v3-large \cite{debertav3} and the RoBERTa-large GPT-2-output detector \cite{solaiman2019}. Tried, not submitted: DeBERTa-v3-base/small, ELECTRA-base \cite{electra}, the RoBERTa-base GPT-2-output detector, and BGE \cite{bge} and E5 \cite{e5} sentence embeddings.
 
 \section*{Appendix B. Kaggle submissions}
-Every file we uploaded, in upload order. A new version of a model replaces its file under the same letter (Q5); earlier versions are marked v1/v2 and stay in the repository's history. Validation = the fixed 2,000 rows. Private scores were not revealed before this report was due, so that column is empty. The full testing history of every model we validated, including those never uploaded, is in \texttt{SUBMISSIONS.md} in the repository.
+Every file we uploaded, in upload order. A new version of a model replaces its file under the same letter (Q1.4, Q5); earlier versions are marked v1/v2 and stay in the repository's history. Validation = the fixed 2,000 rows. Private scores were not revealed before this report was due, so that column is empty. The full testing history of every model we validated, including those never uploaded, is in \texttt{SUBMISSIONS.md} in the repository.
 
 {\small\begin{tabularx}{\linewidth}{@{}lYrrrl@{}}\toprule
 File & Model & Val. AUROC & Public & Private & Commit \\ \midrule
