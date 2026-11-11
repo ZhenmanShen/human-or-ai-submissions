@@ -15,13 +15,9 @@ data:
   test_file: data/test.csv
   unlabeled_file: data/unlabeled.csv
   sample_submission_file: data/sample_submission.csv
-  # Extra labeled CSVs (columns: text,label[,source]) added to the TRAINING
-  # side of every fold only -- never to validation. e.g. [data/external/poems.csv]
+  # Must stay empty: competition rule 4(b) forbids externally sourced labelled data
+  # (src/data.load_external refuses a non-empty list). Kept so older run configs still load.
   external_files: []
-  # Extra labeled CSVs (text,label) that are never trained on: every CV fold model predicts
-  # them and metrics.json gets eval.<file stem>.auc (fold-averaged), e.g. a held-out
-  # out-of-domain / unseen-generator set. Logged as `eval_auc` in experiments/results.csv.
-  eval_files: []
   # Fraction of each fold's training data to keep (learning-curve experiments).
   train_frac: 1.0
   # Or an absolute number of training rows, nested across sizes (500 < 1000 < ...; see src/data.subsample_n).

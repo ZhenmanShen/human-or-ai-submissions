@@ -1,0 +1,29 @@
+# The members of the three uploaded blends (A, B, C), 5-fold stratified CV on all 10,000 rows of train.csv
+# (seed 42), exactly as in the runs behind the uploaded files. Train data only: no extra labelled files.
+#   python run_all.py --profile blends                       # ~4 h on two 12 GB GPUs
+#   python run_all.py --profile blends --only lm_gpt2,lm_gpt2_medium,binoculars_qwen05b,binoculars_qwen15b   # blend B
+#   python make_submission.py --run <run dirs> --name final_B_lm4                      # equal weights
+# The uploaded runs came from sessions 20261030-135404_ood, 20261031-144451_ood and 20261031_var, which also
+# scored a self-built external evaluation set; that set and its scripts were removed (competition rule 4(b);
+# ../common/results/proxy_audit.md). Scoring it did not change training.
+description: Members of the uploaded blends (B = final selection), 5-fold CV, seed 42.
+
+defaults:
+  cv.scheme: stratified
+  cv.n_folds: 5
+
+jobs:
+  # ------------------------------------------------------------ LM features (GPU, features cached)
+  - {name: lm_gpt2,            config: lm_gpt2,            resource: gpu, cost: 4}    # B, C
+  - {name: lm_gpt2_medium,     config: lm_gpt2_medium,     resource: gpu, cost: 6}    # A, B, C
+  - {name: binoculars_qwen05b, config: binoculars_qwen05b, resource: gpu, cost: 10}   # A, B, C
+  - {name: binoculars_qwen15b, config: binoculars_qwen15b, resource: gpu, cost: 20}   # A, B, C
+  - {name: lm_gpt2_nostyle,    config: lm_gpt2_nostyle,    resource: gpu, cost: 4}    # A
+
+  # ------------------------------------------------------------ fine-tunes (GPU)
+  - {name: ft_roberta_base,          config: ft_roberta_base,          resource: gpu, cost: 15}    # A, C
+  - {name: ft_deberta_v3_large,      config: ft_deberta_v3_large,      resource: gpu, cost: 90}    # A
+  - {name: ft_openai_detector_large, config: ft_openai_detector_large, resource: gpu, cost: 120}   # A
+
+report:
+  ensemble_groups: [main]

@@ -7,7 +7,8 @@
 Models (see MODELS.md):
   classical, CPU-friendly:  tfidf_lr (C1), stylo_gbm (C2), transformer_scratch (C3, GPU optional),
                             linear_svm, nbsvm, rf_stylo, ensemble_c123
-  pretrained, GPU 12 GB:    blend_a, blend_b, blend_c   (5-fold CV runs, seed 42, as uploaded)
+  pretrained, GPU 12 GB:    blend_b (final selection), blend_c, blend_a (5-fold CV runs, seed 42, as uploaded;
+                            A and C are kept to reproduce their logged uploads, not as final selections)
 
 This script only forwards to the track scripts: classical/train.py and pretrained/run_all.py.
 Data: put train.csv, test.csv, unlabeled.csv and sample_submission.csv in ./data/ or pass --data-dir.
@@ -49,12 +50,9 @@ def main() -> None:
         cmd = ["train.py", "--model", args.model, "--seed", str(args.seed), *data] + (["--final"] if args.final else [])
         raise SystemExit(run(cmd, TEAM / "classical"))
 
-    # Pretrained blends: the uploaded files came from 5-fold CV runs of the `ood` profile (seed 42). Those
-    # runs also scored a self-built out-of-distribution proxy set (data/eval/, not in git); it is switched
-    # off here because it is only evaluation, never training. Afterwards build the CSV with
-    # pretrained/make_submission.py (MODELS.md has the exact command).
-    cmd = ["run_all.py", "--profile", "ood", "--only", ",".join(BLEND_MEMBERS[args.model]),
-           "--set", "data.eval_files=[]", *data]
+    # Pretrained blends: 5-fold CV runs of the `blends` profile (seed 42), the same jobs as the uploaded
+    # runs. Afterwards build the CSV with pretrained/make_submission.py (MODELS.md has the exact command).
+    cmd = ["run_all.py", "--profile", "blends", "--only", ",".join(BLEND_MEMBERS[args.model]), *data]
     raise SystemExit(run(cmd, TEAM / "pretrained"))
 
 

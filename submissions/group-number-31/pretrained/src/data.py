@@ -26,7 +26,13 @@ def load_competition_data(cfg: dict) -> dict[str, pd.DataFrame]:
 
 
 def load_external(cfg: dict) -> pd.DataFrame:
-    """Concatenate every CSV in data.external_files (needs text + label columns)."""
+    """Concatenate every CSV in data.external_files (needs text + label columns).
+
+    Competition rule 4(b) forbids externally sourced labelled data for training, validation or choosing
+    predictions, so any non-empty list is refused. No logged run used one (experiments/results.csv)."""
+    if cfg["data"].get("external_files"):
+        raise ValueError("data.external_files must be empty: competition rule 4(b) forbids externally sourced "
+                         "labelled data")
     frames = []
     for path in cfg["data"].get("external_files") or []:
         df = load_csv(path)

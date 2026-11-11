@@ -1,11 +1,11 @@
 """Team prediction entry point (same shape as the course's _example_team/predict.py): writes submission.csv.
 
   python predict.py --model stylo_gbm --out submission.csv              # from the model saved by train.py --final
-  python predict.py --model blend_a --out submission.csv                # from the saved pretrained runs (GPU)
-  python predict.py --model blend_a --committed --out submission.csv    # copy the file we uploaded, no compute
+  python predict.py --model blend_b --out submission.csv                # from the saved pretrained runs (GPU)
+  python predict.py --model blend_b --committed --out submission.csv    # copy the file we uploaded, no compute
 
 Models: tfidf_lr, stylo_gbm, transformer_scratch (+ the other classical models after train.py --final),
-blend_a, blend_b, blend_c. See MODELS.md for what each one is.
+blend_b (final pretrained selection), blend_c, blend_a (kept to reproduce their logged uploads). See MODELS.md.
 
 Blends re-predict test.csv with the saved 5-fold runs behind the uploaded files. Those runs are 0.3-1.7 GB per
 fold, so they are not in git. They live in the research repo's outputs/runs/, or wherever --runs-dir points.

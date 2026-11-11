@@ -1,13 +1,13 @@
 """Train and evaluate every model in an experiment profile, in parallel across
 GPUs, then build a report (results table, graphs, sanity checks, ensembles).
 
-  python run_all.py --profile ood            # the models behind the final submissions (~4 h, 2 GPUs)
-  python run_all.py --profile ood --only lm_gpt2,tfidf_logreg
-  python run_all.py --profile ood --skip ft_deberta_v3_large --set cv.n_folds=3
-  python run_all.py --profile ood --gpus 0          # use only the first GPU
+  python run_all.py --profile blends         # the members of the uploaded blends (~4 h, 2 GPUs)
+  python run_all.py --profile blends --only lm_gpt2,lm_gpt2_medium
+  python run_all.py --profile blends --skip ft_deberta_v3_large --set cv.n_folds=3
+  python run_all.py --profile blends --gpus 0       # use only the first GPU
   python run_all.py --resume outputs/sessions/<session>   # finish an interrupted session
   python run_all.py --report outputs/sessions/<session>   # rebuild the report only
-  python run_all.py --profile ood --dry-run          # show the plan
+  python run_all.py --profile blends --dry-run       # show the plan
 
 How it works
   * Profiles live in configs/experiments/<profile>.yaml (list of jobs: config, resource, cost,
@@ -284,7 +284,7 @@ def prefetch(jobs, args):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--profile", help="configs/experiments/<profile>.yaml (ood | your own)")
+    ap.add_argument("--profile", help="configs/experiments/<profile>.yaml (blends | fixed | your own)")
     ap.add_argument("--only", help="comma-separated job names to run")
     ap.add_argument("--skip", help="comma-separated job names to skip")
     ap.add_argument("--set", nargs="*", default=[], metavar="KEY=VALUE", help="override for every job")

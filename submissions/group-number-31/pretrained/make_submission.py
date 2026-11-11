@@ -70,8 +70,8 @@ def main():
     ap.add_argument("--weights", nargs="+", type=float, help="blend weights, one per run (default: equal)")
     ap.add_argument("--name", default=None, help="output file name (default: the run name, or blend_<runs>)")
     ap.add_argument("--blend", choices=["cdf", "rank"], default="cdf",
-                    help="cdf (default): map each model's test scores through its OOF-score CDF, as "
-                         "scripts/eval_ood.py does; rank: rank within test")
+                    help="cdf (default): map each model's test scores through its OOF-score CDF; "
+                         "rank: rank within test")
     ap.add_argument("--cached", action="store_true", help="use stored test predictions instead of the saved models")
     ap.add_argument("--device", default=None, help="auto | cuda | cuda:<i> | mps | cpu (torch models only)")
     ap.add_argument("--check", default=None, help="only validate this submission CSV")

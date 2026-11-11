@@ -68,8 +68,8 @@ def rank_mean(O: pd.DataFrame, T: pd.DataFrame, cols=None, weights=None):
 
 def cdf_mean(O: pd.DataFrame, T: pd.DataFrame, cols=None, weights=None):
     """Like rank_mean, but test scores are mapped through each model's OOF-score CDF instead of being
-    ranked within test, so the blend doesn't depend on test's class/domain mix and matches how
-    scripts/eval_ood.py scores blends. On OOF rows it equals rank_mean."""
+    ranked within test, so the blend doesn't depend on test's class/domain mix. On OOF rows it equals
+    rank_mean."""
     cols = list(cols or O.columns)
     w = np.ones(len(cols)) if weights is None else np.asarray(weights, float)
     w = w / w.sum()

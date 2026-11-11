@@ -444,7 +444,7 @@ def build_report(session: Path) -> Path:
     cols = ["job", "config", "family", "group", "status", "cv_scheme", "n_folds", "cv_auroc", "fold_std", "fold_min",
             "tpr@1%fpr", "tpr@5%fpr", "accuracy", "f1", "log_loss", "brier", "time_min", "device", "gpu_mem_gb",
             "test_mean", "train_frac", "run_name", "error"]
-    eval_cols = sorted(c for c in df.columns if c.startswith("eval:"))  # held-out eval sets (data.eval_files)
+    eval_cols = sorted(c for c in df.columns if c.startswith("eval:"))  # older sessions only (removed option)
     cols = cols[:8] + eval_cols + cols[8:]
     summary = df.reindex(columns=cols)
     summary["n_folds"] = pd.to_numeric(summary["n_folds"], errors="coerce").astype("Int64")

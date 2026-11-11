@@ -4,7 +4,7 @@ The course baseline family (a word TF-IDF + LR reference gets ~0.868 private AUR
 add sub-word style signal (suffixes, punctuation habits, homoglyph-broken words). Vocabulary and IDF are fit
 on the training rows only (the sklearn regex tokenizer, no pretrained tokenizer).
 
-Two options target the test shift (unseen topics and generators, far more verse; see classical/ood_eval.py):
+Two options target the test shift (unseen topics and generators, far more verse; compare with train.py --cv topic):
 - `char_analyzer: char` takes n-grams over the raw text, case kept, so line breaks, blank lines and spacing
   are features; `char_wb` (the first version) only sees characters inside words.
 - `distort_k` > 0 adds word (1-`distort_ngrams`)-grams over text-distorted input (features/distortion.py:
