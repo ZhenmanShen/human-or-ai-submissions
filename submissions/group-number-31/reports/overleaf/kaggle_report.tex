@@ -125,7 +125,7 @@ Code submission and GitHub PR history & 10 \\
 \section{Team information and model summary}
 \question{Q0.1 [0 points].}{List team members and their main contributions.}
 \begin{itemize}
-\item \textbf{Zhenman Shen (zs476).} Designed the overall approach: the two-track structure, the model architectures, the candidate models and the analyses to run. Read and inspected the data and adjusted the pipelines to what it showed. Compared local against Kaggle scores, diagnosed the classical models' drop and directed their fix. Ran the Kaggle submissions and the repository.
+\item \textbf{Zhenman Shen (zs476).} Designed the overall approach: the two-track structure, the model architectures, the candidate models and the analyses to run. Read and inspected the data and adjusted the pipelines to what it showed. Compared local against Kaggle scores, diagnosed the classical models' drop and directed their fix. Revised, trained and tested all models in both tracks (pretrained and classical). Ran the Kaggle submissions and the repository.
 \item \textbf{Giorgi Samushia (gs799).} Classical (from-scratch) track: reviewed the TF-IDF, stylometric and Transformer models and their hyperparameter searches, and the data-size and unlabeled-data experiments (Q2--Q3).
 \item \textbf{Aynan Kareem (ak2896).} Pretrained track and evaluation: reviewed the LM-feature and fine-tuned models, the subgroup and error analysis, and the topic-held-out evaluation (Q4--Q5).
 \end{itemize}
@@ -438,7 +438,9 @@ Topic-held-out CV also set blend A's weights (Q1.4), where ordinary CV was satur
 \textbf{Submission format:} Submit a \textbf{GitHub PR URL} against the course repository. We will inspect the final code and its development history, not just the final snapshot. Do not squash away meaningful intermediate commits before review. Template \href{https://github.com/sekhari/human-or-ai-submissions}{here}.
 
 \question{Q6.1 [5 points].}{Provide the PR URL, the entrypoint for training/evaluation, and the command used to generate \texttt{submission.csv}. State dependencies and random seeds.}
-\textbf{PR:} \url{https://github.com/sekhari/human-or-ai-submissions/pull/25}. \textbf{Code:} \texttt{submissions/group-number-31/}. Its \texttt{README.md} covers setup and every command, and \texttt{MODELS.md} gives each submitted model's full pipeline.
+\textbf{PR:} \url{https://github.com/sekhari/human-or-ai-submissions/pull/25}
+
+\textbf{Code:} \texttt{submissions/group-number-31/}. Its \texttt{README.md} covers setup and every command, and \texttt{MODELS.md} gives each submitted model's full pipeline.
 
 \textbf{Final Kaggle selections:} blend A (\hf{pretrained/kaggle_submissions/final_A_topic_greedy.csv}) and C2 (\hf{classical/kaggle_submissions/final_D_stylo_gbm.csv}). Their private scores are revealed only after this report is due, so the report gives validation and public scores.
 
