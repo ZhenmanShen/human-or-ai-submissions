@@ -72,7 +72,7 @@ You are encouraged to try several approaches. A well-tested logistic regression 
 \begin{tabularx}{\linewidth}{@{}>{\bfseries}p{1.58in}Y@{}}
 Team / members & Zhenman Shen (zs476), Giorgi Samushia (gs799), Aynan Kareem (ak2896) \\
 Kaggle team name & Group Number 31 \\
-GitHub PR URL & [TODO: PR URL] \\
+GitHub PR URL & \url{https://github.com/sekhari/human-or-ai-submissions/pull/25} \\
 \end{tabularx}
 \vspace{0.06in}
 \subsection*{Your data}
@@ -186,7 +186,7 @@ C3 Transformer (scratch) & single line breaks joined, 12k byte-level BPE $\to$ 4
 \textbf{Protocol.} Every grid point was scored by 5-fold CV inside the 8,000 training rows; the 2,000 validation rows are in no fold. For C2 the best mean stratified-CV AUROC won. C1's grid also covers its feature views and was scored by \emph{topic-held-out} CV (whole k-means topics of the training rows held out, Q5), with a rule fixed before the run: the best mean wins, configurations within one fold s.d.\ of it tie, and the simplest tied one is chosen. Validation was used once afterwards to report each choice. The \texttt{lm\_gpt2} grid was run after the blends were uploaded, as a sensitivity check: its best setting is 0.0001 above the default head, less than one fold s.d.\ (0.0004), so the submitted blends keep the default, and the Q1.2 numbers are for the default. The fine-tuned encoders use fixed settings (no search). The C3 Transformer used early stopping on a 10\% inner split of its training rows. Kaggle scores were never used to pick a hyperparameter. The C2 and \texttt{lm\_gpt2} grids are nearly flat (spread $\le$ 0.0006), and C1's grid is flat in C, case and $k$ (0.984--0.988 across the 18 distorted-view settings) but not in its feature views (0.903--0.934 without the distorted view). So the remaining error is not in the hyperparameters but in the representation, which is where we spent our effort (Q5).
 
 \question{Q1.4 [3 points].}{Which approach did you choose for your final submission? Explain using validation performance, computational cost and/or stability. If you later changed the model, explain why.}
-\textbf{Blend A.} A, B and C score 0.99987, 0.99985 and 0.99994 on validation, gaps far below what 2,000 rows can resolve, so validation cannot choose. Topic-held-out CV can: the blends' out-of-fold AUROC with whole topics held out is 0.99937 (A), 0.99887 (B) and 0.99921 (C), against 0.99857 for the best single member (\texttt{pretrained/results/blend\_selection/}). On the public leaderboard A, B and C score 0.98810, 0.98848 and 0.98724: within about $\pm$0.003, the noise of 900 rows, so the leaderboard does not separate them either, and we keep the choice of the label-safe criterion. A is the most expensive (about 13 GPU-minutes to fit on 8,000 rows); B, frozen LMs only, would be the choice under a compute budget.
+\textbf{Blend A.} We uploaded three blends, each as its own Kaggle submission. On validation they score 0.99987 (A), 0.99985 (B) and 0.99994 (C), gaps far below what 2,000 rows can resolve. On topic-held-out CV their out-of-fold AUROC is 0.99937 (A), 0.99921 (C) and 0.99887 (B), against 0.99857 for the best single member (\hf{pretrained/results/blend_selection/}); but A's weights were chosen to maximise that same score, so its lead over B is partly selection, and the gap is within the fold-to-fold spread of B's members (s.d.\ 0.0006--0.0013). Each upload's public score is 0.98810 (A), 0.98848 (B) and 0.98724 (C), within the noise of a 900-row leaderboard. No measurement we have separates A from B, so the choice is a judgment: we chose A because it combines two model families (frozen-LM features and fine-tuned encoders) that formed separate groups when we correlated the benchmark models' test predictions, which we expect to hold up better on test's unseen generators than B's four similar LM-feature heads. A is the most expensive (about 13 GPU-minutes to fit on 8,000 rows); B, frozen LMs only, would be the choice under a compute budget.
 
 \textbf{C2 among the from-scratch models.} C2 is best on validation (0.99831 against 0.99670 for C1) and on held-out topics (0.9944 $\pm$ 0.0041 against 0.9869 $\pm$ 0.0095), stable, and trains in 7 s on a CPU. On the public leaderboard C2 and C1 are within noise (0.95995 and 0.95849), so every measure that can separate them favours C2 (topic CV of C2: \texttt{classical/\allowbreak results/\allowbreak stylo\_gbm@\allowbreak topic\_cv}).
 
@@ -426,7 +426,7 @@ S.d. & & 0.0340 & 0.0083 & 0.0095 & 0.0699 & 0.0067 & 0.0032 \\
 \item \textbf{C1 relied on topic.} Raw character n-grams alone barely help on held-out topics (0.934); the distorted view, which removes topic words, lifts C1 to 0.987 and the news fold from 0.865 to 0.979. On Kaggle the change took C1 from 0.886 to 0.964 (v2).
 \item \textbf{C3 learned ``short lines = AI''.} In train, human passages have long lines and AI passages short ones. Joining single line breaks removes that cue: held-out-topic AUROC rises from 0.905 to 0.976 and its spread across topics falls from 0.070 to 0.003. On Kaggle v2 went from 0.832 to 0.915.
 \end{itemize}
-Topic-held-out CV also chose blend A's weights (Q1.4), where ordinary CV could not separate the candidates.
+Topic-held-out CV also set blend A's weights (Q1.4), where ordinary CV was saturated; it does not show that A beats B, because A was fit to that same score and the gap is within fold-to-fold noise.
 
 \textbf{Lesson.} Formatting is usually real signal (removing layout features costs C2 0.011 on validation), but a model with no hand-made features can latch onto a single cue, and that shortcut must be removed. A validation scheme that mimics the shift, built from the training data alone, is enough to see it.
 
@@ -438,7 +438,7 @@ Topic-held-out CV also chose blend A's weights (Q1.4), where ordinary CV could n
 \textbf{Submission format:} Submit a \textbf{GitHub PR URL} against the course repository. We will inspect the final code and its development history, not just the final snapshot. Do not squash away meaningful intermediate commits before review. Template \href{https://github.com/sekhari/human-or-ai-submissions}{here}.
 
 \question{Q6.1 [5 points].}{Provide the PR URL, the entrypoint for training/evaluation, and the command used to generate \texttt{submission.csv}. State dependencies and random seeds.}
-\textbf{PR:} [TODO: PR URL]. \textbf{Code:} \texttt{submissions/group-number-31/}. Its \texttt{README.md} covers setup and every command, and \texttt{MODELS.md} gives each submitted model's full pipeline.
+\textbf{PR:} \url{https://github.com/sekhari/human-or-ai-submissions/pull/25}. \textbf{Code:} \texttt{submissions/group-number-31/}. Its \texttt{README.md} covers setup and every command, and \texttt{MODELS.md} gives each submitted model's full pipeline.
 
 \textbf{Final Kaggle selections:} blend A (\hf{pretrained/kaggle_submissions/final_A_topic_greedy.csv}) and C2 (\hf{classical/kaggle_submissions/final_D_stylo_gbm.csv}). Their private scores are revealed only after this report is due, so the report gives validation and public scores.
 
