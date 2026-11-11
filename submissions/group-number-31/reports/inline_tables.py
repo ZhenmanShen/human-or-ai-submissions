@@ -1,5 +1,5 @@
-"""Fill the generated blocks of reports/kaggle_report.tex in place, so the report is one self-contained file
-(upload only kaggle_report.tex to Overleaf: no \\input, no figure files).
+"""Fill the generated blocks of reports/overleaf/kaggle_report.tex in place, so the report is one self-contained file
+(upload the reports/overleaf/ folder to Overleaf: no \\input, no figure files; the one plot is pgfplots).
 
   python reports/inline_tables.py      # after the track scripts, compare_tracks.py and build_tables.py
 
@@ -21,7 +21,7 @@ from pathlib import Path
 import pandas as pd
 
 TEAM = Path(__file__).resolve().parent.parent
-REPORT = Path(__file__).resolve().parent / "kaggle_report.tex"
+REPORT = Path(__file__).resolve().parent / "overleaf" / "kaggle_report.tex"
 BLOCK = re.compile(r"^(?P<indent>[ \t]*)% <<gen (?P<key>\S+)\n.*?^[ \t]*% gen>>$", re.M | re.S)
 
 

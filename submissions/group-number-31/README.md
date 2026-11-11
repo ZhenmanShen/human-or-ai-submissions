@@ -8,7 +8,7 @@ tracks, and every model is scored on the same fixed 2,000-row validation split.
 | I want to... | Go to |
 |---|---|
 | Understand how each model is built | [`MODELS.md`](MODELS.md): pipelines of all six submitted models |
-| Read the report | [`reports/kaggle_report.tex`](reports/kaggle_report.tex) (the one report we submit) |
+| Read the report | [`reports/overleaf/kaggle_report.tex`](reports/overleaf/kaggle_report.tex) (the one report we submit; PDF preview: `reports/kaggle_report_preview.pdf`) |
 | See every Kaggle upload and its score | [`SUBMISSIONS.md`](SUBMISSIONS.md) |
 | See the six models side by side | [`common/results/compare_tracks.csv`](common/results/compare_tracks.csv), [`common/figures/six_models.pdf`](common/figures/six_models.pdf) |
 | Run a classical model on a laptop | [`classical/README.md`](classical/README.md) |
@@ -28,7 +28,7 @@ submissions/group-number-31/
 ├── requirements.txt       both tracks (classical/requirements.txt alone for a laptop)
 ├── SUBMISSIONS.md         every Kaggle upload and its score (generated from submission_log.csv)
 ├── submission_log.csv
-├── reports/               THE REPORT: kaggle_report.tex (self-contained), build_tables.py, inline_tables.py
+├── reports/               THE REPORT: overleaf/kaggle_report.tex (self-contained), build_tables.py, inline_tables.py
 ├── common/                shared by both tracks
 │   ├── val_ids.csv          the fixed validation split (2,000 ids, seed 20261023)
 │   ├── data.py metrics.py   data loading, AUROC, length/verse subgroups
@@ -71,7 +71,7 @@ Notes:
 - **The report.** Its tables are generated: run the track scripts, then `python common/compare_tracks.py` and
   `python reports/build_tables.py`.
   - The report is one self-contained file: `python reports/inline_tables.py` copies the generated tables and plot
-    data into it, and Overleaf needs only `reports/kaggle_report.tex`.
+    data into it. Upload the `reports/overleaf/` folder to Overleaf as is; it needs nothing else.
 - **AI-assistant files.**
   - [`AGENTS.md`](AGENTS.md) in this folder is the team-wide briefing.
   - `pretrained/AGENTS.md` is the research repo's log of every experiment, carried over with the pretrained track.

@@ -10,7 +10,7 @@ teammates. Human-facing setup and commands are in [README.md](README.md).
 - Data (never committed): `train.csv` (10,000 labelled, 50/50, `label` 1 = AI), `unlabeled.csv` (3,000),
   `test.csv` (3,000), `sample_submission.csv`. Test contains unseen domains and generators: about 17% of test is
   verse against 1.6% of train (`common/results/split_profile.csv`).
-- Grading: a LaTeX report from the course template (`reports/kaggle_report.tex`), the private Kaggle score, and
+- Grading: a LaTeX report from the course template (`reports/overleaf/kaggle_report.tex`), the private Kaggle score, and
   the code plus its commit history, all submitted as **one pull request** from this fork to
   `sekhari/human-or-ai-submissions`.
 
@@ -28,7 +28,7 @@ human-or-ai-submissions/            the team's fork of the course repo
         ├── train.py, predict.py    team entry points, shaped like _example_team; they call the track scripts
         ├── requirements.txt        both tracks
         ├── SUBMISSIONS.md          every model and Kaggle upload; generated from submission_log.csv
-        ├── reports/                kaggle_report.tex, the one report we submit; build_tables.py
+        ├── reports/                overleaf/kaggle_report.tex, the one report we submit; build_tables.py
         ├── common/                 shared by both tracks: val split, data loading, metrics, log, comparison
         ├── classical/              from-scratch models, no pretrained weights, CPU-friendly
         └── pretrained/             pretrained-LM pipeline imported with history from the research repo
@@ -174,7 +174,7 @@ python pretrained/scripts/report_tables.py
 python common/compare_tracks.py
 python reports/build_tables.py
 python reports/inline_tables.py      # copy the generated tables into the self-contained report
-# compile reports/kaggle_report.tex alone (tectonic, or upload just that file to Overleaf)
+# compile reports/overleaf/kaggle_report.tex (tectonic, or upload the reports/overleaf/ folder to Overleaf)
 ```
 
 ## Open TODOs (search for `[TODO`)
