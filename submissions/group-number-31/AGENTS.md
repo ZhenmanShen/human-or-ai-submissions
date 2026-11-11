@@ -47,7 +47,7 @@ picked by 5-fold CV inside the 8,000 rows, never on the validation rows. Final K
 
 | Track | Submitted models | Val AUROC | Public AUROC |
 |---|---|---|---|
-| pretrained | Blend A v2 (7 members, weights 4 2 2 1 1 1 1, greedy on topic-held-out CV) | 0.99989 | pending upload |
+| pretrained | Blend A v2 (7 members, weights 4 2 2 1 1 1 1, greedy on topic-held-out CV) | 0.99987 | pending upload |
 | pretrained | Blend B (4 LM-feature models, equal weights) | 0.99985 | 0.98848 |
 | pretrained | Blend C v2 (B + DistilRoBERTa, equal weights) | 0.99994 | pending upload |
 | classical | D: C2 `stylo_gbm`: 101 stylometric features → LightGBM | 0.99831 | 0.95995 |
