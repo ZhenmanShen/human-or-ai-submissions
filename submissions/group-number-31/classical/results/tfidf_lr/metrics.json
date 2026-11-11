@@ -21,15 +21,15 @@
   },
   "seed": 20261023,
   "train_auroc": 1.0,
-  "val_auroc": 0.9967039999999999,
+  "val_auroc": 0.996702,
   "val_tpr_at_1fpr": 0.964,
   "n_train": 8000,
   "n_val": 2000,
-  "fit_time_s": 31.3,
-  "val_predict_time_s": 5.9,
+  "fit_time_s": 25.1,
+  "val_predict_time_s": 4.2,
   "hardware": "CPU (AMD64 Family 26 Model 68 Stepping 0, AuthenticAMD)",
   "searched": false,
   "cv": "stratified",
-  "timestamp": "2026-11-10T17:27:56",
-  "git_commit": "497c7afe6011050ef6cbdc07b8b11593b23ffc4b"
+  "timestamp": "2026-11-10T17:36:33",
+  "git_commit": "81ce51fc85e2cce5e14ab6f03a2b2a7cf1fe89a9"
 }
