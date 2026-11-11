@@ -136,14 +136,16 @@ python common/compare_tracks.py && python reports/build_tables.py && python repo
 
 ## 4. Command that writes `submission.csv`
 
-Final submission: `[TODO: team decision]`. Best public score so far: pretrained blend A, 0.99161. Every uploaded
+Final Kaggle selections: pretrained **blend A** (`final_A_greedy_proxy`, public 0.99161) and classical **C1**
+(`tfidf_lr`, file E, public 0.96374). Every uploaded
 file is committed (`*/kaggle_submissions/`), and its row in `SUBMISSIONS.md` links the commit that added it.
 
 ```bash
 python predict.py --model blend_a --committed --out submission.csv   # the exact uploaded file, no compute
-python train.py --model stylo_gbm --final                            # classical: refit on 10k (~10 s CPU)
-                                                                     #   -> classical/kaggle_submissions/final_D_stylo_gbm.csv
-python predict.py --model stylo_gbm --out submission.csv             #   then predict from the saved model
+python train.py --model tfidf_lr --final                             # classical: refit on 10k (~35 s CPU)
+                                                                     #   -> classical/kaggle_submissions/final_E_tfidf_lr.csv
+python predict.py --model tfidf_lr --out submission.csv              #   then predict from the saved model
+                                                                     #   (same two commands for stylo_gbm, transformer_scratch)
 python predict.py --model blend_a --out submission.csv               # pretrained: re-predict from the saved runs
 ```
 

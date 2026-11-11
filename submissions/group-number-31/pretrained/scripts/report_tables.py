@@ -112,8 +112,12 @@ def q13():
             grid = (f"num\\_leaves \\{{{vals('num_leaves')}\\}} $\\times$ learning\\_rate \\{{{vals('learning_rate')}\\}} "
                     f"$\\times$ n\\_estimators \\{{{vals('n_estimators')}\\}}; {len(d)} settings")
             b = yaml.safe_load(best.lgbm)
-            chosen = (f"{b['num_leaves']} leaves, lr {b['learning_rate']}, {b['n_estimators']} trees; "
-                      f"inner CV {best.inner_cv_auroc:.4f}")
+            # The grid was run after the blends were uploaded. The submitted LM heads use the class default
+            # (src/models/lm_perplexity.py: 15 leaves, lr 0.03, 500 trees), so report both settings.
+            dflt = d[g.map(lambda x: (x["num_leaves"], x["learning_rate"], x["n_estimators"]) == (15, 0.03, 500))].iloc[0]
+            chosen = (f"best in grid: {b['num_leaves']} leaves, lr {b['learning_rate']}, {b['n_estimators']} trees "
+                      f"(inner CV {best.inner_cv_auroc:.5f}); the submitted blends keep the default 15 leaves, "
+                      f"lr 0.03, 500 trees ({dflt.inner_cv_auroc:.5f})")
         rows.append(f"\\texttt{{{tex(model)}}} & {grid} & {chosen} \\\\")
     write("q13_hpsearch.tex", rows)
 

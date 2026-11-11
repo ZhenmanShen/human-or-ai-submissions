@@ -120,7 +120,7 @@ Code submission and GitHub PR history & 10 \\
 
 \textbf{Kaggle grading (25 points).} Final performance will use the private AUROC, not leaderboard rank. The intended continuous rule is $25\,\mathrm{clip}((A-0.50)/(T-0.50),0,1)$, where $A$ is your private AUROC and $T$ is the announced full-credit threshold. A provisional value of $T=0.90$ is under consideration; the instructors will confirm the fixed threshold before launch. A reference word TF-IDF and logistic regression baseline achieves approximately 0.868 private AUROC.
 
-\textbf{Our validation protocol (used for every number below).} One fixed stratified 2,000-row validation split of \texttt{train.csv} (1,000 human, 1,000 AI; seed 20261023; ids committed in \texttt{common/val\_ids.csv}). Every model trains on the other 8,000 rows; hyperparameters are chosen by 5-fold cross-validation inside those 8,000 rows only. Kaggle files are refit on all 10,000 rows.
+\textbf{Our validation protocol (used for every number below).} One fixed stratified 2,000-row validation split of \texttt{train.csv} (1,000 human, 1,000 AI; seed 20261023; ids committed in \texttt{common/val\_ids.csv}). Every model in the tables below trains on the other 8,000 rows and is scored on these 2,000. The from-scratch models' hyperparameters are chosen by 5-fold cross-validation inside those 8,000 rows only; the pretrained members use fixed settings (Q1.3). The from-scratch Kaggle files are refit on all 10,000 rows. The blends' Kaggle files come from 5-fold runs over all 10,000 rows (seed 42): each LightGBM head is refit on all rows, and each fine-tuned encoder's test score is the mean of its five fold models.
 
 \section{Team information and model summary}
 \question{Q0.1 [0 points].}{List team members and their main contributions.}
@@ -132,10 +132,10 @@ Code submission and GitHub PR history & 10 \\
 All three members reviewed the report. Code was written and run with Claude Code under our direction (Q6.3).
 
 \question{Q0.2 [0 points].}{Summarize your final approach in 3--5 sentences. What is the overall pipeline from raw text to probability?}
-Our final submission, \textbf{blend A}, scores each raw passage with seven models. Four are LightGBM \cite{lightgbm} heads on statistics of frozen pretrained language models: GPT-2 and GPT-2-medium token log-probabilities, ranks and entropies \cite{gpt2}, and Binoculars scores from Qwen2.5-0.5B/1.5B \cite{binoculars,qwen25}, plus 43 style features. Three are fine-tuned encoders: RoBERTa-base \cite{roberta}, DeBERTa-v3-large \cite{debertav3} and the RoBERTa-large GPT-2-output detector \cite{solaiman2019}. Each model's score is mapped to a percentile of its own out-of-fold training scores, and the probability is the weighted mean of these percentiles (weights 3, 3, 2, 1, 1, 1, 1). The weights were chosen on a held-out out-of-distribution proxy, because validation could not separate the candidates. Our best fully from-scratch model, a TF-IDF logistic regression on raw-character and topic-free n-grams, reaches 0.96374 public AUROC.
+We selected two final submissions. The first, \textbf{blend A}, scores each raw passage with seven models. Four are LightGBM \cite{lightgbm} heads on statistics of frozen pretrained language models: GPT-2-medium token log-probabilities, ranks and entropies \cite{gpt2} and Binoculars scores from Qwen2.5-0.5B/1.5B \cite{binoculars,qwen25}, each with 43 style features, plus a GPT-2 head on token statistics alone. Three are fine-tuned encoders: RoBERTa-base \cite{roberta}, DeBERTa-v3-large \cite{debertav3} and the RoBERTa-large GPT-2-output detector \cite{solaiman2019}. Each model's score is mapped to a percentile of its own out-of-fold training scores, and the probability is the weighted mean of these percentiles (weights 3, 3, 2, 1, 1, 1, 1). The weights were chosen on a held-out out-of-distribution proxy, because validation could not separate the candidates. The second, \textbf{C1}, is our best-scoring fully from-scratch model: a TF-IDF logistic regression on word, raw-character and topic-free n-grams (0.96374 public AUROC).
 
 \question{Q0.3 [0 points].}{Record your final scores (enter private score only once it is revealed).}
-\begin{tabularx}{\linewidth}{@{}Yp{1.8in}@{}}\toprule Metric & Your score \\ \midrule Validation AUROC (blend A, fixed 2,000 rows) & 0.99990 \\ Kaggle public AUROC (blend A) & 0.99161 \\ Kaggle private AUROC & [TODO: after reveal] \\ \bottomrule\end{tabularx}
+\begin{tabularx}{\linewidth}{@{}Yp{1.8in}@{}}\toprule Metric & Your score \\ \midrule Validation AUROC (blend A, fixed 2,000 rows) & 0.99990 \\ Kaggle public AUROC (blend A) & 0.99161 \\ Validation AUROC (C1, second final selection) & 0.99678 \\ Kaggle public AUROC (C1) & 0.96374 \\ Kaggle private AUROC & [TODO: after reveal] \\ \bottomrule\end{tabularx}
 
 \newpage
 \section{Model comparison and selection (15 points)}
@@ -169,7 +169,7 @@ C2 stylometric GBM & 101 hand-crafted stylometric features $\to$ LightGBM & 1.00
 C3 Transformer (scratch) & lines joined, text distorted, 12k byte-level BPE $\to$ 4-layer Transformer, random init & 0.99691 & 0.98903 & 32 s & 0.91502 \\
 % gen>>
 \bottomrule\end{tabularx}}
-\smallnote{Train time is one fit on the 8,000 rows; blends sum their members' (LM features cached). C1 and C2 ran on a Ryzen 5 9600X CPU, C3 and the blends on an RTX 5070 / RTX 3060. C1 and C3 are the second versions; the first versions scored 0.88583 and 0.83201 public (Q5). We also validated 20+ other models (linear SVM, NB-SVM, random forest, other encoders); all are listed in the repository's \texttt{SUBMISSIONS.md}.}
+\smallnote{Train time is one fit on the 8,000 rows; blends sum their members' (LM features cached). C1 and C2 ran on a Ryzen 5 9600X CPU, C3 and the blends on an RTX 5070 / RTX 3060. C1 and C3 are the second versions; the first versions scored 0.88583 and 0.83201 public (Q5). We also validated 16 other models and variants on this split (linear SVM, NB-SVM, random forest, a C1--C3 ensemble, two C2 feature ablations, and each blend member alone); they are listed in the repository's \texttt{SUBMISSIONS.md}. The other encoders and embeddings of Appendix A were compared by 5-fold CV in the pretrained track's 72-run log (\texttt{pretrained/experiments/results.csv}).}
 
 \textbf{Finding.} Validation puts every model at 0.989 or above and cannot rank them usefully. The public leaderboard spreads them from 0.915 to 0.992. Pretrained LM statistics transfer best to the shifted test set, and the Transformer trained from scratch on 8,000 passages transfers worst.
 
@@ -178,17 +178,17 @@ C3 Transformer (scratch) & lines joined, text distorted, 12k byte-level BPE $\to
 % <<gen file:reports/tables/q13_hpsearch.tex
 \texttt{tfidf\_lr} & C \{4.0, 16.0, 64.0\} $\times$ lowercase \{True, False\} (6 settings) & C=64.0, lowercase=True; inner CV 0.9956 $\pm$ 0.0005 \\
 \texttt{stylo\_gbm} & num\_leaves \{15, 31, 63\} $\times$ learning\_rate \{0.1, 0.03\} $\times$ n\_estimators \{300, 800\} (12 settings) & num\_leaves=63, learning\_rate=0.03, n\_estimators=800; inner CV 0.9981 $\pm$ 0.0005 \\
-\texttt{lm\_gpt2} & num\_leaves \{7, 15, 31, 63\} $\times$ learning\_rate \{0.03, 0.1\} $\times$ n\_estimators \{200, 500, 1000\}; 24 settings & 63 leaves, lr 0.03, 500 trees; inner CV 0.9992 \\
+\texttt{lm\_gpt2} & num\_leaves \{7, 15, 31, 63\} $\times$ learning\_rate \{0.03, 0.1\} $\times$ n\_estimators \{200, 500, 1000\}; 24 settings & best in grid: 63 leaves, lr 0.03, 500 trees (inner CV 0.99925); the submitted blends keep the default 15 leaves, lr 0.03, 500 trees (0.99915) \\
 % gen>>
 \bottomrule\end{tabularx}}
 \smallnote{\texttt{tfidf\_lr} = C1, \texttt{stylo\_gbm} = C2, \texttt{lm\_gpt2} = the LightGBM head on GPT-2 statistics inside the blends.}
 
-\textbf{Protocol.} Every grid point was scored by 5-fold stratified CV inside the 8,000 training rows; the 2,000 validation rows are in no fold. The best mean fold AUROC won, and validation was used once afterwards to report it. The C3 Transformer used early stopping on a 10\% inner split of its training rows. Kaggle scores were never used to pick a hyperparameter. All three grids are nearly flat (spread $\le$ 0.0005), so the remaining error is not in the hyperparameters but in the representation, which is where we spent our effort (Q5).
+\textbf{Protocol.} Every grid point was scored by 5-fold stratified CV inside the 8,000 training rows; the 2,000 validation rows are in no fold. For C1 and C2 the best mean fold AUROC won, and validation was used once afterwards to report it. The \texttt{lm\_gpt2} grid was run after the blends were uploaded, as a sensitivity check: its best setting is 0.0001 above the default head, less than one fold s.d.\ (0.0004), so the submitted blends keep the default, and the Q1.2 numbers are for the default. The fine-tuned encoders use fixed settings (no search). The C3 Transformer used early stopping on a 10\% inner split of its training rows. Kaggle scores were never used to pick a hyperparameter. All three grids are nearly flat (spread $\le$ 0.0006), so the remaining error is not in the hyperparameters but in the representation, which is where we spent our effort (Q5).
 
 \question{Q1.4 [3 points].}{Which approach did you choose for your final submission? Explain using validation performance, computational cost and/or stability. If you later changed the model, explain why.}
 \textbf{Blend A.} A, B and C score 0.99990, 0.99985 and 0.99987 on validation, gaps far below what 2,000 rows can resolve. So we chose on the out-of-distribution proxy (Q5): A 0.9928, B 0.9906, C 0.9910. The public leaderboard agreed: 0.99161 against 0.98848 and 0.98845. A is also the most expensive (about 54 GPU-minutes); B, frozen LMs only, would be the choice under a compute budget.
 
-\textbf{From scratch.} C2 is best on validation (0.99831), stable (inner-CV fold s.d.\ 0.0005) and trains in 7 s on a CPU. C1 is slightly better on Kaggle (0.96374 against 0.95995), which is within leaderboard noise.
+\textbf{From scratch.} C2 is best on validation (0.99831), stable (inner-CV fold s.d.\ 0.0005) and trains in 7 s on a CPU. C1 is slightly better on Kaggle (0.96374 against 0.95995), which is within leaderboard noise on 900 rows. We kept C1 as our second final Kaggle selection because it has the best from-scratch public score; validation and the proxy (0.965 for C2, 0.955 for C1) slightly favour C2, so we do not claim that C1 is the better model.
 
 \textbf{What we changed and why.} C1 and C3 first scored 0.886 and 0.832 on Kaggle despite 0.963 and 0.985 on validation. The proxy reproduced the drop and showed its causes: C1 read topic, and C3 learned that short lines mean AI. We changed their representations and uploaded each new version once: 0.96374 and 0.91502.
 
@@ -246,7 +246,7 @@ Configuration: \textbf{C2} (stylometric LightGBM, 63 leaves, learning rate 0.03,
 \question{Q2.3 [3 points].}{What does the curve suggest about overfitting, underfitting, and the value of more labeled examples?}
 \textbf{No underfitting.} Every model separates its training rows perfectly (train AUROC 1.000) at every size, so training AUROC carries no information here; the validation curve is what matters.
 
-\textbf{Overfitting shrinks with data but never disappears.} C2's train--validation gap falls from 0.009 at 500 rows to 0.0017 at 8,000. Each doubling adds about 0.002, and the curve is flattening. C1 starts lower (0.984) and gains about 0.003 per doubling, as expected for a model with close to a million sparse features. The pretrained GPT-2 head is at 0.997 with only 500 labels, because the LM supplies the representation.
+\textbf{Overfitting shrinks with data but never disappears.} C2's train--validation gap falls from 0.009 at 500 rows to 0.0017 at 8,000. The gain per step shrinks from 0.0035 (500 to 1,000 rows) to 0.0006 (5,000 to 8,000), so the curve is flattening. C1 starts lower (0.984) and gains more from data (0.006 for the first doubling, 0.0008 for the last step), as expected for a model with hundreds of thousands of sparse n-gram features. The pretrained GPT-2 head is at 0.997 with only 500 labels, because the LM supplies the representation.
 
 \textbf{Value of more labels.} More labels \emph{of the same kind} would add little: at most a few thousandths, mainly for C1. The bigger gap is to test, whose domains and generators differ (C2 drops from 0.998 on validation to 0.960 on Kaggle). More \emph{diverse} labels, such as verse and new generators, would plausibly matter far more than more rows like these.
 
@@ -280,7 +280,7 @@ Self-training, 3 rounds (\texttt{stylo\_gbm}) & 0.99835 \\
 \question{Q3.3 [1 point].}{Did it help? Give a concrete, evidence-based explanation (including possible noise in pseudo-labels).}
 \textbf{No.} Every change is within $\pm$0.0001, below what 2,000 validation rows resolve.
 
-\textbf{Why: the pseudo-labels carry no new information.} The passages confident enough to be selected are ones the model already gets right. For C2, every selected passage scored at least 0.99996 (AI) or at most 0.0001 (human); for the GPT-2 head, at least 0.9995 or at most 0.0005. Any wrong pseudo-labels are reinforced rather than corrected. The problem is uninformative pseudo-labels, not noisy ones.
+\textbf{Why: the pseudo-labels carry no new information.} The passages confident enough to be selected are ones the model already gets right. For C2, every selected passage scored at least 0.99996 (AI) or at most 0.0001 (human); for C1, at least 0.9966 or at most 0.0050. Any wrong pseudo-labels are reinforced rather than corrected. The problem is uninformative pseudo-labels, not noisy ones.
 
 \textbf{The pool also does not cover the shift.} \texttt{unlabeled.csv} has 1.2\% verse-like passages, like train (1.6\%), while test has 16.6\%. So it cannot teach what test needs.
 
@@ -338,14 +338,32 @@ verse (line structure; 4 AI) & 25 & 1.00000 \\
 \mbox{1602} & FN & 0.496 & AI wiki-bio with a hatnote and [1] citation markers (also a stylo\_gbm FN); copies Wikipedia scraping artefacts that train associates with human text. \\
 % gen>>
 \bottomrule\end{tabularx}}
-\smallnote{Blend A, threshold 0.5. A false positive is human text predicted AI; a false negative is AI text predicted human. Blend A makes only 3 false positives at 0.5, so the two highest-scored humans below 0.5 are added as near misses. P(AI) is the blend's weighted mean member percentile.}
+
+\needspace{14\baselineskip}\textit{C2 (from-scratch stylometric GBM), same validation rows: its five most confident errors of each type.}
+
+{\small\begin{tabularx}{\linewidth}{@{}p{0.45in}p{0.82in}p{0.42in}Y@{}}\toprule ID & Error type & P(AI) & Possible reason \\ \midrule
+% <<gen file:classical/reports/tables/q43_errors.tex
+\mbox{9403} & FP & 0.954 & Encyclopedic physics abstract (semiconductor luminescence equations): long, uniform, formal sentences and no first person; hypothesis: formal expository register looks like AI style. \\
+\mbox{961} & FP & 0.875 & Polished, upbeat movie review in clean paragraphs with few errors (one typo, 'throughly'); hypothesis: fluent and tidy, so few human-style irregularities. \\
+\mbox{921} & FP & 0.859 & Wikipedia-style definition of interactionism with parentheticals and long sentences; same pattern as 9403. \\
+\mbox{2696} & FP & 0.833 & Run-on, repetitive predictive-text-style ramble ('I hope to hear from you soon' twice); hypothesis: high repetition matches small-model AI text in train. \\
+\mbox{6067} & FP & 0.647 & Formal student essay on information overload; tidy argument structure, moderate score (0.65); hypothesis: essay register. \\
+\mbox{5498} & FN & 0.000 & AI lasagna recipe with an ingredient list one item per line and no blank lines; hypothesis: matches the line layout of human-scraped recipes, so line-structure features vote human. \\
+\mbox{5316} & FN & 0.001 & Fluent biography of Hideki Tojo with invented facts (PM until 1997); hypothesis: wiki-bio register with no AI formatting cues - style features cannot check facts. \\
+\mbox{7049} & FN & 0.002 & Spelt-dough recipe with bullet glyphs and 'o' sub-bullets, scraped-web layout; hypothesis: formatting mimics human scraped text. \\
+\mbox{1602} & FN & 0.002 & Wiki-bio with a hatnote ('This article is about...') and [1] citation markers; hypothesis: copies human Wikipedia scraping artefacts that the model treats as human. \\
+\mbox{5603} & FN & 0.006 & Casual first-person forum post about a game; hypothesis: informal register and few formatting cues read as human. \\
+% gen>>
+\bottomrule\end{tabularx}}
+\smallnote{Threshold 0.5. A false positive is human text predicted AI; a false negative is AI text predicted human. Blend A makes only 3 false positives (and 6 false negatives) at 0.5, so its two highest-scored humans below 0.5 are added as near misses. To give more than five genuine false positives, the second table lists the five most confident errors of each type of C2, which makes 7 false positives and 19 false negatives on the same rows. For blend A, P(AI) is the weighted mean member percentile.}
 
 \question{Q4.4 [5 points].}{What recurring failure patterns did you identify, and how might you address one of them? Distinguish observed patterns from speculation.}
 \textit{Observed.}
 \begin{enumerate}
-\item \textbf{Blend A's errors are disagreements, not confident mistakes.} Every error scores between 0.48 and 0.58. On 2696 and 2914, DeBERTa gives 0.87 and 0.05 while the LM-statistics members sit at 0.52--0.56.
+\item \textbf{Blend A's errors are disagreements, not confident mistakes.} Every blend A error scores between 0.48 and 0.58. On 2696 and 2914, DeBERTa gives 0.87 and 0.05 while the LM-statistics members sit at 0.52--0.56.
 \item \textbf{False negatives copy scraped-web layout.} Four of five are AI passages formatted like scraped web text: recipe ingredient lines, a Wikipedia hatnote with \texttt{[1]} markers, hard line wraps, bullet glyphs. Two of them (1602, 7049) are also confident errors of C2.
-\item \textbf{False positives are formal, predictable human prose:} news, encyclopedia entries, generic reviews.
+\item \textbf{False positives are formal, predictable human prose:} news, encyclopedia entries, generic reviews. C2's false positives are the same kind (a physics abstract, a definition, a tidy essay).
+\item \textbf{The same passages fail across model families.} 1602 and 7049 are errors of both blend A and C2, and four of C1's five lowest-scored AI passages (2914, 1602, 5603, 7049) are false negatives of blend A or C2 in the table. C1 itself makes 7 false positives and 50 false negatives at 0.5 (\texttt{classical/results/tfidf\_lr/val\_pred.csv}).
 \end{enumerate}
 \textit{Speculation.} The human training text was scraped, so its formatting artefacts became ``human'' cues that AI text in the same format exploits. Predictable human prose has the low perplexity that LM features associate with AI.
 
@@ -405,7 +423,7 @@ C3 v2: lines joined, text distorted & 0.9881 & 0.8694 & 0.9329 & 0.24 & 0.9258 &
 C2 (unchanged, reference) & 0.9983 & 0.9665 & 0.9343 & 0.78 & 0.9650 & 0.95995 \\
 % gen>>
 \bottomrule\end{tabularx}}
-\smallnote{Verse FPR = share of held-out Gutenberg human poems/stories scored above the threshold that flags 5\% of validation humans. ``Public'' is the Kaggle file refit on 10,000 rows. Source: \texttt{classical/results/ood\_eval.csv}, \texttt{submission\_log.csv}.}
+\smallnote{Verse FPR = share of held-out Gutenberg human poems/stories scored above the threshold that flags 5\% of validation humans. ``Public'' is the Kaggle file refit on 10,000 rows. The Val.\ column here comes from the proxy script's own training run, so C3's values (0.9817, 0.9881) differ from the table above (0.98500, 0.98903): C3 trains on a GPU and is not bit-reproducible. Source: \texttt{classical/results/ood\_eval.csv}, \texttt{submission\_log.csv}.}
 
 \question{Q5.4 [4 points].}{What did you learn? Did the results support the hypothesis? What limits the conclusion, and what would you try next?}
 \textbf{Supported.} The proxy ranked the three first classical models exactly as Kaggle did: C2 0.965, C1 0.871, C3 0.770, against public 0.960, 0.886, 0.832. It also exposed the causes:
@@ -427,6 +445,8 @@ Kaggle confirmed both fixes from one upload each: C1 0.886 $\to$ 0.964, C3 0.832
 \question{Q6.1 [5 points].}{Provide the PR URL, the entrypoint for training/evaluation, and the command used to generate \texttt{submission.csv}. State dependencies and random seeds.}
 \textbf{PR:} [TODO: PR URL]. \textbf{Code:} \texttt{submissions/group-number-31/}. Its \texttt{README.md} covers setup and every command, and \texttt{MODELS.md} gives each submitted model's full pipeline.
 
+\textbf{Final Kaggle selections:} blend A (\hf{pretrained/kaggle_submissions/2026-10-31_final_A_greedy_proxy.csv}) and C1 (\hf{classical/kaggle_submissions/final_E_tfidf_lr.csv}).
+
 \textbf{Entry points}, run from that folder:
 \begin{itemize}
 \item \texttt{train.py}: train on the 8,000 rows and score the fixed 2,000, or \texttt{--final} to refit on 10,000 and write the Kaggle file.
@@ -442,7 +462,7 @@ python train.py --model tfidf_lr         # C1: inner-CV search, fit 8k, score 2k
 python train.py --model tfidf_lr --final # refit on 10k -> Kaggle file
 python predict.py --model tfidf_lr --out submission.csv
 \end{verbatim}}
-\textbf{Environment.} Python 3.12; \texttt{pip install -r requirements.txt} (numpy, pandas, scikit-learn, LightGBM, tokenizers, PyTorch, Hugging Face Transformers). The classical track runs on a laptop CPU. The pretrained track needs a 12 GB GPU and, for an RTX 50-series card, PyTorch built with CUDA 12.8+. Kaggle CSVs are not committed; pass \texttt{--data-dir} or set \texttt{HOA\_DATA\_DIR}.
+\textbf{Environment.} Python 3.12; \texttt{pip install -r requirements.txt} (numpy, pandas, scikit-learn, LightGBM, tokenizers, PyTorch, Hugging Face Transformers \cite{hftransformers}). The classical track runs on a laptop CPU. The pretrained track needs a 12 GB GPU and, for an RTX 50-series card, PyTorch built with CUDA 12.8+. Kaggle CSVs are not committed; pass \texttt{--data-dir} or set \texttt{HOA\_DATA\_DIR}.
 
 \textbf{Seeds.} 20261023 for the split, all CV folds and every fixed-split experiment; the 5-fold runs behind the pretrained uploads used seed 42.
 
@@ -471,7 +491,7 @@ python predict.py --model tfidf_lr --out submission.csv
 \begin{itemize}
 \item \textbf{Supervised labels come only from \texttt{train.csv}.} Every model, in both tracks, is fit on \texttt{train.csv} rows: 8,000 for validation experiments, all 10,000 for the Kaggle files. \texttt{unlabeled.csv} is used without labels, for C3's tokenizer and the self-training experiment (Q3), where pseudo-labels come from our own model.
 \item \textbf{The proxy is held-out evaluation text, not training data.} The proxy is 1,358 AI passages we generated locally with seven open models plus 681 human passages from held-out Project Gutenberg books. No model was ever fit on it: all 72 logged pretrained runs list no external training files, and the classical models load only the competition CSVs.
-\item \textbf{We used the proxy for model selection.} It chose blend A's seven weights over existing, already-trained models (Q5.2), and it decided between the v1 and v2 representations of C1 and C3. It never chose a hyperparameter; those come from 5-fold CV inside the 8,000 training rows. We report this selection, and the optimism it adds, in Q5.4.
+\item \textbf{We used the proxy for model selection.} It chose blend A's seven weights over existing, already-trained models (Q5.2). For C1 and C3 it compared design variants: the added n-gram views for C1; line joining, text distortion and its vocabulary size, crop length and a few capacity settings for C3. All 20 scored variants are logged in \texttt{classical/results/ood\_eval.csv}. The grids in Q1.3 were chosen by 5-fold CV inside the 8,000 training rows, not on the proxy. Blend B (equal weights) and C2 were not tuned on the proxy. We report this selection, and the optimism it adds, in Q5.4.
 \item \textbf{No outside model touched the test set.} The seven generators ran locally and only wrote new text; none labelled, scored or saw a test or validation passage. No external LLM API was used anywhere. Test passages were scored only by our own submitted models.
 \item \textbf{No hidden labels.} We did not search for or use test labels, generator names or domain information from any source. The only feedback from Kaggle was the public score of each upload. We made 8 uploads (Appendix B), and each new version was uploaded once, not tuned against the leaderboard.
 \item \textbf{Validation was not used for tuning.} The 2,000 validation rows are in no CV fold and were used only to report the chosen settings.
@@ -544,7 +564,7 @@ F & C3 Transformer, v2 (lines joined, distorted) & 0.98903 & 0.91502 & -- & \hre
 \bibitem{distilbert} V.~Sanh, L.~Debut, J.~Chaumond, T.~Wolf. DistilBERT, a distilled version of BERT: smaller, faster, cheaper and lighter. arXiv:1910.01108, 2019 (DistilRoBERTa follows the same recipe).
 \bibitem{modernbert} B.~Warner et al. Smarter, Better, Faster, Longer: A Modern Bidirectional Encoder for Fast, Memory Efficient, and Long Context Finetuning and Inference (ModernBERT). arXiv:2412.13663, 2024.
 \bibitem{electra} K.~Clark, M.-T.~Luong, Q.~V.~Le, C.~D.~Manning. ELECTRA: Pre-training Text Encoders as Discriminators Rather Than Generators. ICLR 2020.
-\bibitem{bge} S.~Xiao et al. C-Pack: Packaged Resources To Advance General Chinese Embedding (BGE models). arXiv:2309.07597, 2023.
+\bibitem{bge} S.~Xiao et al. C-Pack: Packed Resources For General Chinese Embeddings (BGE models). SIGIR 2024; arXiv:2309.07597.
 \bibitem{e5} L.~Wang et al. Text Embeddings by Weakly-Supervised Contrastive Pre-training (E5). arXiv:2212.03533, 2022.
 \bibitem{hftransformers} T.~Wolf et al. Transformers: State-of-the-Art Natural Language Processing. EMNLP 2020 (System Demonstrations).
 \bibitem{lightgbm} G.~Ke et al. LightGBM: A Highly Efficient Gradient Boosting Decision Tree. NeurIPS 2017.
@@ -559,7 +579,7 @@ F & C3 Transformer, v2 (lines joined, distorted) & 0.98903 & 0.91502 & -- & \hre
 \bibitem{phi3} M.~Abdin et al. Phi-3 Technical Report. arXiv:2404.14219, 2024 (Phi-3.5 checkpoints).
 \bibitem{smollm2} L.~Ben Allal et al. SmolLM2: When Smol Goes Big. arXiv:2502.02737, 2025.
 \bibitem{granite} IBM Granite Team. Granite 3.1 language models (model card, \texttt{ibm-granite/granite-3.1-2b-instruct}), 2024.
-\bibitem{olmo2} Team OLMo. 2 OLMo 2 Furious. arXiv:2501.00656, 2025.
+\bibitem{olmo2} Team OLMo. 2 OLMo 2 Furious. arXiv:2501.00656, 2024.
 \bibitem{pythia} S.~Biderman et al. Pythia: A Suite for Analyzing Large Language Models Across Training and Scaling. ICML 2023.
 \bibitem{gutenberg} Project Gutenberg. \url{https://www.gutenberg.org}.
 \end{thebibliography}}

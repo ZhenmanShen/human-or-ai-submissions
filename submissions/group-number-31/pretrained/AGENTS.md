@@ -79,7 +79,6 @@ scripts/
   generate_ai_text.py     generate extra AI passages with a local HF model (several modes, mixed decoding settings)
   build_eval_set.py       held-out eval sets in data/eval/ from 7 generators never trained on (eval only!)
   eval_ood.py             score runs/blends on data/eval + Kaggle-proxy AUROC + proxy greedy blend -> experiments/ood_eval.csv
-  gptzero_compare.py      compare runs with GPTZero on the same passages (DRAFT: API call not written yet)
 notebooks/01_eda.ipynb    exploratory data analysis
 experiments/results.csv   one row per training run (tracked in git)
 experiments/ood_eval.csv  one row per run/blend scored by scripts/eval_ood.py (tracked)
@@ -300,7 +299,7 @@ after a run_all session, add its headline findings to "Observations so far".
   one-class eval sets, `preprocessing.join_lines` (tested, off), `make_submission.py` (saved-model re-prediction,
   verified identical to training-time predictions; blends via each model's OOF-score CDF, the same as eval_ood, so
   the uploaded file is exactly what was validated), `src/inference.py`, fine-tunes keep fold models
-  (`output.save_fold_models`), `scripts/gptzero_compare.py` draft (API call left open).
+  (`output.save_fold_models`).
 
 - 2026-10-29 — Full PC benchmark finished (35/35 jobs; analysis under "Observations so far"). Fixed `run_all.py`
   crashing when it printed a failed job's error tail (tqdm bar characters) to a cp1252 Windows console — stdout/stderr
