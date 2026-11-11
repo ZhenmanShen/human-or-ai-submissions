@@ -1,7 +1,8 @@
-# C1: word (1-2) TF-IDF + raw char (1-5) TF-IDF (case, spacing and line breaks kept) + word (1-3)-grams over
-# text-distorted input (words outside the 300 most frequent training words masked) -> logistic regression.
-# v1 (uploaded as final_E, public 0.88583) used char_wb 2-5 and no distorted view; the two changes were compared
-# on held-out OOD text (ood_eval.py, results/ood_eval.csv: proxy 0.871 -> 0.955), never on val or Kaggle.
+# C1 v3: word (1-2) TF-IDF + raw char (1-5) TF-IDF (case, spacing and line breaks kept) + word (1-3)-grams over
+# text-distorted input (words outside the 100 most frequent training words masked) -> logistic regression.
+# Chosen by the pre-registered topic-held-out CV rule (configs/selection/tfidf_lr.yaml; select_design.py;
+# results/selection/tfidf_lr/), using train.csv labels only. History: v1 (word + char_wb; public 0.88583) and
+# v2 (k=300, C=64, chosen on an external evaluation set that rule 4(b) forbids; public 0.96374) are in git history.
 model: tfidf_lr
 params:
   C: 4.0
@@ -12,8 +13,5 @@ params:
   max_features: 300000
   lowercase: true
   char_analyzer: char
-  distort_k: 300
+  distort_k: 100
   distort_ngrams: 3
-search:                 # 5-fold CV inside the 8,000 training rows
-  C: [4.0, 16.0, 64.0]
-  lowercase: [true, false]

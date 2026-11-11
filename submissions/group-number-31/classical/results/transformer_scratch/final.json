@@ -15,13 +15,12 @@
     "patience": 3,
     "warmup_frac": 0.06,
     "inner_val_frac": 0.1,
-    "distort_k": 300,
     "join_lines": true
   },
   "seed": 20261023,
   "n_train": 10000,
-  "fit_time_s": 36.8,
+  "fit_time_s": 70.5,
   "hardware": "NVIDIA GeForce RTX 5070",
   "file": "classical/kaggle_submissions/final_F_transformer_scratch.csv",
-  "timestamp": "2026-11-09T06:48:24"
+  "timestamp": "2026-11-10T17:32:16"
 }
