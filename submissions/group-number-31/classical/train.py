@@ -7,6 +7,7 @@
                                                       # per model, lettered after the pretrained track's A-C
                                                       # (LETTERS; a new model passes --letter <next free>)
   python train.py --model tfidf_lr --set C=8 --no-search --tag c8   # a variant, saved as results/tfidf_lr@c8/
+  python train.py --model tfidf_lr --cv topic         # inner CV holds out whole topics instead of random rows
 
 Validation run writes results/<name>/metrics.json (chosen params, train/val AUROC, fit time, hardware),
 val_pred.csv (id,label,pred), search.csv (inner-CV grid, if any), and upserts the model's row in the
@@ -16,6 +17,11 @@ artifacts/<name>/ (git-ignored) so predict.py can re-create the submission file.
 Rules this enforces: models see only the 8,000 training rows (+ unlabeled.csv text) while being
 validated; hyperparameters are chosen by 5-fold CV inside those rows, never on the 2,000 validation
 rows; nothing here uses test labels (there are none) or pretrained weights.
+
+Inner CV schemes (--cv, or `cv:` in the config): `stratified` (default) splits the training rows at random;
+`topic` clusters the training rows into TOPIC_K topics (k-means on word TF-IDF of those rows only: no
+validation, test or external text) and each fold holds out whole topics, a label-safe estimate of how a
+design copes with domain shift (test has topics train lacks). Folds and topics: results/topic_cv/.
 """
 from __future__ import annotations
 
@@ -33,7 +39,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import yaml
-from sklearn.model_selection import StratifiedKFold
+from sklearn.cluster import KMeans
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.model_selection import GroupKFold, StratifiedKFold
 
 HERE = Path(__file__).resolve().parent
 TEAM = HERE.parent
@@ -46,6 +54,7 @@ from validate_submission import problems  # noqa: E402
 
 RESULTS, ARTIFACTS, SUBS = HERE / "results", HERE / "artifacts", HERE / "kaggle_submissions"
 LETTERS = {"stylo_gbm": "D", "tfidf_lr": "E", "transformer_scratch": "F"}  # one Kaggle file per model (A-C: pretrained)
+TOPIC_K = 10  # topic clusters for --cv topic; with 5 folds each fold holds out 2 whole clusters
 
 
 # ------------------------------------------------------------------ helpers
@@ -58,6 +67,7 @@ def load_config(name: str) -> dict:
     cfg.setdefault("params", {})
     cfg.setdefault("search", {})
     cfg.setdefault("cv_folds", 5)
+    cfg.setdefault("cv", "stratified")
     return cfg
 
 
@@ -102,27 +112,70 @@ def log_row(**kw) -> None:
 
 
 # ------------------------------------------------------------------ inner-CV search
-def inner_cv(cfg, params, texts, y, unl, seed, device) -> dict:
-    skf = StratifiedKFold(n_splits=cfg["cv_folds"], shuffle=True, random_state=seed)
+def topic_clusters(texts, k: int = TOPIC_K, seed: int = SEED) -> np.ndarray:
+    """Topic of each text: k-means on word TF-IDF fit on these texts only (pass the training rows)."""
+    X = TfidfVectorizer(max_features=20000, min_df=3, stop_words="english", sublinear_tf=True).fit_transform(texts)
+    return KMeans(n_clusters=k, random_state=seed, n_init=10).fit_predict(X)
+
+
+def cv_splits(scheme: str, texts, y, n_folds: int, seed: int) -> list:
+    """(train_idx, held_out_idx) pairs. `topic`: GroupKFold over the topic clusters, so no topic is on both sides."""
+    if scheme == "stratified":
+        return list(StratifiedKFold(n_splits=n_folds, shuffle=True, random_state=seed).split(texts, y))
+    if scheme != "topic":
+        raise ValueError(f"unknown CV scheme {scheme!r} (stratified | topic)")
+    groups = topic_clusters(texts, TOPIC_K, seed)
+    splits = list(GroupKFold(n_splits=n_folds).split(texts, y, groups))
+    for f, (_, va) in enumerate(splits):
+        if len(set(y[va])) < 2:
+            raise ValueError(f"topic fold {f} holds out one class only; AUROC is undefined")
+    return splits
+
+
+def write_topic_folds(texts, y, n_folds: int, seed: int, out: Path) -> None:
+    """Per-cluster summary of the topic folds (size, AI share, top terms); no text or row ids."""
+    groups = topic_clusters(texts, TOPIC_K, seed)
+    vec = TfidfVectorizer(max_features=20000, min_df=3, stop_words="english", sublinear_tf=True)
+    X = vec.fit_transform(texts)
+    terms = np.array(vec.get_feature_names_out())
+    fold_of = {}
+    for f, (_, va) in enumerate(GroupKFold(n_splits=n_folds).split(texts, y, groups)):
+        fold_of.update({g: f for g in set(groups[va])})
+    rows = []
+    for g in range(TOPIC_K):
+        m = groups == g
+        top = terms[np.argsort(np.asarray(X[m].mean(axis=0)).ravel())[::-1][:6]]
+        rows.append({"cluster": g, "fold": fold_of[g], "n": int(m.sum()), "ai_share": float(y[m].mean()),
+                     "top_terms": " ".join(top)})
+    out.mkdir(parents=True, exist_ok=True)
+    pd.DataFrame(rows).sort_values(["fold", "cluster"]).to_csv(out / "clusters.csv", index=False,
+                                                                 lineterminator="\n", float_format="%.4f")
+
+
+def inner_cv(cfg, params, texts, y, unl, seed, device, splits=None) -> dict:
+    if splits is None:
+        splits = cv_splits(cfg["cv"], texts, y, cfg["cv_folds"], seed)
     oof, aucs = np.zeros(len(y)), []
-    for f, (tr, va) in enumerate(skf.split(texts, y)):
+    for f, (tr, va) in enumerate(splits):
         m = build(cfg, params, seed + f, device).fit([texts[i] for i in tr], y[tr], unlabeled_texts=unl)
         oof[va] = m.predict_proba([texts[i] for i in va])
         aucs.append(summary(y[va], oof[va])["auroc"])
     return {"cv_auroc_mean": float(np.mean(aucs)), "cv_auroc_std": float(np.std(aucs)),
-            "cv_auroc_pooled": summary(y, oof)["auroc"], "oof": oof}
+            "cv_auroc_pooled": summary(y, oof)["auroc"], "fold_aurocs": [float(a) for a in aucs], "oof": oof}
 
 
 def search(cfg, params, texts, y, unl, seed, device, out_dir: Path) -> dict:
     grid = cfg["search"]
     keys = list(grid)
     rows, best = [], None
+    splits = cv_splits(cfg["cv"], texts, y, cfg["cv_folds"], seed)
     for values in itertools.product(*(grid[k] for k in keys)):
         cand = {**params, **dict(zip(keys, values))}
         t0 = time.time()
-        r = inner_cv(cfg, cand, texts, y, unl, seed, device)
-        rows.append({**{k: json.dumps(v) for k, v in zip(keys, values)},
-                     **{k: v for k, v in r.items() if k != "oof"}, "time_s": round(time.time() - t0, 1)})
+        r = inner_cv(cfg, cand, texts, y, unl, seed, device, splits)
+        rows.append({**{k: json.dumps(v) for k, v in zip(keys, values)}, "cv": cfg["cv"],
+                     **{k: v for k, v in r.items() if k not in ("oof", "fold_aurocs")},
+                     "time_s": round(time.time() - t0, 1)})
         print(f"  search {dict(zip(keys, values))}: inner-CV AUROC {r['cv_auroc_mean']:.4f} +/- {r['cv_auroc_std']:.4f}",
               flush=True)
         if best is None or r["cv_auroc_mean"] > best[0]:
@@ -140,6 +193,8 @@ def main(argv=None):
     ap.add_argument("--final", action="store_true", help="refit on 10,000 rows and write the Kaggle CSV")
     ap.add_argument("--set", nargs="*", default=[], metavar="KEY=VALUE", help="override params (YAML values)")
     ap.add_argument("--no-search", action="store_true", help="skip the inner-CV grid, use params as given")
+    ap.add_argument("--cv", choices=["stratified", "topic"], default=None,
+                    help="inner-CV scheme for the search (default: the config's `cv:`, else stratified)")
     ap.add_argument("--tag", default=None, help="save as results/<model>@<tag>/ (variants, ablations)")
     ap.add_argument("--seed", type=int, default=SEED)
     ap.add_argument("--device", default=None, help="torch models: cpu | cuda | cuda:<i> | mps (default: auto)")
@@ -151,6 +206,8 @@ def main(argv=None):
     args = ap.parse_args(argv)
 
     cfg = load_config(args.model)
+    if args.cv:
+        cfg["cv"] = args.cv
     name = args.model + (f"@{args.tag}" if args.tag else "")
     out_dir = RESULTS / name
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -163,8 +220,10 @@ def main(argv=None):
 
     train, val = train_val_split(args.data_dir)
     X, y = train["text"].tolist(), train["label"].to_numpy()
+    if cfg["cv"] == "topic":
+        write_topic_folds(X, y, cfg["cv_folds"], args.seed, RESULTS / "topic_cv")
     if cfg["search"] and not args.no_search:
-        print(f"{name}: inner {cfg['cv_folds']}-fold CV on {len(y)} training rows over {cfg['search']}")
+        print(f"{name}: inner {cfg['cv_folds']}-fold {cfg['cv']} CV on {len(y)} training rows over {cfg['search']}")
         params = search(cfg, params, X, y, unl, args.seed, args.device, out_dir)
         print(f"  chosen: {params}")
     model = build(cfg, params, args.seed, args.device)
@@ -182,7 +241,7 @@ def main(argv=None):
         "model": name, "registry_name": cfg["model"], "params": params, "seed": args.seed,
         "train_auroc": tr_m["auroc"], "val_auroc": va_m["auroc"], "val_tpr_at_1fpr": va_m["tpr_at_1fpr"],
         "n_train": len(y), "n_val": len(val), "fit_time_s": round(fit_s, 1), "val_predict_time_s": round(pred_s, 1),
-        "hardware": hardware(model), "searched": bool(cfg["search"] and not args.no_search),
+        "hardware": hardware(model), "searched": bool(cfg["search"] and not args.no_search), "cv": cfg["cv"],
         "timestamp": dt.datetime.now().isoformat(timespec="seconds"), "git_commit": git("rev-parse", "HEAD"),
     }
     if hasattr(model, "weights"):  # blends: the member weights chosen inside fit()
