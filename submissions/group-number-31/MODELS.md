@@ -11,12 +11,12 @@ is made of, what was trained, and the exact pipeline and commands. Every number 
 
 | # | Submission | Track | Uploaded file | Val AUROC | Public AUROC |
 |---|---|---|---|---|---|
-| 1 | Blend A (v2) | pretrained | `pretrained/kaggle_submissions/final_A_topic_greedy.csv` | 0.99987 | [TODO: upload] |
+| 1 | **Blend A (v2), final selection** | pretrained | `pretrained/kaggle_submissions/final_A_topic_greedy.csv` | 0.99987 | 0.98810 |
 | 2 | Blend B | pretrained | `pretrained/kaggle_submissions/final_B_lm4.csv` | 0.99985 | 0.98848 |
-| 3 | Blend C (v2) | pretrained | `pretrained/kaggle_submissions/final_C_lm4_distil.csv` | 0.99994 | [TODO: upload] |
-| 4 | D: C2 `stylo_gbm` | classical | `classical/kaggle_submissions/final_D_stylo_gbm.csv` | 0.99831 | 0.95995 |
-| 5 | E: C1 `tfidf_lr` (v3) | classical | `classical/kaggle_submissions/final_E_tfidf_lr.csv` | 0.99670 | [TODO: upload] |
-| 6 | F: C3 `transformer_scratch` (v3) | classical | `classical/kaggle_submissions/final_F_transformer_scratch.csv` | 0.98590 | [TODO: upload] |
+| 3 | Blend C (v2) | pretrained | `pretrained/kaggle_submissions/final_C_lm4_distil.csv` | 0.99994 | 0.98724 |
+| 4 | **D: C2 `stylo_gbm`, final selection** | classical | `classical/kaggle_submissions/final_D_stylo_gbm.csv` | 0.99831 | 0.95995 |
+| 5 | E: C1 `tfidf_lr` (v3) | classical | `classical/kaggle_submissions/final_E_tfidf_lr.csv` | 0.99670 | 0.95849 |
+| 6 | F: C3 `transformer_scratch` (v3) | classical | `classical/kaggle_submissions/final_F_transformer_scratch.csv` | 0.98590 | 0.90826 |
 
 All six files are committed and validated: 3,000 rows each, ids match `sample_submission.csv`, values in [0, 1].
 None of them needs retraining to be uploaded or reported.
@@ -218,7 +218,7 @@ one fold s.d. of it ties, and the simplest tied one is chosen. All 18 configurat
 v1 (public 0.88583) had only word 1–2-grams and character 2–5-grams *inside* word boundaries (`char_wb`), val
 0.96256. v2 (public 0.96374) was the k = 300, C = 64 configuration, val 0.99678.
 
-### C2 `stylo_gbm` — stylometric features + LightGBM (best classical model)
+### C2 `stylo_gbm` — stylometric features + LightGBM (best classical model, final selection)
 
 Code: `classical/models/stylo_gbm.py`, features in `classical/features/stylometry.py`. Config:
 `classical/configs/stylo_gbm.yaml`.
@@ -277,10 +277,10 @@ writing; reviews + recipes + bios; baking + computer vision; science + cooking;
 |---|---|---|---|---|
 | C1 v1 (word + `char_wb`) | 0.96256 | 0.91343 ± 0.0340 | 0.86525 (news) | 0.88583 |
 | C1 v2 (raw char + distorted, k = 300, C = 64) | 0.99678 | 0.98745 ± 0.0083 | 0.97796 | 0.96374 |
-| C1 v3 (raw char + distorted, k = 100, C = 4) | 0.99670 | 0.98685 ± 0.0095 | 0.97621 | [TODO: upload] |
+| C1 v3 (raw char + distorted, k = 100, C = 4) | 0.99670 | 0.98685 ± 0.0095 | 0.97621 | 0.95849 |
 | C3 v1 (raw text) | 0.98500 | 0.90469 ± 0.0699 | 0.78131 (science + cooking) | 0.83201 |
 | C3 v2 (lines joined + distorted) | 0.98903 | 0.97245 ± 0.0067 | 0.96220 | 0.91502 |
-| C3 v3 (lines joined) | 0.98590 | 0.97593 ± 0.0032 | 0.97386 | [TODO: upload] |
+| C3 v3 (lines joined) | 0.98590 | 0.97593 ± 0.0032 | 0.97386 | 0.90826 |
 
 Topic-CV values: `classical/results/selection/*/candidates.csv` (v1 and v2 are candidates there too).
 
@@ -291,6 +291,8 @@ Topic-CV values: `classical/results/selection/*/candidates.csv` (v1 and v2 are c
 - **C3 v1** learned "short lines = AI": in train, human passages have long lines and AI ones short lines. Joining
   single line breaks removes that shortcut and makes the model stable across topics (s.d. 0.070 → 0.003).
 - Design choices use topic-held-out CV only; hyperparameters are never chosen on validation or Kaggle.
+- Topic CV separates large effects (v1 against later versions) but not small ones: v3 of C1 and C3 scored
+  slightly below v2 on the public leaderboard, by about the leaderboard's own noise (±0.003–0.006 on 900 rows).
 
 ### Commands
 

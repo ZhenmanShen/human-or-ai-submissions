@@ -47,12 +47,12 @@ picked by 5-fold CV inside the 8,000 rows, never on the validation rows. Final K
 
 | Track | Submitted models | Val AUROC | Public AUROC |
 |---|---|---|---|
-| pretrained | Blend A v2 (7 members, weights 4 2 2 1 1 1 1, greedy on topic-held-out CV) | 0.99987 | pending upload |
+| pretrained | **Blend A v2 (final)**: 7 members, weights 4 2 2 1 1 1 1, greedy on topic-held-out CV | 0.99987 | 0.98810 |
 | pretrained | Blend B (4 LM-feature models, equal weights) | 0.99985 | 0.98848 |
-| pretrained | Blend C v2 (B + DistilRoBERTa, equal weights) | 0.99994 | pending upload |
-| classical | D: C2 `stylo_gbm`: 101 stylometric features → LightGBM | 0.99831 | 0.95995 |
-| classical | E: C1 `tfidf_lr` v3: word + raw char + distorted-text (k=100) TF-IDF → logistic regression | 0.99670 | pending upload |
-| classical | F: C3 `transformer_scratch` v3: lines joined, BPE + 4-layer Transformer, random init | see log | pending upload |
+| pretrained | Blend C v2 (B + DistilRoBERTa, equal weights) | 0.99994 | 0.98724 |
+| classical | **D (final)**: C2 `stylo_gbm`: 101 stylometric features → LightGBM | 0.99831 | 0.95995 |
+| classical | E: C1 `tfidf_lr` v3: word + raw char + distorted-text (k=100) TF-IDF → logistic regression | 0.99670 | 0.95849 |
+| classical | F: C3 `transformer_scratch` v3: lines joined, BPE + 4-layer Transformer, random init | 0.98590 | 0.90826 |
 
 Source of these numbers: `submission_log.csv` / `SUBMISSIONS.md`. Always re-read them there; this table is a
 snapshot.
@@ -180,8 +180,7 @@ python reports/inline_tables.py      # copy the generated tables into the self-c
 ## Open TODOs (search for `[TODO`)
 
 - Confirm the contribution notes in report Q0.1.
-- Upload the rebuilt A, C, E, F (2026-11-10) and log their public scores.
 - Private scores (after the deadline, Nov 11, 2026).
-- Which file is the final Kaggle selection.
+- Mark A and D as the final selections on Kaggle (A v2 public 0.98810, D 0.95995).
 - The PR URL.
 - The AI-use disclosure in `README.md` §6 and report Q6.3: the team must say what they verified.

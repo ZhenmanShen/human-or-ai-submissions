@@ -137,17 +137,17 @@ python common/compare_tracks.py && python reports/build_tables.py && python repo
 
 ## 4. Command that writes `submission.csv`
 
-Final Kaggle selections: [TODO: the two files marked final on Kaggle, chosen after the 2026-11-10 uploads]. Every
-uploaded
+Final Kaggle selections: pretrained **blend A** (`final_A_topic_greedy.csv`, public 0.98810) and classical **C2**
+(`stylo_gbm`, file D, public 0.95995). Every uploaded
 file is committed (`*/kaggle_submissions/`), and its row in `SUBMISSIONS.md` links the commit that added it.
 
 ```bash
-python predict.py --model blend_b --committed --out submission.csv   # the exact uploaded file, no compute
-python train.py --model tfidf_lr --final                             # classical: refit on 10k (~35 s CPU)
-                                                                     #   -> classical/kaggle_submissions/final_E_tfidf_lr.csv
-python predict.py --model tfidf_lr --out submission.csv              #   then predict from the saved model
-                                                                     #   (same two commands for stylo_gbm, transformer_scratch)
-python predict.py --model blend_b --out submission.csv               # pretrained: re-predict from the saved runs
+python predict.py --model blend_a --committed --out submission.csv   # the exact uploaded file, no compute
+python train.py --model stylo_gbm --final                            # classical: refit on 10k (~10 s CPU)
+                                                                     #   -> classical/kaggle_submissions/final_D_stylo_gbm.csv
+python predict.py --model stylo_gbm --out submission.csv             #   then predict from the saved model
+                                                                     #   (same two commands for tfidf_lr, transformer_scratch)
+python predict.py --model blend_a --out submission.csv               # pretrained: re-predict from the saved runs
 ```
 
 - Pretrained blends re-predict test with the saved 5-fold runs, which are too large for git (0.3–1.7 GB per
