@@ -22,13 +22,15 @@ uploaded files (`kaggle_submissions/2026-10-31_final_{A,B,C}_*.csv`). Difference
   python scripts/report_tables.py                            # -> reports/tables, reports/figures
   ```
   Results are in `results/`; the report is `reports/kaggle_pretrained_report.tex`.
-- **Uploaded files**: `python run_all.py --profile ood` trains the 5-fold models (seed 42, ~4 h on two
+- **Uploaded files**: `python run_all.py --profile blends` trains the 5-fold models (seed 42, ~4 h on two
   12 GB GPUs). Then:
   ```bash
   python make_submission.py --run <runs> [--weights ...] --name <file>
   ```
-  Blend A's runs are lm_gpt2_medium, binoculars_qwen05b, binoculars_qwen15b, ft_deberta_v3_large,
-  ft_roberta_base, lm_gpt2_nostyle and ft_openai_detector_large, with weights 3 3 2 1 1 1 1.
+  Blend B, the final pretrained selection, is lm_gpt2, lm_gpt2_medium, binoculars_qwen05b and binoculars_qwen15b
+  with equal weights. Blend C adds ft_roberta_base. Blend A (weights 3 3 2 1 1 1 1 over seven runs) is kept only
+  to reproduce its logged upload: its weights were chosen on an external evaluation set that we removed
+  (competition rule 4(b); `../common/results/proxy_audit.md`).
   Run against the saved models, this re-creates all three uploaded files exactly (`results/reproduction.csv`).
 - Removed in the trim: the smoke/pc/mac profiles and 12 model configs not used by the final blends.
   `experiments/results.csv` and `experiments/sessions/` keep the record of everything that was run.
@@ -111,7 +113,6 @@ python train.py --model binoculars_qwen05b --device mps
 | Out-of-domain validation | `--set cv.scheme=cluster` |
 | Learning curve | `--set data.train_frac=0.25` |
 | Pseudo-labelling / self-training | `--set semi_supervised.enabled=true semi_supervised.pool=[unlabeled,test]` |
-| Extra labeled data | `--set "data.external_files=[data/external/my_data.csv]"` |
 | Text cleaning ("debiasing") | `--set preprocessing.collapse_blank_lines=true preprocessing.map_homoglyphs=true` |
 | CV only, no submission | `--cv-only` |
 | Torch device | `--device auto/cuda/cuda:1/mps/cpu`, config `device:`, or env `AIVH_DEVICE` |
@@ -130,16 +131,12 @@ python scripts/record_kaggle_score.py --run <run_name or outputs/submissions/<fi
 python scripts/blend.py --runs outputs/runs/<runA> outputs/runs/<runB> --method greedy   # custom blends
 ```
 
-## Extra training data
+## No external labelled data
 
-```bash
-python scripts/generate_ai_text.py --model Qwen/Qwen2.5-0.5B-Instruct --n 300 --device mps
-python scripts/add_external_data.py --input data/external/raw_gen_Qwen2.5-0.5B-Instruct_continue_s0.csv --name gen_qwen05
-python scripts/add_external_data.py --input my_human_texts/ --label 0 --name human_lit --chunk
-python train.py --model stylometric_gbm_ext --set "data.external_files=[data/external/gen_qwen05.csv,data/external/human_lit.csv]"
-```
-External data is only added to the training side of each CV fold, so CV scores stay honest. `data/` is git-ignored,
-so share external datasets another way (or remove the `data/external/*` line from `.gitignore`).
+Competition rule 4(b): "No additional externally sourced labeled datasets may be used to train, validate, or
+determine competition predictions." Supervised labels come only from `train.csv`. `data.external_files` must stay
+empty (`src/data.py` refuses anything else). The scripts that generated and scored external text were removed;
+see `../common/results/proxy_audit.md` and the team README.
 
 ## Repository layout
 

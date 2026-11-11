@@ -36,8 +36,8 @@ submissions/group-number-31/
 │   └── update_submission_log.py, validate_submission.py, make_split.py, describe_splits.py
 ├── classical/             from-scratch models, no pretrained weights (CPU-friendly)
 │   ├── models/              one file per model: tfidf_lr (C1), stylo_gbm (C2), transformer_scratch (C3), + extras
-│   ├── configs/             one YAML per model, including its hyperparameter grid
-│   ├── train.py predict.py experiments.py report_tables.py ood_eval.py
+│   ├── configs/             one YAML per model, its hyperparameter grid; selection/: pre-registered design rules
+│   ├── train.py predict.py select_design.py experiments.py report_tables.py
 │   ├── results/             metrics + predictions per model (all report numbers come from here)
 │   ├── kaggle_submissions/  one CSV per model: final_D_stylo_gbm, final_E_tfidf_lr, final_F_transformer_scratch
 │   └── reports/             tables/figures used by the report (+ a longer classical-only draft)
@@ -54,14 +54,17 @@ The six submitted models:
 
 | Model (`--model` name) | Track | Code |
 |---|---|---|
-| Blend A `blend_a` (best public score, 0.99161) | pretrained | `pretrained/make_submission.py`, weights 3 3 2 1 1 1 1 |
-| Blend B `blend_b`, Blend C `blend_c` | pretrained | same script, equal weights |
-| D: C2 stylometric LightGBM `stylo_gbm` (public 0.95995) | classical | [`classical/models/stylo_gbm.py`](classical/models/stylo_gbm.py) |
-| E: C1 TF-IDF + logistic regression `tfidf_lr` (best classical public score, 0.96374) | classical | [`classical/models/tfidf_lr.py`](classical/models/tfidf_lr.py) |
-| F: C3 small Transformer from scratch `transformer_scratch` | classical | [`classical/models/transformer_scratch.py`](classical/models/transformer_scratch.py) |
+| Model (version) | Track | Code |
+|---|---|---|
+| Blend A `blend_a` (v2: weights 4 2 2 1 1 1 1 by greedy selection on topic-held-out CV) | pretrained | `pretrained/make_submission.py` |
+| Blend B `blend_b` (equal weights, unchanged), Blend C `blend_c` (v2: B + DistilRoBERTa) | pretrained | same script |
+| D: C2 stylometric LightGBM `stylo_gbm` (unchanged) | classical | [`classical/models/stylo_gbm.py`](classical/models/stylo_gbm.py) |
+| E: C1 TF-IDF + logistic regression `tfidf_lr` (v3) | classical | [`classical/models/tfidf_lr.py`](classical/models/tfidf_lr.py) |
+| F: C3 small Transformer from scratch `transformer_scratch` (v3) | classical | [`classical/models/transformer_scratch.py`](classical/models/transformer_scratch.py) |
 
-See [`MODELS.md`](MODELS.md) for each model's pipeline. E and F were rebuilt (v2) after their first uploads scored
-0.88583 and 0.83201; v2 scored 0.96374 and 0.91502. MODELS.md explains why v1 fell on Kaggle and what changed.
+See [`MODELS.md`](MODELS.md) for each model's pipeline and [`SUBMISSIONS.md`](SUBMISSIONS.md) for every version's
+scores. A, C, E and F were rebuilt on 2026-11-10 without the external evaluation set (§5); their earlier uploads
+stay in the log as history.
 
 Notes:
 
@@ -70,7 +73,8 @@ Notes:
   - The report is one self-contained file: `python reports/inline_tables.py` copies the generated tables and plot
     data into it, and Overleaf needs only `reports/kaggle_report.tex`.
   - `pretrained/reports/kaggle_pretrained_report.tex` and `classical/reports/kaggle_classical_report.tex` are
-    longer single-track drafts that cover every model. They are background only and not submitted.
+    longer single-track drafts that cover every model. They are background only and not submitted; they predate
+    the removal of the external evaluation set (§5) and still describe it.
 - **AI-assistant files.**
   - [`AGENTS.md`](AGENTS.md) in this folder is the team-wide briefing.
   - `pretrained/AGENTS.md` is the research repo's log of every experiment, carried over with the pretrained track.
@@ -136,22 +140,23 @@ python common/compare_tracks.py && python reports/build_tables.py && python repo
 
 ## 4. Command that writes `submission.csv`
 
-Final Kaggle selections: pretrained **blend A** (`final_A_greedy_proxy`, public 0.99161) and classical **C1**
-(`tfidf_lr`, file E, public 0.96374). Every uploaded
+Final Kaggle selections: [TODO: the two files marked final on Kaggle, chosen after the 2026-11-10 uploads]. Every
+uploaded
 file is committed (`*/kaggle_submissions/`), and its row in `SUBMISSIONS.md` links the commit that added it.
 
 ```bash
-python predict.py --model blend_a --committed --out submission.csv   # the exact uploaded file, no compute
+python predict.py --model blend_b --committed --out submission.csv   # the exact uploaded file, no compute
 python train.py --model tfidf_lr --final                             # classical: refit on 10k (~35 s CPU)
                                                                      #   -> classical/kaggle_submissions/final_E_tfidf_lr.csv
 python predict.py --model tfidf_lr --out submission.csv              #   then predict from the saved model
                                                                      #   (same two commands for stylo_gbm, transformer_scratch)
-python predict.py --model blend_a --out submission.csv               # pretrained: re-predict from the saved runs
+python predict.py --model blend_b --out submission.csv               # pretrained: re-predict from the saved runs
 ```
 
 - Pretrained blends re-predict test with the saved 5-fold runs, which are too large for git (0.3–1.7 GB per
   fold). They live in the research repo's `outputs/runs/`, or pass `--runs-dir`.
-- Run on those runs, this reproduces all three uploaded files exactly (`pretrained/results/reproduction.csv`).
+- Run on those runs, LM-feature members reproduce exactly; fine-tuned members re-predict with bf16 GPU noise
+  (Spearman ≥ 0.9999 to the committed files).
 - Retraining them from scratch takes about 4 h on two 12 GB GPUs; see `MODELS.md`.
 
 ## 5. Seeds and important config
@@ -159,8 +164,13 @@ python predict.py --model blend_a --out submission.csv               # pretraine
 - Split, CV folds and every new experiment: `20261023`.
 - The pretrained research runs behind the uploaded files used seed `42`, with fold *k* seeded `42 + k`.
 - Fine-tunes and `transformer_scratch` train in bf16 on GPU, so reruns can differ in the last digits.
-- No external data is used for training. The pretrained track's out-of-distribution proxy (text from seven local
-  generators and Project Gutenberg books) was used only to evaluate models and choose the blend.
+- **No external labelled data** (competition rule 4(b)). Supervised labels come only from `train.csv`, and nothing
+  external validates or chooses a final submission. During development we built an evaluation set ourselves (text
+  from seven local generators and Project Gutenberg books) and used it to choose blend A's weights and the C1/C3
+  v2 designs. We removed it from the pipeline and from every final selection; the audit is
+  [`common/results/proxy_audit.md`](common/results/proxy_audit.md), and the files remain in git history.
+- C1 and C3 designs are chosen by topic-held-out inner CV on the 8,000 training rows (`classical/select_design.py`,
+  rule pre-registered in `classical/configs/selection/`).
 
 ## 6. AI-tool disclosure
 
@@ -183,7 +193,7 @@ used and its citation:
   DeBERTa-v3-large and the OpenAI RoBERTa-large GPT-2-output detector;
 - explored only: DeBERTa-v3-base/small, DistilRoBERTa, ModernBERT, ELECTRA, the base-size OpenAI detector,
   BGE and E5 embeddings;
-- evaluation proxy only: seven open generators that wrote proxy text.
+- development only, removed: seven open generators that wrote text for the external evaluation set.
 
 `classical/` uses no pretrained weights. No external LLM API labelled or scored test passages, and no hidden labels
 were retrieved.

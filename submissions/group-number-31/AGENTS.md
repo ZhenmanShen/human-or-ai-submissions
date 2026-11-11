@@ -47,24 +47,29 @@ picked by 5-fold CV inside the 8,000 rows, never on the validation rows. Final K
 
 | Track | Submitted models | Val AUROC | Public AUROC |
 |---|---|---|---|
-| pretrained | Blend A (7 members, weights 3 3 2 1 1 1 1) | 0.99990 | 0.99161 |
+| pretrained | Blend A v2 (7 members, weights 4 2 2 1 1 1 1, greedy on topic-held-out CV) | 0.99989 | pending upload |
 | pretrained | Blend B (4 LM-feature models, equal weights) | 0.99985 | 0.98848 |
-| pretrained | Blend C (B + RoBERTa-base, equal weights) | 0.99987 | 0.98845 |
+| pretrained | Blend C v2 (B + DistilRoBERTa, equal weights) | 0.99994 | pending upload |
 | classical | D: C2 `stylo_gbm`: 101 stylometric features → LightGBM | 0.99831 | 0.95995 |
-| classical | E: C1 `tfidf_lr` v2: word + raw char + distorted-text TF-IDF → logistic regression | 0.99678 | 0.96374 |
-| classical | F: C3 `transformer_scratch` v2: lines joined, text distorted, BPE + 4-layer Transformer, random init | 0.98903 | 0.91502 |
+| classical | E: C1 `tfidf_lr` v3: word + raw char + distorted-text (k=100) TF-IDF → logistic regression | 0.99670 | pending upload |
+| classical | F: C3 `transformer_scratch` v3: lines joined, BPE + 4-layer Transformer, random init | see log | pending upload |
 
 Source of these numbers: `submission_log.csv` / `SUBMISSIONS.md`. Always re-read them there; this table is a
 snapshot.
 
-One Kaggle file per model. Pretrained: `pretrained/kaggle_submissions/2026-10-31_final_{A,B,C}_*.csv`, as uploaded;
-**never rename or rewrite them**. Classical: `classical/kaggle_submissions/final_{D,E,F}_<model>.csv`, no date.
-E and F were first uploaded as v1 (public 0.88583 and 0.83201) and then replaced by v2 under the same names. The v1
-scores are in the log as `final_E_tfidf_lr@v1` / `final_F_transformer_scratch@v1`.
+One Kaggle file per model, letters A–F only (no new letters: a new version replaces its model's file). Pretrained:
+`pretrained/kaggle_submissions/<date>_final_{A,B,C}_*.csv`; don't rewrite an uploaded file. Classical:
+`classical/kaggle_submissions/final_{D,E,F}_<model>.csv`, no date. Earlier versions stay in git history and in the
+log: `final_A_greedy_proxy`, `final_C_lm4_roberta`, `final_E_tfidf_lr@v1/@v2`, `final_F_transformer_scratch@v1/@v2`.
 
-**Validation does not predict Kaggle here.** Test has unseen generators and far more verse. To compare designs,
-use `classical/ood_eval.py` (classical) or `pretrained/scripts/eval_ood.py` (pretrained): both score held-out
-shifted text and tracked the public scores. See MODELS.md, "Why C1 and C3 v1 fell on Kaggle".
+**Validation does not predict Kaggle here.** Test has unseen generators and far more verse. To compare designs
+under shift, use topic-held-out inner CV (`classical/train.py --cv topic`, `classical/select_design.py`): it
+holds out whole k-means topics of the 8,000 training rows and needs nothing beyond `train.csv`. See MODELS.md,
+"Why C1 and C3 v1 fell on Kaggle".
+
+**No external labelled data, for anything** (competition rule 4(b): not to train, validate or choose). An
+external evaluation set (7 local generators + Project Gutenberg) was built and used during development; it was
+removed on 2026-11-10. Audit: `common/results/proxy_audit.md`. Don't rebuild it or anything like it.
 
 ### pretrained/ — how the blends work
 
@@ -85,12 +90,15 @@ There are two kinds of member models.
 A blend maps each member's test score to a percentile using that member's out-of-fold scores, then takes a
 weighted average (`src/ensemble.py: cdf_mean`). Every member scores every text: there is no gating and no voting.
 
-- Blend A's weights came from greedy forward selection on an out-of-distribution proxy set: text from 7 local
-  open-weight generators plus Project Gutenberg books. That set was used only to evaluate models and choose the
-  blend, never for training, and the report discloses this.
+- Blend A v2: greedy forward selection on the members' topic-held-out out-of-fold predictions
+  (`run_all.py --profile topic_cv`, `scripts/select_blend.py`, rule in `configs/selection/blends.yaml`). Blend B:
+  the four best runs by 5-fold CV in the 35-job benchmark, equal weights. Blend C v2: B + the best-CV fine-tune.
+  A v1 and C v1 were chosen on the removed external set and are history.
+- **Run everything in the `cs-aml` conda env** (`pretrained/environment.yml`). Base Anaconda lacks LightGBM and
+  silently falls back to sklearn's HistGradientBoosting, and its sklearn version changes C1's output slightly.
 - The uploaded runs used seed 42 and 5-fold CV. The weights live in the research repo's `outputs/runs/`, not
   in git.
-- `make_submission.py` re-creates all three uploaded CSVs exactly from those runs (`results/reproduction.csv`).
+- `make_submission.py` builds the CSVs from those runs (fine-tune members re-predict with bf16 noise).
   The full retrain takes about 4 h on two 12 GB GPUs. Don't retrain to "check" anything.
 
 ### classical/ — plug-in models
@@ -102,13 +110,14 @@ weighted average (`src/ensemble.py: cdf_mean`). Every member scores every text: 
 - `--final` refits on 10k rows and writes `kaggle_submissions/final_<X>_<name>.csv` (X: D, E, F; a new model
   passes `--letter`). It replaces
   that model's file and resets its log row to "pending upload".
-- `python ood_eval.py --model <name> [--set k=v --tag t]` scores a design on held-out shifted text
-  (`results/ood_eval.csv`).
+- `python train.py --model <name> --cv topic` runs the search with topic-held-out CV.
+  `python select_design.py --model <name>` applies a pre-registered design rule (`configs/selection/<name>.yaml`)
+  and writes `results/selection/<name>/`.
 
 ### Entry points (team folder)
 
 - `python train.py --model <classical model> [--final]` forwards to `classical/train.py`.
-- `python train.py --model blend_a|blend_b|blend_c` retrains that blend's members (`pretrained/run_all.py`, GPU, hours).
+- `python train.py --model blend_b|blend_c|blend_a` retrains that blend's members (`pretrained/run_all.py --profile blends`, GPU, hours).
 - `python predict.py --model <name> --out submission.csv` predicts from saved models or runs. Add `--committed` to
   copy the uploaded file instead.
 - The full pipelines of all six submitted models are in `MODELS.md`.
@@ -122,8 +131,9 @@ weighted average (`src/ensemble.py: cdf_mean`). Every member scores every text: 
    `artifacts/` or caches. Run `git status` and check the staged list before every commit. The course root
    `.gitignore` ignores every `*.csv`; our `.gitignore` re-includes only results, logs, the val split and
    the uploaded submissions.
-3. Supervised labels come only from `train.csv`. Don't use external LLM APIs to label or score test passages,
-   and don't look for hidden labels (RAID or anywhere else).
+3. Supervised labels come only from `train.csv`, and no externally sourced labelled data may train, validate or
+   choose anything (rule 4(b)). Don't use external LLM APIs to label or score test passages, and don't look for
+   hidden labels (RAID or anywhere else).
 4. Never type a number into a report or README by hand. Every number comes from a results file written by code:
    - `classical/report_tables.py`, `pretrained/scripts/report_tables.py`, `common/compare_tracks.py` and
      `reports/build_tables.py` generate the LaTeX tables;
@@ -172,7 +182,7 @@ python reports/inline_tables.py      # copy the generated tables into the self-c
 ## Open TODOs (search for `[TODO`)
 
 - Confirm the contribution notes in report Q0.1.
-- Which classical file to mark as a final Kaggle selection, if any (E 0.96374 is the best classical public score).
+- Upload the rebuilt A, C, E, F (2026-11-10) and log their public scores.
 - Private scores (after the deadline, Nov 11, 2026).
 - Which file is the final Kaggle selection.
 - The PR URL.

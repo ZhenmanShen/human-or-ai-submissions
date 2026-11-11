@@ -35,17 +35,23 @@ F = `transformer_scratch`. An improved version replaces its model's file under t
 hold v2); the v1 scores stay in `../SUBMISSIONS.md` as `final_E_tfidf_lr@v1` / `final_F_transformer_scratch@v1`,
 linked to the commits that hold the v1 files.
 
-## Checking a model against the test shift
+## Checking a design against topic shift (train labels only)
 
 ```bash
-python ood_eval.py --model <name> [--set KEY=VALUE ...] [--tag <variant>]
+python train.py --model <name> --cv topic                    # the config's search, scored with topic-held-out CV
+python select_design.py --model <name> --jobs 8              # pre-registered design selection (configs/selection/)
 ```
 
-The fixed validation split comes from train's distribution, so it cannot show the drop to Kaggle (test has unseen
-generators and ~17% verse). `ood_eval.py` fits on the 8,000 training rows and scores held-out text from 7 unseen
-generators and Project Gutenberg verse/stories, pooled into one `proxy_auc` (`results/ood_eval.csv`). It tracked
-the v1 public scores (proxy 0.965 / 0.871 / 0.770 for C2 / C1 / C3; public 0.960 / 0.886 / 0.832). Use it to
-compare designs; hyperparameters are still chosen by inner CV only.
+The fixed validation split comes from train's distribution, so it cannot show the drop to Kaggle (test has topics,
+generators and far more verse than train). `--cv topic` clusters the 8,000 training rows into 10 topics (k-means on
+word TF-IDF of those rows only, seed 20261023) and each of the 5 folds holds out whole topics
+(`results/topic_cv/clusters.csv`). It needs no data beyond `train.csv`. `select_design.py` scores the candidates
+listed in `configs/selection/<name>.yaml`, applies the rule written there (committed before the run) and writes
+`results/selection/<name>/`.
+
+An earlier version of this track compared C1/C3 designs on a self-built external evaluation set (7 local generators
++ Project Gutenberg). Competition rule 4(b) forbids externally sourced labelled data for validation or model choice,
+so it was removed and the designs were re-selected with topic-held-out CV (`../common/results/proxy_audit.md`).
 
 ## Models
 

@@ -49,11 +49,11 @@ make_submission.py        Kaggle file from one or more saved runs (re-predicts t
 configs/
   default.yaml            shared settings: data, device, preprocessing, CV, semi-supervised, final strategy, outputs
   models/<config>.yaml    one file per model config (see table below); --model <config> selects it
-  experiments/<profile>.yaml  job lists for run_all.py: smoke (does everything run?), pc, mac,
-                          ood (strongest models scored on the held-out eval sets)
+  experiments/<profile>.yaml  job lists for run_all.py: blends (the members of the uploaded blends),
+                          fixed (every blend member on the team's fixed 8k/2k split, for the report)
 src/
   config.py               loads default.yaml <- models/<config>.yaml <- --set key=value overrides
-  data.py                 CSV loading, external data, CV splits (stratified / cluster / holdout), subsampling
+  data.py                 CSV loading (external labelled data refused: rule 4(b)), CV splits (stratified / cluster / holdout), subsampling
   preprocessing.py        optional text-cleaning steps (each toggled in config)
   features.py             TfidfFeaturizer (word/char/subword) and stylometric features (base + extended)
   models/
@@ -74,14 +74,10 @@ scripts/
   download_models.py      pre-download Hugging Face weights
   blend.py                blend chosen runs (rank / greedy / stack)
   record_kaggle_score.py  store a Kaggle public score for a run or submission
-  add_external_data.py    clean/validate extra labeled data into data/external/ (drops passages sharing 8-grams with train/test)
-  fetch_gutenberg.py      public-domain human poetry/stories from Project Gutenberg (raw CSV for add_external_data.py)
-  generate_ai_text.py     generate extra AI passages with a local HF model (several modes, mixed decoding settings)
-  build_eval_set.py       held-out eval sets in data/eval/ from 7 generators never trained on (eval only!)
-  eval_ood.py             score runs/blends on data/eval + Kaggle-proxy AUROC + proxy greedy blend -> experiments/ood_eval.csv
+  report_experiments.py   the report's fixed-split experiments (collect, hpsearch, curve, semisup, errors, debias)
+  report_tables.py        results/ -> the report's LaTeX tables and figures
 notebooks/01_eda.ipynb    exploratory data analysis
 experiments/results.csv   one row per training run (tracked in git)
-experiments/ood_eval.csv  one row per run/blend scored by scripts/eval_ood.py (tracked)
 experiments/sessions/<session>/   run_all reports: report.md, summary.csv, ensembles.csv, sanity.csv, figures/ (tracked)
 data/  outputs/  pretrained/      git-ignored: data, run artefacts/logs/submissions/caches, local model copies
 ```
@@ -114,9 +110,8 @@ python train.py --model <config> [--set key=value ...] [--device auto|cuda|mps|c
 2. All splits are preprocessed with the same `preprocessing:` steps.
 3. Cross-validation on `train.csv` per `cv.scheme`: `stratified` (k-fold), `cluster` (k-means topic clusters held
    out as whole groups — approximates unseen domains, lower scores, not comparable to stratified), `holdout`.
-   External data and pseudo-labels only ever enter the training side of a fold; `data.train_frac` subsamples it.
-   `data.eval_files` (labeled CSVs never trained on, e.g. an unseen-domain/generator set) are scored by every fold
-   model; their AUROC goes to `metrics.json` (`eval`) and the `eval_auc` column of `results.csv`.
+   Pseudo-labels only ever enter the training side of a fold; `data.train_frac` subsamples it. Supervised labels
+   come only from `train.csv`: `data.external_files` must stay empty (competition rule 4(b)).
 4. Test predictions: `final.strategy` = `refit` (fit on all labeled data) or `fold_average`.
 5. Outputs: `outputs/runs/<run_name>/` (config.yaml, oof.csv, metrics.json, test_pred.csv, unlabeled_pred.csv,
    status.json, model), `outputs/submissions/<run_name>.csv`; a row in `experiments/results.csv`; the table below.
@@ -152,43 +147,23 @@ calibration, cost vs accuracy, and sanity checks (PASS/WARN/FAIL). The recommend
 
 ## Observations so far
 
-**Summary / final submissions (2026-10-31).** Train CV is saturated (top models 0.999), so models and blends
-were chosen on the held-out eval sets instead (`scripts/eval_ood.py`, `experiments/ood_eval.csv`), using
-`proxy_auc`: one weighted AUROC over train OOF + unseen-generator AI text + held-out human/AI poems and stories,
-mixed like test (41% creative writing). Proxy ranking ≠ CV ranking; the old CV-best blend is 0.986 on the proxy.
-Upload order (all in `outputs/submissions/`, built by `make_submission.py` from the saved models, OOF-CDF blend):
-1. `final_A_greedy_proxy.csv` — greedy blend on the proxy: lm_gpt2_medium ×3, binoculars_qwen05b ×3,
-   binoculars_qwen15b ×2, ft_deberta_v3_large, ft_roberta_base, lm_gpt2 (LM features only), ft_openai_detector_large.
-   Proxy 0.9928 (in-sample for the selection; selecting on half the generators and scoring the other half gains
-   +0.001 over the best single model, both ways round), CV 0.9996.
-2. `final_B_lm4.csv` — equal-weight lm_gpt2 + lm_gpt2_medium + binoculars_qwen05b + binoculars_qwen15b; nothing
-   tuned on the eval sets. Proxy 0.9906, CV 0.9994.
-3. `final_C_lm4_roberta.csv` — lm4 + ft_roberta_base (adds a second family). Proxy 0.9910, CV 0.9996.
-
-**Kaggle public LB:** A 0.9916, B 0.9885, C 0.9885. The proxy ranked A first and was 0.001–0.003 above the
-public scores; train CV was 0.008–0.011 above and could not separate the three. → use `proxy_auc`, not CV, to
-choose models and blends.
-
-Held-out eval (session `20261030-135404_ood` + `20261031-144451_ood`; `data/eval/`, built by
-`scripts/build_eval_set.py` from 7 generators never trained on — Llama-3.2-3B, Qwen3-4B, Phi-3.5-mini, SmolLM2-1.7B,
-Granite-3.1-2B, OLMo-2-1B, Pythia-1.4B: 542 rewrites of train human passages + 816 AI poems/stories, and 681 human
-poems/stories from held-out Gutenberg books; never trained on):
-- **LM token statistics + style features generalise best.** lm_gpt2_medium / binoculars_qwen05b / lm_gpt2 /
-  binoculars_qwen15b: proxy 0.989, unseen-generator AUROC 0.992–0.996 (hardest generator ≥ 0.97), and they flag only
-  17–25% of held-out human poems/stories at the threshold flagging 5% of train humans. Fine-tunes (RoBERTa,
-  DistilRoBERTa, ModernBERT) and stylometric GBM tie them on CV but drop to 0.971–0.975 proxy and flag 42–74% of
-  human verse. DeBERTa-v3 / OpenAI-detector-large rarely flag human verse (1–14%) but miss more AI (proxy 0.91–0.95).
-- **Test is ~15% verse** (short lines, no digits) vs 0.3% of train, incl. archaic hymns like the Gutenberg pool.
-  Line structure is a train shortcut (human median 80 words/line, AI 28). `preprocessing.join_lines` removes it:
-  human-verse false alarms 74% → 18% for stylometric, but proxy 0.974 → 0.925 — off.
-- **Debiasing hurts everywhere on the proxy:** stylometric 0.974 → 0.915, lm_gpt2 0.989 → 0.968, DistilRoBERTa
-  0.971 → 0.931, DeBERTa-base ≈ same (0.909 → 0.914). The formatting cues still carry signal on unseen generators.
-- **LM features without style features are much worse** (lm_gpt2 0.989 → 0.938; logistic head 0.903): the two
-  feature sets complement each other.
-- Qwen3-4B is the hardest generator for every family (stylometric mean score 0.62 on its rewrites).
-- Caveat: the Gutenberg humans are archaic and have no blank lines (like train humans), so `creative_*` overstates
-  separability; the proxy's generator mix in test is unknown (`proxy_auc_u25/_u75` use 25% / 75% unseen: the top 4 keep their order, only near-tied singles swap;
-  Spearman 0.96–0.99 between the three versions).
+**Final submissions (uploaded 2026-10-31; selection revised 2026-11-10).** Three OOF-CDF blends were uploaded
+(`make_submission.py`): A `final_A_greedy_proxy` (7 runs, weights 3 3 2 1 1 1 1), B `final_B_lm4` (lm_gpt2,
+lm_gpt2_medium, binoculars_qwen05b, binoculars_qwen15b, equal weights) and C `final_C_lm4_roberta` (B +
+ft_roberta_base). Kaggle public: A 0.9916, B 0.9885, C 0.9885; train CV (≈ 0.9995) cannot separate them.
+- A's weights, and C's pick of RoBERTa-base over the CV-better DistilRoBERTa, came from a self-built external
+  evaluation set (AI text from 7 local generators + Project Gutenberg human text). Competition rule 4(b) forbids
+  externally sourced labelled data that validates or determines predictions, so on 2026-11-10 the set, its scripts
+  and its results were removed (changelog; audit in `../common/results/proxy_audit.md`; everything stays in git
+  history).
+- B never used the set: its members are the four best runs by 5-fold CV in the pc benchmark below (any family),
+  equal weights. **A and C were rebuilt on 2026-11-10 without it**: `run_all.py --profile topic_cv` reruns 9
+  candidates with topic-held-out CV (whole k-means clusters of train held out), then `scripts/select_blend.py`
+  (rule pre-registered in `configs/selection/blends.yaml`): A = greedy selection on the topic-held-out OOF
+  (qwen05b ×4, distilroberta ×2, modernbert ×2, gpt2-medium, gpt2-nostyle, roberta-base, gpt2 ×1); C = B +
+  ft_distilroberta (best 5-fold CV of the fine-tunes). Files `kaggle_submissions/2026-11-10_final_{A,C}_*.csv`.
+- **Test is ~15% verse** (short lines, no digits) vs 0.3% of train. Line structure is a train shortcut (human
+  median 80 words/line, AI 28); `preprocessing.join_lines` exists to test it (off in every submitted model).
 
 Data:
 - Formatting differs systematically by class in train: blank lines (`\n\n`) appear in ~66% of AI passages and almost no
@@ -207,7 +182,7 @@ Full PC benchmark (session `20261028-145019_pc`, 35 jobs, 5-fold stratified CV u
 `experiments/sessions/20261028-145019_pc/report.md`):
 - **Train is close to saturated.** Every reasonable model is ≥ 0.990 CV AUROC, so differences between the top ~10 are
   within noise (fold std ≈ 0.0005). The real question is generalisation to unseen test domains/generators, which train
-  CV can't measure → next step is an out-of-distribution eval set (`data.eval_files`) rather than chasing stratified CV.
+  CV can't measure (`cluster` CV, whole topics held out, is the label-safe estimate of that).
 - **Winning families:** LM token statistics + style features → LightGBM (`lm_gpt2` 0.9993, `lm_gpt2_medium` /
   `binoculars_qwen05b` / `binoculars_qwen15b` 0.9992, 2–20 min); compact fine-tunes (`ft_distilroberta` 0.9991,
   `ft_modernbert_base` 0.9990, `ft_roberta_base` 0.9987, 12–33 min); stylometric GBM ext 0.9984 in < 1 min.
@@ -291,6 +266,15 @@ New best scores appear in the Results table automatically when runs are logged;
 after a run_all session, add its headline findings to "Observations so far".
 
 ## Changelog
+
+- 2026-11-10 — Removed the self-built external evaluation set (7 local generators + Project Gutenberg) and
+  everything that built or scored it (`scripts/eval_ood.py`, `build_eval_set.py`, `generate_ai_text.py`,
+  `fetch_gutenberg.py`, `add_external_data.py`, `experiments/ood_eval.csv`, the `ood` profile, `data.eval_files`),
+  because competition rule 4(b) forbids externally sourced labelled data for validation or model choice. The `blends`
+  profile replaces `ood` (same jobs, no eval files); `data.external_files` is now refused. Blend B, which never used
+  the set, is unchanged; A and C were rebuilt with topic-held-out CV (`topic_cv` profile,
+  `scripts/select_blend.py`). Run in the `cs-aml` env: base Anaconda has no LightGBM and silently falls back to
+  sklearn's HistGradientBoosting. Audit: `../common/results/proxy_audit.md`.
 
 - 2026-10-31 — Held-out evaluation and final submissions (see the summary at the top of "Observations so far").
   `scripts/build_eval_set.py` (7 unseen generators + held-out Gutenberg, eval only), `scripts/eval_ood.py`

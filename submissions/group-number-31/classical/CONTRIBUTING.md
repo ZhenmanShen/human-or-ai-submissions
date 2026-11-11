@@ -48,7 +48,7 @@ cp configs/template.yaml configs/<model>.yaml
 ```bash
 python train.py --model <model>              # search (if any) -> fit on 8,000 -> score the fixed 2,000
 python train.py --model <model> --final      # only for a Kaggle file: refit on 10,000 rows (new model: --letter <X>)
-python ood_eval.py --model <model>           # optional: score on held-out shifted text (proxy for Kaggle)
+python train.py --model <model> --cv topic   # optional: inner CV that holds out whole topics (domain shift)
 ```
 
 The first command writes `results/<model>/metrics.json`, `val_pred.csv` and `search.csv`, and adds or updates
