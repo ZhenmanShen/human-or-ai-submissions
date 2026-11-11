@@ -284,7 +284,6 @@ Self-training, 3 rounds (\texttt{stylo\_gbm}) & 0.99835 \\
 
 \textbf{The pool also does not cover the shift.} \texttt{unlabeled.csv} has 1.2\% verse-like passages, like train (1.6\%), while test has 16.6\%. So it cannot teach what test needs.
 
-\newpage
 \section{Generalization and error analysis (20 points)}
 \textbf{Learning goal:} characterize how well the selected model generalizes and where it fails. Use \textbf{labeled validation data}; hidden test labels and hidden domain/generator information are unavailable.
 
@@ -324,7 +323,9 @@ verse (line structure; 4 AI) & 25 & 1.00000 \\
 \textbf{Observed.} Blend A is at or above 0.9998 in every group. C2 is weakest on long passages (0.9967) and short-line lists (0.9974). Verse scores perfectly, but on only 25 rows (4 AI), so it is not informative. That is itself a finding: the subgroup that matters most for test is almost absent from the labelled data.
 
 \question{Q4.3 [5 points].}{Analyze at least \textbf{five false positives and five false negatives} from your held-out validation set. Provide example IDs, predicted probabilities, and short failure hypotheses. Do not paste full passages unless essential.}
+
 \textit{Blend A (our final pretrained model): its one false positive, its four highest-scored humans below 0.5 (near misses), and its five most confident false negatives.}
+
 {\small\begin{tabularx}{\linewidth}{@{}p{0.45in}p{0.82in}p{0.42in}Y@{}}\toprule ID & Error type & P(AI) & Possible reason \\ \midrule
 % <<gen file:pretrained/reports/tables/q43_errors.tex
 \mbox{2696} & FP & 0.557 & Run-on, repetitive predictive-text-style ramble with no punctuation, whole phrases repeated; the GPT-2 token-stats-only member ranks it 0.93, the others 0.49-0.56 - repetitive low-perplexity text looks like small-model AI output. \\
