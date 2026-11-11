@@ -88,7 +88,7 @@ data/  outputs/  pretrained/      git-ignored: data, run artefacts/logs/submissi
 |---|---|---|
 | `tfidf_logreg`, `tfidf_svm`, `tfidf_nb` | word+char TF-IDF → LR / linear SVM / NB-SVM | CPU |
 | `stylometric_gbm` | 43 style/formatting features → LightGBM | CPU |
-| `stylometric_gbm_ext` | + function words, POS-proxy rates, readability, coherence (Ma et al. 2023) | CPU |
+| `stylometric_gbm_ext` | + function words, approximate part-of-speech rates, readability, coherence (Ma et al. 2023) | CPU |
 | `lm_gpt2`, `lm_gpt2_medium` | GPT-2 token log-prob/rank/entropy stats + style → LightGBM | GPU or MPS |
 | `binoculars_qwen05b`, `binoculars_qwen15b` | Binoculars (Qwen2.5 base + instruct) + token stats + style → LightGBM | MPS ok for 0.5B; 1.5B GPU |
 | `binoculars_qwen15b_zeroshot` | raw Binoculars score, no training (shares the feature cache) | GPU |

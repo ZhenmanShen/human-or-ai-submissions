@@ -168,7 +168,7 @@ def _extended_one(t: str) -> list[float]:
         sum(c for w, c in counts.items() if w in PRONOUNS) / n,
         sum(c for w, c in counts.items() if w in CONJUNCTIONS) / n,
         sum(c for w, c in counts.items() if w in HEDGES) / n,
-        sum(c for w, c in counts.items() if w.endswith("ly") and len(w) > 4) / n,  # adverb proxy
+        sum(c for w, c in counts.items() if w.endswith("ly") and len(w) > 4) / n,  # adverb rate (words ending in -ly)
         len(_NUM_RE.findall(t)) / n,
         sum(1 for w in lw if len(w) > 6) / n,                            # long words
         spw,
