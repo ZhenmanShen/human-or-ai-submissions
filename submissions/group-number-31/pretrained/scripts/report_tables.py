@@ -38,11 +38,13 @@ REPR = {
     "ft_roberta_base": "fine-tuned RoBERTa-base (512 tokens)",
     "ft_deberta_v3_large": "fine-tuned DeBERTa-v3-large (512 tokens)",
     "ft_openai_detector_large": "fine-tuned OpenAI GPT-2-output detector (RoBERTa-large)",
-    "final_A_greedy_proxy": "blend A: 7 models, proxy-greedy weights (3,3,2,1,1,1,1)",
+    "ft_distilroberta": "fine-tuned DistilRoBERTa (512 tokens)",
+    "ft_modernbert_base": "fine-tuned ModernBERT-base (512 tokens)",
+    "final_A_topic_greedy": "blend A: 7 models, weights 4,2,2,1,1,1,1 by greedy selection on topic-held-out CV",
     "final_B_lm4": "blend B: 4 LM-feature models, equal weights",
-    "final_C_lm4_roberta": "blend C: B + RoBERTa-base, equal weights",
+    "final_C_lm4_distil": "blend C: B + DistilRoBERTa, equal weights",
 }
-NAME = {"final_A_greedy_proxy": "Blend A (final)", "final_B_lm4": "Blend B", "final_C_lm4_roberta": "Blend C"}
+NAME = {"final_A_topic_greedy": "Blend A", "final_B_lm4": "Blend B", "final_C_lm4_distil": "Blend C"}
 
 
 def tex(s) -> str:
@@ -167,27 +169,11 @@ def q4():
 
 
 def q5():
-    o = pd.read_csv(ROOT / "experiments" / "ood_eval.csv").set_index("run")
-    m = pd.read_csv(RES / "fixed_split" / "models.csv").set_index("model")
-    log = pd.read_csv(TEAM / "submission_log.csv", dtype=str).set_index("model")
-    rows = []
-    for label, blend, name in [("Baseline: blend B (equal weights, no eval-set tuning)", "blend:lm4", "final_B_lm4"),
-                               ("Improvement: blend A (greedy weights on the OOD proxy)", "blend:greedy_proxy",
-                                "final_A_greedy_proxy")]:
-        rows.append(f"{label} & {f5(m.loc[name, 'val_auroc'])} & {secs(m.loc[name, 'fit_time_s'])} & "
-                    f"proxy {o.loc[blend, 'proxy_auc']:.4f}; unseen-generator {o.loc[blend, 'newgen_auc']:.4f}; "
-                    f"Kaggle public {float(log.loc[name, 'kaggle_public']):.5f} \\\\")
-    write("q53_improvement.tex", rows)
+    """Formatting-cue ablation on the fixed split (validation AUROC only)."""
     deb = RES / "debias_fixed_split.csv"
     if deb.exists():
         d = pd.read_csv(deb)
-        proxy = {("stylometric_gbm_ext", "as is"): "20261030-135404_ood__stylometric_gbm_ext",
-                 ("stylometric_gbm_ext", "debiased"): "20261030-135404_ood__debiased_stylo_ext",
-                 ("stylometric_gbm_ext", "join_lines"): "20261031_join__stylo_ext",
-                 ("lm_gpt2", "as is"): "20261030-135404_ood__lm_gpt2",
-                 ("lm_gpt2", "debiased"): "20261030-135404_ood__debiased_lm_gpt2"}
-        write("q53_debias.tex", [f"\\texttt{{{tex(r.model)}}}, {tex(r.variant)} & {f4(r.val_auroc)} & "
-                                 f"{f4(o.loc[proxy[(r.model, r.variant)], 'proxy_auc']) if (r.model, r.variant) in proxy and proxy[(r.model, r.variant)] in o.index else '--'} \\\\"
+        write("q53_debias.tex", [f"\\texttt{{{tex(r.model)}}}, {tex(r.variant)} & {f4(r.val_auroc)} \\\\"
                                  for _, r in d.iterrows()])
 
 

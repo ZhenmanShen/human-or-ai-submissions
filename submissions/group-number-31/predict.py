@@ -5,7 +5,7 @@
   python predict.py --model blend_b --committed --out submission.csv    # copy the file we uploaded, no compute
 
 Models: tfidf_lr, stylo_gbm, transformer_scratch (+ the other classical models after train.py --final),
-blend_b (final pretrained selection), blend_c, blend_a (kept to reproduce their logged uploads). See MODELS.md.
+blend_a, blend_b, blend_c. See MODELS.md for what each one is.
 
 Blends re-predict test.csv with the saved 5-fold runs behind the uploaded files. Those runs are 0.3-1.7 GB per
 fold, so they are not in git. They live in the research repo's outputs/runs/, or wherever --runs-dir points.
@@ -23,17 +23,17 @@ TEAM = Path(__file__).resolve().parent
 RESEARCH_RUNS = TEAM.parents[2] / "AI-vs-Human-Text-Cornell-Tech-Competition-" / "outputs" / "runs"
 # the runs and weights of the three uploaded files (pretrained/scripts/report_experiments.py: BLENDS, ORIGINAL_RUNS)
 RUN = {m: f"20261030-135404_ood__{m}" for m in
-       ["lm_gpt2", "lm_gpt2_medium", "binoculars_qwen05b", "binoculars_qwen15b", "ft_roberta_base"]}
-RUN.update(ft_deberta_v3_large="20261031-144451_ood__ft_deberta_v3_large",
-           ft_openai_detector_large="20261031-144451_ood__ft_openai_detector_large",
-           lm_gpt2_nostyle="20261031_var__lm_gpt2_nostyle")
+       ["lm_gpt2", "lm_gpt2_medium", "binoculars_qwen05b", "binoculars_qwen15b", "ft_roberta_base",
+        "ft_distilroberta", "ft_modernbert_base"]}
+RUN.update(lm_gpt2_nostyle="20261031_var__lm_gpt2_nostyle")
+# weights from pretrained/results/blend_selection/selection.json (train.csv labels only)
 BLENDS = {
-    "blend_a": ("final_A_greedy_proxy", {"lm_gpt2_medium": 3, "binoculars_qwen05b": 3, "binoculars_qwen15b": 2,
-                                         "ft_deberta_v3_large": 1, "ft_roberta_base": 1, "lm_gpt2_nostyle": 1,
-                                         "ft_openai_detector_large": 1}),
+    "blend_a": ("final_A_topic_greedy", {"binoculars_qwen05b": 4, "ft_distilroberta": 2, "ft_modernbert_base": 2,
+                                         "lm_gpt2_medium": 1, "lm_gpt2_nostyle": 1, "ft_roberta_base": 1,
+                                         "lm_gpt2": 1}),
     "blend_b": ("final_B_lm4", {"lm_gpt2": 1, "lm_gpt2_medium": 1, "binoculars_qwen05b": 1, "binoculars_qwen15b": 1}),
-    "blend_c": ("final_C_lm4_roberta", {"lm_gpt2": 1, "lm_gpt2_medium": 1, "binoculars_qwen05b": 1,
-                                        "binoculars_qwen15b": 1, "ft_roberta_base": 1}),
+    "blend_c": ("final_C_lm4_distil", {"lm_gpt2": 1, "lm_gpt2_medium": 1, "binoculars_qwen05b": 1,
+                                       "binoculars_qwen15b": 1, "ft_distilroberta": 1}),
 }
 
 

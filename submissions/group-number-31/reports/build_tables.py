@@ -39,15 +39,19 @@ def main():
     write("kaggle_uploads.tex", kaggle_uploads())
 
 
-UPLOADS = [  # (log model, Kaggle file letter, model label): every upload, in upload order
-    ("final_A_greedy_proxy", "A", "Blend A (final): 7 models, proxy-chosen weights"),
+UPLOADS = [  # (log model, Kaggle file letter, model label): every file, in upload order
+    ("final_A_greedy_proxy", "A (v1)", "Blend A, v1: weights chosen on the external proxy (removed)"),
     ("final_B_lm4", "B", "Blend B: 4 frozen-LM heads, equal weights"),
-    ("final_C_lm4_roberta", "C", "Blend C: blend B + RoBERTa-base"),
+    ("final_C_lm4_roberta", "C (v1)", "Blend C, v1: blend B + RoBERTa-base (proxy-favoured)"),
     ("final_D_stylo_gbm", "D", "C2 stylometric GBM"),
     ("final_E_tfidf_lr@v1", "E (v1)", "C1 TF-IDF + LR, first version"),
     ("final_F_transformer_scratch@v1", "F (v1)", "C3 Transformer, first version"),
-    ("final_E_tfidf_lr", "E", "C1 TF-IDF + LR, v2 (raw char + distorted n-grams)"),
-    ("final_F_transformer_scratch", "F", "C3 Transformer, v2 (lines joined, distorted)"),
+    ("final_E_tfidf_lr@v2", "E (v2)", "C1 TF-IDF + LR, v2 (design chosen on the external proxy)"),
+    ("final_F_transformer_scratch@v2", "F (v2)", "C3 Transformer, v2 (design chosen on the external proxy)"),
+    ("final_A_topic_greedy", "A", "Blend A: 7 models, greedy weights on topic-held-out CV"),
+    ("final_C_lm4_distil", "C", "Blend C: blend B + DistilRoBERTa"),
+    ("final_E_tfidf_lr", "E", "C1 TF-IDF + LR, v3 (chosen by topic-held-out CV)"),
+    ("final_F_transformer_scratch", "F", "C3 Transformer, v3 (chosen by topic-held-out CV)"),
 ]
 
 
@@ -59,7 +63,8 @@ def kaggle_uploads() -> list[str]:
     out = []
     for model, letter, label in UPLOADS:
         r = log.loc[model]
-        out.append(f"{letter} & {label} & {float(r.val_auroc):.5f} & {float(r.kaggle_public):.5f} & "
+        pub = f"{float(r.kaggle_public):.5f}" if r.kaggle_public.replace(".", "", 1).isdigit() else r.kaggle_public
+        out.append(f"{letter} & {label} & {float(r.val_auroc):.5f} & {pub} & "
                    f"{r.kaggle_private or '--'} & \\href{{{url}{r.commit}}}{{\\texttt{{{r.commit[:7]}}}}} \\\\")
     return out
 

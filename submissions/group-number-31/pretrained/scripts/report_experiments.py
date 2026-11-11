@@ -4,7 +4,7 @@
   python scripts/report_experiments.py hpsearch [--jobs 3]     # Q1.3: 5-fold CV inside the 8,000 rows
   python scripts/report_experiments.py curve                   # Q2: 500 ... 8,000 nested training rows
   python scripts/report_experiments.py semisup                 # Q3: pseudo-labelling unlabeled.csv
-  python scripts/report_experiments.py errors                  # Q4: blend A subgroups + FP/FN
+  python scripts/report_experiments.py errors                  # Q4: blend B (final selection) subgroups + FP/FN
   python scripts/report_experiments.py debias                  # Q5: formatting-cue ablation on the fixed split
 
 Every subcommand writes CSVs under results/ (committed); scripts/report_tables.py turns them into the
@@ -39,16 +39,15 @@ RUNS = ROOT / "outputs" / "runs"
 FIXED = ["cv.scheme=fixed", f"seed={SEED}"]
 
 MODELS = ["tfidf_logreg", "stylometric_gbm_ext", "lm_gpt2", "lm_gpt2_nostyle", "lm_gpt2_medium",
-          "binoculars_qwen05b", "binoculars_qwen15b", "ft_roberta_base", "ft_deberta_v3_large",
-          "ft_openai_detector_large"]
-# Blend weights exactly as uploaded (AGENTS.md "final submissions"; outputs/logs/final_*.log in the research repo)
+          "binoculars_qwen05b", "binoculars_qwen15b", "ft_roberta_base", "ft_distilroberta", "ft_modernbert_base",
+          "ft_deberta_v3_large", "ft_openai_detector_large"]
+# Blend weights of the Kaggle files (../predict.py BLENDS; A from results/blend_selection/selection.json)
 BLENDS = {
-    "final_A_greedy_proxy": {"lm_gpt2_medium": 3, "binoculars_qwen05b": 3, "binoculars_qwen15b": 2,
-                             "ft_deberta_v3_large": 1, "ft_roberta_base": 1, "lm_gpt2_nostyle": 1,
-                             "ft_openai_detector_large": 1},
+    "final_A_topic_greedy": {"binoculars_qwen05b": 4, "ft_distilroberta": 2, "ft_modernbert_base": 2,
+                             "lm_gpt2_medium": 1, "lm_gpt2_nostyle": 1, "ft_roberta_base": 1, "lm_gpt2": 1},
     "final_B_lm4": {"lm_gpt2": 1, "lm_gpt2_medium": 1, "binoculars_qwen05b": 1, "binoculars_qwen15b": 1},
-    "final_C_lm4_roberta": {"lm_gpt2": 1, "lm_gpt2_medium": 1, "binoculars_qwen05b": 1,
-                            "binoculars_qwen15b": 1, "ft_roberta_base": 1},
+    "final_C_lm4_distil": {"lm_gpt2": 1, "lm_gpt2_medium": 1, "binoculars_qwen05b": 1,
+                           "binoculars_qwen15b": 1, "ft_distilroberta": 1},
 }
 # original 5-fold CV runs (seed 42) behind the uploaded files, for the "CV vs fixed split" comparison
 ORIGINAL_RUNS = {m: f"20261030-135404_ood__{m}" for m in MODELS}
@@ -203,14 +202,14 @@ def load_cfg_val_ids() -> str:
 def cmd_errors(args):
     y, train = labels()
     V = pd.read_csv(RESULTS / "fixed_split" / "val_preds.csv").set_index("id")
-    score = blend(V, BLENDS["final_A_greedy_proxy"])
+    score = blend(V, BLENDS[args.blend])
     texts = train.loc[V.index, "text"]
     yv = y.loc[V.index].to_numpy()
     lb = length_bin_auroc(texts, yv, score).assign(grouping="word count")
     vp = verse_prose_auroc(texts, yv, score).assign(grouping="line structure")
     write(pd.concat([lb, vp], ignore_index=True), "error_analysis/subgroups.csv")
     err = errors(V.index, yv, score, threshold=0.5, k=5)
-    # Blend A makes fewer than 5 errors of a kind at 0.5: fill up with the closest misses on the right side
+    # A strong blend makes fewer than 5 errors of a kind at 0.5: fill up with the closest misses on the right side
     # of the threshold (highest-scored humans / lowest-scored AI), marked as near misses.
     df = pd.DataFrame({"id": V.index, "label": yv, "p_ai": np.asarray(score)})
     for kind, cls, asc in (("FP", 0, False), ("FN", 1, True)):
@@ -221,7 +220,7 @@ def cmd_errors(args):
     err["words"] = word_count(texts.loc[err["id"]])
     err["blank_lines"] = [t.count("\n\n") for t in texts.loc[err["id"]]]
     err["lines"] = [len([ln for ln in t.splitlines() if ln.strip()]) for t in texts.loc[err["id"]]]
-    for m in BLENDS["final_A_greedy_proxy"]:  # each member's percentile rank: which models were fooled
+    for m in BLENDS[args.blend]:  # each member's percentile rank: which models were fooled
         err[f"rank_{m}"] = pd.Series(rank01(V[m]), index=V.index).loc[err["id"]].to_numpy()
     err["hypothesis"] = ""  # written by hand in the report after reading each passage
     write(err, "error_analysis/fp_fn.csv")
@@ -256,6 +255,7 @@ def main():
     ap.add_argument("--session", help="collect: the run_all session of configs/experiments/fixed.yaml")
     ap.add_argument("--jobs", type=int, default=3, help="hpsearch: parallel train.py processes")
     ap.add_argument("--show", action="store_true", help="errors: print the FP/FN passages")
+    ap.add_argument("--blend", default="final_B_lm4", choices=list(BLENDS), help="errors: the blend analysed")
     ap.add_argument("--data-dir", default=None)
     args = ap.parse_args()
     set_data_dir(args.data_dir)

@@ -23,17 +23,17 @@ import matplotlib.pyplot as plt  # noqa: E402
 
 TEAM = Path(__file__).resolve().parent.parent
 OUT = TEAM / "common"
-SIX = [("pretrained", "final_A_greedy_proxy", "Blend A"), ("pretrained", "final_B_lm4", "Blend B"),
-       ("pretrained", "final_C_lm4_roberta", "Blend C"), ("classical", "tfidf_lr", "C1 TF-IDF + LR"),
+SIX = [("pretrained", "final_A_topic_greedy", "Blend A"), ("pretrained", "final_B_lm4", "Blend B"),
+       ("pretrained", "final_C_lm4_distil", "Blend C"), ("classical", "tfidf_lr", "C1 TF-IDF + LR"),
        ("classical", "stylo_gbm", "C2 stylometric GBM"), ("classical", "transformer_scratch", "C3 Transformer (scratch)")]
 # classical results are named by model, their Kaggle uploads final_<letter>_<model> (the current version's file)
 UPLOAD = {"tfidf_lr": "final_E_tfidf_lr", "stylo_gbm": "final_D_stylo_gbm",
           "transformer_scratch": "final_F_transformer_scratch"}
 REPR = {
-    "final_A_greedy_proxy": "7-model CDF blend: 3 frozen-LM + style heads, GPT-2 stats-only head, "
-                            "3 fine-tuned encoders; weights 3,3,2,1,1,1,1",
+    "final_A_topic_greedy": "7-model CDF blend: 3 frozen-LM + style heads, GPT-2 stats-only head, "
+                            "3 fine-tuned encoders; weights 4,2,2,1,1,1,1 by greedy selection on topic-held-out CV",
     "final_B_lm4": "4 frozen-LM token-statistics + style heads (GPT-2, GPT-2-medium, 2 Qwen2.5 Binoculars), equal weights",
-    "final_C_lm4_roberta": "blend B + fine-tuned RoBERTa-base, equal weights",
+    "final_C_lm4_distil": "blend B + fine-tuned DistilRoBERTa, equal weights",
     "tfidf_lr": "word 1--2 + raw char 1--5 + distorted-text word 1--3 TF-IDF $\\to$ logistic regression",
     "stylo_gbm": "101 hand-crafted stylometric features $\\to$ LightGBM",
     "transformer_scratch": "lines joined, text distorted, 12k byte-level BPE $\\to$ 4-layer Transformer, random init",

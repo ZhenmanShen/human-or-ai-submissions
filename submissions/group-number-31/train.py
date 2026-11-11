@@ -7,8 +7,7 @@
 Models (see MODELS.md):
   classical, CPU-friendly:  tfidf_lr (C1), stylo_gbm (C2), transformer_scratch (C3, GPU optional),
                             linear_svm, nbsvm, rf_stylo, ensemble_c123
-  pretrained, GPU 12 GB:    blend_b (final selection), blend_c, blend_a (5-fold CV runs, seed 42, as uploaded;
-                            A and C are kept to reproduce their logged uploads, not as final selections)
+  pretrained, GPU 12 GB:    blend_a, blend_b, blend_c   (5-fold CV runs, seed 42)
 
 This script only forwards to the track scripts: classical/train.py and pretrained/run_all.py.
 Data: put train.csv, test.csv, unlabeled.csv and sample_submission.csv in ./data/ or pass --data-dir.
@@ -23,12 +22,12 @@ from pathlib import Path
 TEAM = Path(__file__).resolve().parent
 SEED = 20261023
 CLASSICAL = ["tfidf_lr", "stylo_gbm", "transformer_scratch", "linear_svm", "nbsvm", "rf_stylo", "ensemble_c123"]
-# members of the three uploaded pretrained blends (weights in pretrained/scripts/report_experiments.py BLENDS)
+# members of the three pretrained blends (weights in predict.py BLENDS)
 BLEND_MEMBERS = {
-    "blend_a": ["lm_gpt2_medium", "binoculars_qwen05b", "binoculars_qwen15b", "ft_deberta_v3_large",
-                "ft_roberta_base", "lm_gpt2_nostyle", "ft_openai_detector_large"],
+    "blend_a": ["binoculars_qwen05b", "ft_distilroberta", "ft_modernbert_base", "lm_gpt2_medium", "lm_gpt2_nostyle",
+                "ft_roberta_base", "lm_gpt2"],
     "blend_b": ["lm_gpt2", "lm_gpt2_medium", "binoculars_qwen05b", "binoculars_qwen15b"],
-    "blend_c": ["lm_gpt2", "lm_gpt2_medium", "binoculars_qwen05b", "binoculars_qwen15b", "ft_roberta_base"],
+    "blend_c": ["lm_gpt2", "lm_gpt2_medium", "binoculars_qwen05b", "binoculars_qwen15b", "ft_distilroberta"],
 }
 
 
