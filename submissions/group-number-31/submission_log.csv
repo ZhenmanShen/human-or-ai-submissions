@@ -8,7 +8,7 @@ date,track,model,file,commit,author,val_auroc,kaggle_public,kaggle_private,notes
 2026-11-01,classical,linear_svm,,2e086bbb3bb0efdcacd05c2be84f7e85ffe978c2,Max Shen,0.96235,not submitted,,
 2026-11-01,classical,nbsvm,,548c60872335e543fad8c65b94096f8d8f8b2735,Max Shen,0.96987,not submitted,,
 2026-11-01,classical,rf_stylo,,f55543e976e781ddbcd225c6526447a7bee9e358,Max Shen,0.99691,not submitted,,
-2026-11-01,classical,ensemble_c123,,b14f82a50f8a4b927c054734ba4546de4639b25f,Max Shen,0.99898,not submitted,,
+2026-11-01,classical,ensemble_c123,,a695e4b46cd2622a8c21be3e5e28e26b196acfcf,Max Shen,0.99877,not submitted,,
 2026-11-01,classical,stylo_gbm@no_added,,7f9337d15dac14bceda39a5845d5a797d1a7e998,Max Shen,0.99825,not submitted,,
 2026-11-01,classical,stylo_gbm@no_layout,,7f9337d15dac14bceda39a5845d5a797d1a7e998,Max Shen,0.98724,not submitted,,
 2026-11-01,pretrained,tfidf_logreg,,28eaaa38ed531b268eddd9a43d27a1ee12d9c2cb,Max Shen,0.96093,not submitted,,fixed-split re-run (seed 20261023); baseline
