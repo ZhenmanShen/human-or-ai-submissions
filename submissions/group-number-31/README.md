@@ -68,10 +68,10 @@ log as history.
 
 Notes:
 
-- **The report.** Its tables are generated: run the track scripts, then `python common/compare_tracks.py` and
-  `python reports/build_tables.py`.
-  - The report is one self-contained file: `python reports/inline_tables.py` copies the generated tables and plot
-    data into it. Upload the `reports/overleaf/` folder to Overleaf as is; it needs nothing else.
+- **The report** is `reports/overleaf/kaggle_report.tex`, one self-contained file (tables inlined, the plot in
+  pgfplots, references inline, no `.bib`). After any new result run `python reports/refresh.py` (cs-aml env): it
+  regenerates every table, inlines them, checks the file and compiles `reports/kaggle_report_preview.pdf`. Then
+  upload the `reports/overleaf/` folder to Overleaf as is; it needs nothing else.
 - **AI-assistant files.**
   - [`AGENTS.md`](AGENTS.md) in this folder is the team-wide briefing.
   - `pretrained/AGENTS.md` is the research repo's log of every experiment, carried over with the pretrained track.
@@ -132,7 +132,7 @@ Report experiments:
 cd classical  && python experiments.py curve | semisup | errors && python report_tables.py && cd ..
 cd pretrained && python run_all.py --profile fixed && python scripts/report_experiments.py collect --session outputs/sessions/<session>
               # then: hpsearch, curve, semisup, errors, debias; then python scripts/report_tables.py
-python common/compare_tracks.py && python reports/build_tables.py && python reports/inline_tables.py
+python reports/refresh.py          # all tables -> reports/overleaf/kaggle_report.tex -> preview PDF
 ```
 
 ## 4. Command that writes `submission.csv`

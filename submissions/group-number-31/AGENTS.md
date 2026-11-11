@@ -134,7 +134,8 @@ weighted average (`src/ensemble.py: cdf_mean`). Every member scores every text: 
    hidden labels (RAID or anywhere else).
 4. Never type a number into a report or README by hand. Every number comes from a results file written by code:
    - `classical/report_tables.py`, `pretrained/scripts/report_tables.py`, `common/compare_tracks.py` and
-     `reports/build_tables.py` generate the LaTeX tables;
+     `reports/build_tables.py` generate the LaTeX tables; `reports/refresh.py` runs them all and inlines the
+     result into `reports/overleaf/kaggle_report.tex` (see "The report and its Overleaf folder");
    - unknown values stay as visible `[TODO: ...]`.
 5. Never tune anything on the 2,000 validation rows or on the Kaggle leaderboard.
 6. Small commits, one idea each. Never squash, rebase or force-push pushed history: graders read it. The
@@ -165,17 +166,34 @@ git checkout main
 To update the PR later, merge `main` into that branch; the pointer files stay deleted there. Never merge the PR
 branch back into `main`, because that would delete the pointers from `main`.
 
+## The report and its Overleaf folder
+
+The report we submit is **`reports/overleaf/kaggle_report.tex`**, the only file in `reports/overleaf/`. The team
+uploads that folder to Overleaf as is, so it must always be current and self-contained:
+
+- **Whenever a result, table, model, score or the log changes, update the report in the same piece of work**:
+  run `python reports/refresh.py` (cs-aml env). It regenerates every table, inlines them into
+  `reports/overleaf/kaggle_report.tex`, checks the file and compiles it to `reports/kaggle_report_preview.pdf`.
+  Then fix any prose number that the change made stale (prose is not generated; search the `.tex` for the old
+  value), run `refresh.py` again, and commit the `.tex` and the preview PDF together.
+- Never edit between `% <<gen ...` and `% gen>>` by hand: those blocks are overwritten by `inline_tables.py`.
+- Keep `reports/overleaf/` to exactly what Overleaf needs: no `\input`, no image files, no `.bib` (references
+  are an inline `thebibliography`; the Q2.2 plot is pgfplots inside the `.tex`). Keep the file pure ASCII
+  (Overleaf compiles with pdfLaTeX); `refresh.py` fails if either rule breaks.
+- Matplotlib figures elsewhere (`*/reports/figures/`, `common/figures/`) are for the repo, not the report;
+  if a regeneration changes only their timestamps, don't commit them.
+- Tell the team after a report change, so they re-upload `reports/overleaf/kaggle_report.tex`.
+
 ## Regenerating everything (after new results)
 
 ```bash
 cd submissions/group-number-31
-python classical/report_tables.py
-python pretrained/scripts/report_tables.py
-python common/compare_tracks.py
-python reports/build_tables.py
-python reports/inline_tables.py      # copy the generated tables into the self-contained report
-# compile reports/overleaf/kaggle_report.tex (tectonic, or upload the reports/overleaf/ folder to Overleaf)
+python reports/refresh.py     # cs-aml env: all tables -> inline into reports/overleaf/ -> checks -> preview PDF
 ```
+
+`refresh.py` runs, in order: `classical/report_tables.py`, `pretrained/scripts/report_tables.py`,
+`common/compare_tracks.py`, `reports/build_tables.py`, `reports/inline_tables.py`, then a tectonic compile of
+the Overleaf folder alone (tectonic is in the `tex` conda env; `--no-pdf` skips it).
 
 ## Open TODOs (search for `[TODO`)
 
