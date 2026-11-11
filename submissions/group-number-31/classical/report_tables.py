@@ -32,7 +32,7 @@ ROWS = [  # (results dir, label, representation)
      "word 1--2 + raw char 1--5 + distorted-text word 1--3 TF-IDF $\\to$ logistic regression"),
     ("stylo_gbm", "C2 \\texttt{stylo\\_gbm}", "101 hand-crafted stylometric features $\\to$ LightGBM"),
     ("transformer_scratch", "C3 \\texttt{transformer\\_scratch}",
-     "lines joined, text distorted, 12k byte-level BPE $\\to$ 4-layer Transformer encoder, random init"),
+     "single line breaks joined, 12k byte-level BPE $\\to$ 4-layer Transformer encoder, random init"),
     ("linear_svm", "\\texttt{linear\\_svm}", "C1 v1 features (word + char\\_wb) $\\to$ linear SVM"),
     ("nbsvm", "\\texttt{nbsvm}", "binary n-grams scaled by NB log-count ratio $\\to$ LR"),
     ("rf_stylo", "\\texttt{rf\\_stylo}", "C2 features $\\to$ random forest"),

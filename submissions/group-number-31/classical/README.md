@@ -7,7 +7,7 @@ fixed 8,000 rows and is scored on the same 2,000 validation rows as the pretrain
 ## Setup
 
 ```bash
-pip install -r requirements.txt          # Python 3.12
+pip install -r requirements.txt          # Python 3.11
 python ../common/make_split.py           # verifies the shared validation split
 ```
 

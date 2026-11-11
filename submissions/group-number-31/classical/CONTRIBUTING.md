@@ -18,7 +18,7 @@ results files and the testing history.
    git config user.email "you@cornell.edu"
    ```
 
-3. Python 3.12: `pip install -r submissions/<team>/classical/requirements.txt`.
+3. Python 3.11: `pip install -r submissions/<team>/classical/requirements.txt`.
 4. Download `train.csv`, `test.csv`, `unlabeled.csv`, `sample_submission.csv` from the Kaggle Data tab into
    `submissions/<team>/data/` (git-ignored), or anywhere with `--data-dir PATH` / `HOA_DATA_DIR`.
 5. Check you have the same validation split as everyone else (the script compares against the committed file):

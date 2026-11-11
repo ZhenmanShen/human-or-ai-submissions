@@ -1,4 +1,4 @@
-# Classical track (Python 3.12; runs on a laptop CPU, GPU optional for transformer_scratch).
+# Classical track (Python 3.11; runs on a laptop CPU, GPU optional for transformer_scratch).
 # No pretrained weights are downloaded by anything in classical/.
 numpy>=1.26
 pandas>=2.2

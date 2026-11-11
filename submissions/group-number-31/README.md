@@ -81,8 +81,8 @@ Notes:
   course asks).
 - **`_example_team/`** next to this folder belongs to the course (its README says not to modify it), so it stays.
   Our layout follows it: `README.md`, `requirements.txt`, `train.py` and `predict.py` at the top of the team folder.
-- **Branches.** There is one branch, `main`. The course PR has to come from a branch named
-  `submission/group-number-31`; `AGENTS.md` shows how to create it from `main` when we open the PR.
+- **Branches.** There is one branch, `main`. The course PR comes from `submission/group-number-31`, a copy of
+  `main`. To update it, run `git push origin main:submission/group-number-31`.
 
 ## 1. Team
 
@@ -91,7 +91,7 @@ Notes:
 
 ## 2. Environment
 
-Python 3.12.
+Python 3.11.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate     # Windows: .venv\Scripts\activate
@@ -117,8 +117,11 @@ python common/make_split.py          # must print "OK: val_ids.csv reproduced ex
 1,000 human and 1,000 AI, made with `train_test_split` and seed `20261023`.
 
 - Every model in both tracks trains on the other 8,000 rows and is scored on these 2,000.
-- Hyperparameters are chosen by 5-fold CV inside the 8,000 rows, never on the validation set or on Kaggle.
-- Final Kaggle models are refit on all 10,000 rows.
+- Classical hyperparameters and designs are chosen by 5-fold CV inside the 8,000 rows, never on the validation set
+  or on Kaggle. Pretrained members use fixed settings.
+- Classical Kaggle models are refit on all 10,000 rows. The blends' Kaggle files come from 5-fold runs over all
+  10,000 rows (seed 42); blend A's weights and blend C's added encoder were chosen on those runs' out-of-fold
+  predictions, which include the validation rows.
 
 ```bash
 python train.py --model stylo_gbm --seed 20261023    # train on 8k, score the fixed 2k -> classical/results/stylo_gbm/
@@ -183,10 +186,10 @@ Matches Q6.3 in the report.
 
 Pretrained weights are used only in `pretrained/`. Appendix A of the report lists every checkpoint, how it was
 used and its citation:
-- submitted blends: GPT-2 and GPT-2-medium, Qwen2.5-0.5B/1.5B (base and instruct), RoBERTa-base,
-  DeBERTa-v3-large and the OpenAI RoBERTa-large GPT-2-output detector;
-- explored only: DeBERTa-v3-base/small, DistilRoBERTa, ModernBERT, ELECTRA, the base-size OpenAI detector,
-  BGE and E5 embeddings;
+- submitted blends (current versions): GPT-2 and GPT-2-medium, Qwen2.5-0.5B/1.5B (base and instruct),
+  DistilRoBERTa, ModernBERT-base and RoBERTa-base;
+- earlier blend A (v1) only: DeBERTa-v3-large and the OpenAI RoBERTa-large GPT-2-output detector;
+- explored only: DeBERTa-v3-base/small, ELECTRA, the base-size OpenAI detector, BGE and E5 embeddings.
 
 `classical/` uses no pretrained weights. No external LLM API labelled or scored test passages, and no hidden labels
 were retrieved.

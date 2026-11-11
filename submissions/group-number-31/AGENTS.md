@@ -123,8 +123,7 @@ weighted average (`src/ensemble.py: cdf_mean`). Every member scores every text: 
 
 ## Rules for any change
 
-1. Only add or modify files inside `submissions/group-number-31/`. The single exception is the pointer
-   `AGENTS.md`/`CLAUDE.md` at the repo root on `main`, which must not go into the course PR (see Branches).
+1. Only add or modify files inside `submissions/group-number-31/`.
 2. Never commit competition CSVs (`data/`), Kaggle credentials, `.env`, model weights, checkpoints, `outputs/`,
    `artifacts/` or caches. Run `git status` and check the staged list before every commit. The course root
    `.gitignore` ignores every `*.csv`; our `.gitignore` re-includes only results, logs, the val split and
@@ -151,20 +150,8 @@ There is one branch, `main`; work there, or on a short-lived branch merged back 
 older per-track and per-model branches (`pretrained`, `classical`, `model/*`) were merged and deleted on
 2026-11-04; their commits are all in `main`'s history.
 
-The course PR must come from a branch named `submission/group-number-31`, without the two root pointer files.
-Create it only when opening the PR (ask a human first):
-
-```bash
-# from the repo root
-git checkout -b submission/group-number-31 main
-git rm -q AGENTS.md CLAUDE.md          # root pointers only; the team folder's copies stay
-git commit -m "Keep the fork's root pointer files out of the course PR"
-git push -u origin submission/group-number-31
-git checkout main
-```
-
-To update the PR later, merge `main` into that branch; the pointer files stay deleted there. Never merge the PR
-branch back into `main`, because that would delete the pointers from `main`.
+The course PR comes from `submission/group-number-31`, a copy of `main`. To update it, run
+`git push origin main:submission/group-number-31`.
 
 ## The report and its Overleaf folder
 
@@ -197,8 +184,5 @@ the Overleaf folder alone (tectonic is in the `tex` conda env; `--no-pdf` skips 
 
 ## Open TODOs (search for `[TODO`)
 
-- Confirm the contribution notes in report Q0.1.
-- Private scores (after the deadline, Nov 11, 2026).
-- Mark A and D as the final selections on Kaggle (A v2 public 0.98810, D 0.95995).
-- The PR URL.
-- The AI-use disclosure in `README.md` §6 and report Q6.3: the team must say what they verified.
+- The PR URL (title page and Q6.1).
+- Private scores, after the reveal.

@@ -36,7 +36,7 @@ REPR = {
     "final_C_lm4_distil": "blend B + fine-tuned DistilRoBERTa, equal weights",
     "tfidf_lr": "word 1--2 + raw char 1--5 + distorted-text word 1--3 TF-IDF $\\to$ logistic regression",
     "stylo_gbm": "101 hand-crafted stylometric features $\\to$ LightGBM",
-    "transformer_scratch": "lines joined, text distorted, 12k byte-level BPE $\\to$ 4-layer Transformer, random init",
+    "transformer_scratch": "single line breaks joined, 12k byte-level BPE $\\to$ 4-layer Transformer, random init",
 }
 BLEND_HW = "RTX 5070 + RTX 3060"  # pretrained members ran on both GPUs (see results/fixed_split/models.csv)
 
