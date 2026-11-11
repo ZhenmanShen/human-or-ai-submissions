@@ -11,9 +11,9 @@ is made of, what was trained, and the exact pipeline and commands. Every number 
 
 | # | Submission | Track | Uploaded file | Val AUROC | Public AUROC |
 |---|---|---|---|---|---|
-| 1 | Blend A | pretrained | `pretrained/kaggle_submissions/2026-10-31_final_A_greedy_proxy.csv` | 0.99990 | **0.99161** |
-| 2 | Blend B | pretrained | `pretrained/kaggle_submissions/2026-10-31_final_B_lm4.csv` | 0.99985 | 0.98848 |
-| 3 | Blend C | pretrained | `pretrained/kaggle_submissions/2026-10-31_final_C_lm4_roberta.csv` | 0.99987 | 0.98845 |
+| 1 | Blend A (v2) | pretrained | `pretrained/kaggle_submissions/final_A_topic_greedy.csv` | 0.99987 | [TODO: upload] |
+| 2 | Blend B | pretrained | `pretrained/kaggle_submissions/final_B_lm4.csv` | 0.99985 | 0.98848 |
+| 3 | Blend C (v2) | pretrained | `pretrained/kaggle_submissions/final_C_lm4_distil.csv` | 0.99994 | [TODO: upload] |
 | 4 | D: C2 `stylo_gbm` | classical | `classical/kaggle_submissions/final_D_stylo_gbm.csv` | 0.99831 | 0.95995 |
 | 5 | E: C1 `tfidf_lr` (v2) | classical | `classical/kaggle_submissions/final_E_tfidf_lr.csv` | 0.99678 | 0.96374 |
 | 6 | F: C3 `transformer_scratch` (v2) | classical | `classical/kaggle_submissions/final_F_transformer_scratch.csv` | 0.98903 | 0.91502 |
@@ -116,12 +116,14 @@ Code: `pretrained/src/models/transformer.py`. Configs: `pretrained/configs/model
 | Member | Base checkpoint | Size | LR | Epochs | Batch × accum | Fixed-split val AUROC |
 |---|---|---|---|---|---|---|
 | `ft_roberta_base` | `FacebookAI/roberta-base` | 125M | 2e-5 | 3 | 16 × 2 | 0.99812 |
-| `ft_deberta_v3_large` | `microsoft/deberta-v3-large` | 435M | 8e-6 | 2 | 4 × 8 | 0.99613 |
-| `ft_openai_detector_large` | `openai-community/roberta-large-openai-detector` (RoBERTa-large already fine-tuned by OpenAI on GPT-2 output) | 355M | 8e-6 | 2 | 8 × 4 | 0.99836 |
+| `ft_distilroberta` | `distilbert/distilroberta-base` | 82M | 3e-5 | 3 | 32 × 1 | 0.99933 |
+| `ft_modernbert_base` | `answerdotai/ModernBERT-base` | 149M | 3e-5 | 3 | 16 × 2 | 0.99868 |
+| `ft_deberta_v3_large` (A v1 only) | `microsoft/deberta-v3-large` | 435M | 8e-6 | 2 | 4 × 8 | 0.99613 |
+| `ft_openai_detector_large` (A v1 only) | `openai-community/roberta-large-openai-detector` (RoBERTa-large already fine-tuned by OpenAI on GPT-2 output) | 355M | 8e-6 | 2 | 8 × 4 | 0.99836 |
 
 ### 1.4 How the uploaded blend files were produced
 
-1. **Cross-validation runs.** `pretrained/run_all.py --profile ood` ran every member with 5-fold stratified CV on
+1. **Cross-validation runs.** `pretrained/run_all.py --profile blends` (then named `ood`) ran every member with 5-fold stratified CV on
    all 10,000 rows (seed 42, fold *k* seeded 42 + *k*). It used two GPUs (RTX 5070 + RTX 3060) and took about 4 h.
    Each run saved:
    - **out-of-fold predictions** for all 10,000 rows (every row scored by a model that never saw it);
@@ -132,37 +134,42 @@ Code: `pretrained/src/models/transformer.py`. Configs: `pretrained/configs/model
    what else is in test.
 3. **Weighted average** with the weights below (`pretrained/make_submission.py`).
 
-| Blend | Members (weight) | How the weights were chosen |
+| Blend | Members (weight) | How the members and weights were chosen |
 |---|---|---|
-| **A** | `lm_gpt2_medium` ×3, `binoculars_qwen05b` ×3, `binoculars_qwen15b` ×2, `ft_deberta_v3_large` ×1, `ft_roberta_base` ×1, `lm_gpt2_nostyle` ×1, `ft_openai_detector_large` ×1 | Greedy forward selection with replacement (Caruana et al., 2004) on an out-of-distribution proxy, described below |
-| **B** | `lm_gpt2`, `lm_gpt2_medium`, `binoculars_qwen05b`, `binoculars_qwen15b`, all ×1 | Equal weights: the four best LM-feature models by CV, chosen without the proxy |
-| **C** | B's four + `ft_roberta_base`, all ×1 | Equal weights: tests whether adding one fine-tuned encoder helps |
+| **A** | `binoculars_qwen05b` ×4, `ft_distilroberta` ×2, `ft_modernbert_base` ×2, `lm_gpt2_medium`, `lm_gpt2_nostyle`, `ft_roberta_base`, `lm_gpt2` ×1 | Greedy forward selection with replacement (Caruana et al., 2004; 12 picks) maximising the AUROC of the members' **topic-held-out** out-of-fold predictions (below) |
+| **B** | `lm_gpt2`, `lm_gpt2_medium`, `binoculars_qwen05b`, `binoculars_qwen15b`, all ×1 | Equal weights; the four best runs of the 35-job benchmark by 5-fold CV (any family) |
+| **C** | B's four + `ft_distilroberta`, all ×1 | Equal weights; B plus the fine-tuned encoder with the best 5-fold CV |
 
-**The out-of-distribution proxy (blend A only).** Test has creative writing and generators that `train.csv`
-lacks, so we built a held-out set to choose weights. It was used **only to score models and pick weights, never
-for training**, and the report discloses it (Q5.2 and Q6.3). It contains:
+**Topic-held-out CV (chooses A).** Train CV is saturated (every strong member ≈ 0.999), so it cannot rank blends.
+`run_all.py --profile topic_cv` reruns each candidate with 5-fold CV in which whole k-means topics of `train.csv`
+(k=10 on TF-IDF) are held out, a label-safe stand-in for the unseen domains in test. The greedy selection then
+picks the weights on those out-of-fold scores (`scripts/select_blend.py`, rule pre-registered in
+`configs/selection/blends.yaml`; results in `results/blend_selection/`). Test predictions still come from the
+stratified runs above. DeBERTa-v3-large and the large OpenAI detector were left out of the pool (each would add
+1–1.5 h of GPU time).
 
-- 542 rewrites of training human passages, plus 816 poems and stories, generated locally by 7 open models never
-  used for training: Llama-3.2-3B-Instruct, Qwen3-4B-Instruct, Phi-3.5-mini-instruct, SmolLM2-1.7B-Instruct,
-  Granite-3.1-2B-Instruct, OLMo-2-1B-Instruct and Pythia-1.4B;
-- 681 human poems and stories from held-out Project Gutenberg books.
+**History: the external evaluation set (removed).** The first A and C (uploaded 2026-10-31, public 0.99161 and
+0.98845) were chosen on a labelled set we built ourselves: AI text from 7 local open-weight generators and human
+poems and stories from held-out Project Gutenberg books. Nothing was trained on it, but it chose A's weights and C's
+fifth member (RoBERTa-base, over the CV-better DistilRoBERTa). Competition rule 4(b) forbids externally sourced
+labelled data to "train, validate, or determine competition predictions", so we removed the set and rebuilt A and C
+as above. The old files stay in git history and in the log (`final_A_greedy_proxy`, `final_C_lm4_roberta`); the
+audit is `common/results/proxy_audit.md`. B never used the set and is unchanged.
 
-Rules note: choosing 7 blend weights on labels we made ourselves is the one grey area in our work (the course says
-supervised labels must come only from `train.csv`). Blend B and C involve no such choice.
-
-**Reproducing.** These files are re-created exactly (max difference 0) from the saved runs, which are not in git:
+**Reproducing.** The files are built from the saved runs, which are not in git (B is re-created exactly,
+`pretrained/results/reproduction.csv`; fine-tune members re-predict with bf16 noise, Spearman ≥ 0.9999):
 
 ```bash
-python predict.py --model blend_a --out submission.csv            # also blend_b, blend_c; needs the saved runs + GPU
-python predict.py --model blend_a --committed --out submission.csv # just copy the uploaded file
-python train.py --model blend_a                                    # retrain the members from scratch (~4 h, 2 GPUs)
+python predict.py --model blend_b --out submission.csv            # also blend_c, blend_a; needs the saved runs + GPU
+python predict.py --model blend_b --committed --out submission.csv # just copy the uploaded file
+python train.py --model blend_b                                    # retrain the members from scratch (GPU, hours)
 ```
 
 After a retrain, build the blend from the new run folders:
 
 ```bash
 cd pretrained
-python make_submission.py --run <run dirs> --weights 3 3 2 1 1 1 1 --name blend_a
+python make_submission.py --run <run dirs> --weights <w> --name <file>   # weights: predict.py BLENDS
 ```
 
 The record: `pretrained/results/reproduction.csv`, and the research log in `pretrained/experiments/results.csv`

@@ -58,7 +58,7 @@ Source of these numbers: `submission_log.csv` / `SUBMISSIONS.md`. Always re-read
 snapshot.
 
 One Kaggle file per model, letters A–F only (no new letters: a new version replaces its model's file). Pretrained:
-`pretrained/kaggle_submissions/<date>_final_{A,B,C}_*.csv`; don't rewrite an uploaded file. Classical:
+`pretrained/kaggle_submissions/final_{A,B,C}_*.csv`, no date; don't rewrite an uploaded file. Classical:
 `classical/kaggle_submissions/final_{D,E,F}_<model>.csv`, no date. Earlier versions stay in git history and in the
 log: `final_A_greedy_proxy`, `final_C_lm4_roberta`, `final_E_tfidf_lr@v1/@v2`, `final_F_transformer_scratch@v1/@v2`.
 

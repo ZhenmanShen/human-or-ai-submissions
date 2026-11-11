@@ -161,7 +161,7 @@ ft_roberta_base). Kaggle public: A 0.9916, B 0.9885, C 0.9885; train CV (≈ 0.9
   candidates with topic-held-out CV (whole k-means clusters of train held out), then `scripts/select_blend.py`
   (rule pre-registered in `configs/selection/blends.yaml`): A = greedy selection on the topic-held-out OOF
   (qwen05b ×4, distilroberta ×2, modernbert ×2, gpt2-medium, gpt2-nostyle, roberta-base, gpt2 ×1); C = B +
-  ft_distilroberta (best 5-fold CV of the fine-tunes). Files `kaggle_submissions/2026-11-10_final_{A,C}_*.csv`.
+  ft_distilroberta (best 5-fold CV of the fine-tunes). Files `kaggle_submissions/final_{A,C}_*.csv`.
 - **Test is ~15% verse** (short lines, no digits) vs 0.3% of train. Line structure is a train shortcut (human
   median 80 words/line, AI 28); `preprocessing.join_lines` exists to test it (off in every submitted model).
 
