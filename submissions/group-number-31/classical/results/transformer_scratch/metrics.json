@@ -19,16 +19,16 @@
     "join_lines": true
   },
   "seed": 20261023,
-  "train_auroc": 0.99929359375,
-  "val_auroc": 0.9840445,
-  "val_tpr_at_1fpr": 0.92,
+  "train_auroc": 0.99849146875,
+  "val_auroc": 0.9859010000000001,
+  "val_tpr_at_1fpr": 0.914,
   "n_train": 8000,
   "n_val": 2000,
-  "fit_time_s": 114.7,
-  "val_predict_time_s": 0.8,
+  "fit_time_s": 33.9,
+  "val_predict_time_s": 0.4,
   "hardware": "NVIDIA GeForce RTX 5070",
   "searched": false,
   "cv": "stratified",
-  "timestamp": "2026-11-10T17:31:01",
-  "git_commit": "497c7afe6011050ef6cbdc07b8b11593b23ffc4b"
+  "timestamp": "2026-11-10T20:00:52",
+  "git_commit": "0be4366ec693d788cdc418275499d1e36ce3c6ff"
 }
