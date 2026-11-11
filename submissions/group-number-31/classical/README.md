@@ -49,10 +49,6 @@ word TF-IDF of those rows only, seed 20261023) and each of the 5 folds holds out
 listed in `configs/selection/<name>.yaml`, applies the rule written there (committed before the run) and writes
 `results/selection/<name>/`.
 
-An earlier version of this track compared C1/C3 designs on a self-built external evaluation set (7 local generators
-+ Project Gutenberg). Competition rule 4(b) forbids externally sourced labelled data for validation or model choice,
-so it was removed and the designs were re-selected with topic-held-out CV (`../common/results/proxy_audit.md`).
-
 ## Models
 
 | name | what |

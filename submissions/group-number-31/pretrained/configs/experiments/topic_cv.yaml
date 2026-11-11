@@ -1,9 +1,9 @@
-# Topic-held-out 5-fold CV of the candidate blend members, to choose blends A and C without external data
+# Topic-held-out 5-fold CV of the candidate blend members, to choose blends A and C from train.csv only
 # (configs/selection/blends.yaml). K-means (k=10) on TF-IDF of the 10,000 train.csv rows; whole clusters are held
 # out (StratifiedGroupKFold). Seed 42 as the uploaded runs. LM features come from outputs/cache/.
 #   python run_all.py --profile topic_cv
 #   python scripts/select_blend.py --session outputs/sessions/<session>
-description: Topic-held-out CV of the blend candidates (train.csv only), for proxy-free blend selection.
+description: Topic-held-out CV of the blend candidates (train.csv only), for blend selection.
 log_results: false   # selection inputs only; results/blend_selection/ keeps the record
 
 defaults:

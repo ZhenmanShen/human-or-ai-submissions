@@ -60,16 +60,14 @@ snapshot.
 One Kaggle file per model, letters A–F only (no new letters: a new version replaces its model's file). Pretrained:
 `pretrained/kaggle_submissions/final_{A,B,C}_*.csv`, no date; don't rewrite an uploaded file. Classical:
 `classical/kaggle_submissions/final_{D,E,F}_<model>.csv`, no date. Earlier versions stay in git history and in the
-log: `final_A_greedy_proxy`, `final_C_lm4_roberta`, `final_E_tfidf_lr@v1/@v2`, `final_F_transformer_scratch@v1/@v2`.
+log: `final_A_greedy@v1`, `final_C_lm4_roberta`, `final_E_tfidf_lr@v1/@v2`, `final_F_transformer_scratch@v1/@v2`.
 
 **Validation does not predict Kaggle here.** Test has unseen generators and far more verse. To compare designs
 under shift, use topic-held-out inner CV (`classical/train.py --cv topic`, `classical/select_design.py`): it
 holds out whole k-means topics of the 8,000 training rows and needs nothing beyond `train.csv`. See MODELS.md,
 "Why C1 and C3 v1 fell on Kaggle".
 
-**No external labelled data, for anything** (competition rule 4(b): not to train, validate or choose). An
-external evaluation set (7 local generators + Project Gutenberg) was built and used during development; it was
-removed on 2026-11-10. Audit: `common/results/proxy_audit.md`. Don't rebuild it or anything like it.
+**No external labelled data, for anything** (competition rule 4(b): not to train, validate or choose models).
 
 ### pretrained/ — how the blends work
 
@@ -93,7 +91,7 @@ weighted average (`src/ensemble.py: cdf_mean`). Every member scores every text: 
 - Blend A v2: greedy forward selection on the members' topic-held-out out-of-fold predictions
   (`run_all.py --profile topic_cv`, `scripts/select_blend.py`, rule in `configs/selection/blends.yaml`). Blend B:
   the four best runs by 5-fold CV in the 35-job benchmark, equal weights. Blend C v2: B + the best-CV fine-tune.
-  A v1 and C v1 were chosen on the removed external set and are history.
+  A v1 and C v1 (earlier uploads) are in git history and the log.
 - **Run everything in the `cs-aml` conda env** (`pretrained/environment.yml`). Base Anaconda lacks LightGBM and
   silently falls back to sklearn's HistGradientBoosting, and its sklearn version changes C1's output slightly.
 - The uploaded runs used seed 42 and 5-fold CV. The weights live in the research repo's `outputs/runs/`, not

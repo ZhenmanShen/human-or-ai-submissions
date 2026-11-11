@@ -1,4 +1,4 @@
-"""Choose blends A and C by the pre-registered, proxy-free rule in configs/selection/blends.yaml.
+"""Choose blends A and C by the pre-registered rule in configs/selection/blends.yaml.
 
   python run_all.py --profile topic_cv                                   # topic-held-out CV of the candidates
   python scripts/select_blend.py --session outputs/sessions/<topic_cv session>

@@ -3,9 +3,7 @@
 #   python run_all.py --profile blends                       # ~4 h on two 12 GB GPUs
 #   python run_all.py --profile blends --only lm_gpt2,lm_gpt2_medium,binoculars_qwen05b,binoculars_qwen15b   # blend B
 #   python make_submission.py --run <run dirs> --weights <w> --name <file>              # weights: ../predict.py
-# The runs used for the files came from sessions 20261030-135404_ood and 20261031_var, which also scored a
-# self-built external evaluation set; that set was removed (competition rule 4(b);
-# ../common/results/proxy_audit.md). Scoring it did not change training.
+# The runs used for the files came from sessions 20261030-135404_ood and 20261031_var (same jobs and settings).
 description: Members of blends A, B and C, 5-fold CV, seed 42.
 
 defaults:

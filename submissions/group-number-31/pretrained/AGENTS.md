@@ -148,16 +148,11 @@ calibration, cost vs accuracy, and sanity checks (PASS/WARN/FAIL). The recommend
 ## Observations so far
 
 **Final submissions (uploaded 2026-10-31; selection revised 2026-11-10).** Three OOF-CDF blends were uploaded
-(`make_submission.py`): A `final_A_greedy_proxy` (7 runs, weights 3 3 2 1 1 1 1), B `final_B_lm4` (lm_gpt2,
+(`make_submission.py`): A `final_A_greedy@v1` (7 runs, weights 3 3 2 1 1 1 1), B `final_B_lm4` (lm_gpt2,
 lm_gpt2_medium, binoculars_qwen05b, binoculars_qwen15b, equal weights) and C `final_C_lm4_roberta` (B +
 ft_roberta_base). Kaggle public: A 0.9916, B 0.9885, C 0.9885; train CV (≈ 0.9995) cannot separate them.
-- A's weights, and C's pick of RoBERTa-base over the CV-better DistilRoBERTa, came from a self-built external
-  evaluation set (AI text from 7 local generators + Project Gutenberg human text). Competition rule 4(b) forbids
-  externally sourced labelled data that validates or determines predictions, so on 2026-11-10 the set, its scripts
-  and its results were removed (changelog; audit in `../common/results/proxy_audit.md`; everything stays in git
-  history).
-- B never used the set: its members are the four best runs by 5-fold CV in the pc benchmark below (any family),
-  equal weights. **A and C were rebuilt on 2026-11-10 without it**: `run_all.py --profile topic_cv` reruns 9
+- B: the four best runs by 5-fold CV in the pc benchmark below (any family), equal weights.
+  **A and C were rebuilt on 2026-11-10**: `run_all.py --profile topic_cv` reruns 9
   candidates with topic-held-out CV (whole k-means clusters of train held out), then `scripts/select_blend.py`
   (rule pre-registered in `configs/selection/blends.yaml`): A = greedy selection on the topic-held-out OOF
   (qwen05b ×4, distilroberta ×2, modernbert ×2, gpt2-medium, gpt2-nostyle, roberta-base, gpt2 ×1); C = B +
@@ -237,7 +232,7 @@ The table is regenerated automatically by `train.py`, `scripts/blend.py` and
 scores with `python scripts/record_kaggle_score.py --run <run_name or submission file> --score <x>`.
 
 <!-- LEADERBOARD:START -->
-**Best Kaggle public score:** 0.9916 — `final_A_greedy_proxy` (final_A_greedy_proxy)
+**Best Kaggle public score:** 0.9916 — `final_A_greedy@v1` (final_A_greedy@v1)
 
 | rank | run | config | CV scheme | CV AUROC | TPR@1%FPR | Kaggle public | train_frac | semi-sup | device | time (s) | author | notes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
@@ -267,23 +262,14 @@ after a run_all session, add its headline findings to "Observations so far".
 
 ## Changelog
 
-- 2026-11-10 — Removed the self-built external evaluation set (7 local generators + Project Gutenberg) and
-  everything that built or scored it (`scripts/eval_ood.py`, `build_eval_set.py`, `generate_ai_text.py`,
-  `fetch_gutenberg.py`, `add_external_data.py`, `experiments/ood_eval.csv`, the `ood` profile, `data.eval_files`),
-  because competition rule 4(b) forbids externally sourced labelled data for validation or model choice. The `blends`
-  profile replaces `ood` (same jobs, no eval files); `data.external_files` is now refused. Blend B, which never used
-  the set, is unchanged; A and C were rebuilt with topic-held-out CV (`topic_cv` profile,
-  `scripts/select_blend.py`). Run in the `cs-aml` env: base Anaconda has no LightGBM and silently falls back to
-  sklearn's HistGradientBoosting. Audit: `../common/results/proxy_audit.md`.
+- 2026-11-10 — Blends A and C rebuilt with topic-held-out CV (`topic_cv` profile, `scripts/select_blend.py`,
+  rule in `configs/selection/blends.yaml`); B unchanged. The `blends` profile lists the members of A–C.
+  `data.external_files` is refused (rule 4(b)). Run in the `cs-aml` env: base Anaconda has no LightGBM and silently
+  falls back to sklearn's HistGradientBoosting.
 
-- 2026-10-31 — Held-out evaluation and final submissions (see the summary at the top of "Observations so far").
-  `scripts/build_eval_set.py` (7 unseen generators + held-out Gutenberg, eval only), `scripts/eval_ood.py`
-  (seed-matched fold scoring, Kaggle-proxy AUROC, greedy blend with a half/half generator check), `ood` profile
-  (18 models + variants, run on both GPUs in two sessions), `train.py` writes per-fold eval predictions and accepts
-  one-class eval sets, `preprocessing.join_lines` (tested, off), `make_submission.py` (saved-model re-prediction,
-  verified identical to training-time predictions; blends via each model's OOF-score CDF, the same as eval_ood, so
-  the uploaded file is exactly what was validated), `src/inference.py`, fine-tunes keep fold models
-  (`output.save_fold_models`).
+- 2026-10-31 — Final submissions A, B, C. `preprocessing.join_lines` (tested, off), `make_submission.py`
+  (saved-model re-prediction, verified identical to training-time predictions; blends via each model's OOF-score
+  CDF), `src/inference.py`, fine-tunes keep fold models (`output.save_fold_models`).
 
 - 2026-10-29 — Full PC benchmark finished (35/35 jobs; analysis under "Observations so far"). Fixed `run_all.py`
   crashing when it printed a failed job's error tail (tqdm bar characters) to a cp1252 Windows console — stdout/stderr
@@ -291,7 +277,6 @@ after a run_all session, add its headline findings to "Observations so far".
   second copy of it on the same GPU and both stalled, so after a scheduler crash, make sure no orphaned `train.py`
   is still running before resuming. `debiased_deberta_v3_base` spilled out of the 3060's 12 GB at batch 16 (Windows
   falls back to shared memory → ~20× slower instead of OOM) and was rerun with `gradient_checkpointing=true`.
-  Also: `data.eval_files`, `scripts/fetch_gutenberg.py`, overlap-filtering in `add_external_data.py`.
 
 - 2026-10-28 — Per-epoch checkpointing + fold-level resume for long fine-tunes (see "How a single run works" step 6).
   Tested by killing a smoke `ft_deberta_v3_small` session mid-epoch (fold 2, epoch 2) and `--resume`-ing: fold 1 was

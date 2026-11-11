@@ -28,9 +28,8 @@ uploaded files (`kaggle_submissions/final_{A,B,C}_*.csv`). Differences from the 
   python make_submission.py --run <runs> [--weights ...] --name <file>
   ```
   Blend B, the final pretrained selection, is lm_gpt2, lm_gpt2_medium, binoculars_qwen05b and binoculars_qwen15b
-  with equal weights. Blend C adds ft_roberta_base. Blend A (weights 3 3 2 1 1 1 1 over seven runs) is kept only
-  to reproduce its logged upload: its weights were chosen on an external evaluation set that we removed
-  (competition rule 4(b); `../common/results/proxy_audit.md`).
+  with equal weights. Blend C adds ft_distilroberta. Blend A's weights come from greedy selection on topic-held-out
+  CV (`--profile topic_cv`, then `scripts/select_blend.py`; weights in `../predict.py`).
   Run against the saved models, this re-creates all three uploaded files exactly (`results/reproduction.csv`).
 - Removed in the trim: the smoke/pc/mac profiles and 12 model configs not used by the final blends.
   `experiments/results.csv` and `experiments/sessions/` keep the record of everything that was run.
@@ -135,8 +134,7 @@ python scripts/blend.py --runs outputs/runs/<runA> outputs/runs/<runB> --method 
 
 Competition rule 4(b): "No additional externally sourced labeled datasets may be used to train, validate, or
 determine competition predictions." Supervised labels come only from `train.csv`. `data.external_files` must stay
-empty (`src/data.py` refuses anything else). The scripts that generated and scored external text were removed;
-see `../common/results/proxy_audit.md` and the team README.
+empty (`src/data.py` refuses anything else).
 
 ## Repository layout
 

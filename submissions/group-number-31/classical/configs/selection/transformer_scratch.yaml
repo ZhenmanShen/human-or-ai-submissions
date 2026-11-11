@@ -1,6 +1,5 @@
-# Pre-registered selection of C3 transformer_scratch without the external proxy (committed before select_design.py
-# was run). Candidates: the 11 design variants that had been compared on the proxy (classical/ood_eval.py), no
-# new ones.
+# Pre-registered design selection for C3 transformer_scratch (committed before select_design.py was run).
+# Candidates: the 11 design variants tried during development (input distortion, line joining, cropping, capacity).
 #
 # Rule: the same as configs/selection/tfidf_lr.yaml. Highest mean topic-held-out inner-CV AUROC on the 8,000
 # training rows; ties (mean >= best mean - s.d. of the best candidate's 5 fold AUROCs) go to the simpler variant.

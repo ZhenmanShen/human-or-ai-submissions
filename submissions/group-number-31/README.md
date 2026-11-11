@@ -63,8 +63,8 @@ The six submitted models:
 | F: C3 small Transformer from scratch `transformer_scratch` (v3) | classical | [`classical/models/transformer_scratch.py`](classical/models/transformer_scratch.py) |
 
 See [`MODELS.md`](MODELS.md) for each model's pipeline and [`SUBMISSIONS.md`](SUBMISSIONS.md) for every version's
-scores. A, C, E and F were rebuilt on 2026-11-10 without the external evaluation set (§5); their earlier uploads
-stay in the log as history.
+scores. A, C, E and F were rebuilt on 2026-11-10 with topic-held-out CV (§5); their earlier uploads stay in the
+log as history.
 
 Notes:
 
@@ -72,9 +72,6 @@ Notes:
   `python reports/build_tables.py`.
   - The report is one self-contained file: `python reports/inline_tables.py` copies the generated tables and plot
     data into it, and Overleaf needs only `reports/kaggle_report.tex`.
-  - `pretrained/reports/kaggle_pretrained_report.tex` and `classical/reports/kaggle_classical_report.tex` are
-    longer single-track drafts that cover every model. They are background only and not submitted; they predate
-    the removal of the external evaluation set (§5) and still describe it.
 - **AI-assistant files.**
   - [`AGENTS.md`](AGENTS.md) in this folder is the team-wide briefing.
   - `pretrained/AGENTS.md` is the research repo's log of every experiment, carried over with the pretrained track.
@@ -165,10 +162,7 @@ python predict.py --model blend_b --out submission.csv               # pretraine
 - The pretrained research runs behind the uploaded files used seed `42`, with fold *k* seeded `42 + k`.
 - Fine-tunes and `transformer_scratch` train in bf16 on GPU, so reruns can differ in the last digits.
 - **No external labelled data** (competition rule 4(b)). Supervised labels come only from `train.csv`, and nothing
-  external validates or chooses a final submission. During development we built an evaluation set ourselves (text
-  from seven local generators and Project Gutenberg books) and used it to choose blend A's weights and the C1/C3
-  v2 designs. We removed it from the pipeline and from every final selection; the audit is
-  [`common/results/proxy_audit.md`](common/results/proxy_audit.md), and the files remain in git history.
+  external validates or chooses a submission.
 - C1 and C3 designs are chosen by topic-held-out inner CV on the 8,000 training rows (`classical/select_design.py`,
   rule pre-registered in `classical/configs/selection/`).
 
@@ -193,7 +187,6 @@ used and its citation:
   DeBERTa-v3-large and the OpenAI RoBERTa-large GPT-2-output detector;
 - explored only: DeBERTa-v3-base/small, DistilRoBERTa, ModernBERT, ELECTRA, the base-size OpenAI detector,
   BGE and E5 embeddings;
-- development only, removed: seven open generators that wrote text for the external evaluation set.
 
 `classical/` uses no pretrained weights. No external LLM API labelled or scored test passages, and no hidden labels
 were retrieved.

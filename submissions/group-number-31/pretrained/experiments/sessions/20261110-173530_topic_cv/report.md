@@ -1,6 +1,6 @@
 # Session `20261110-173530_topic_cv`
 
-Profile **topic_cv** — Topic-held-out CV of the blend candidates (train.csv only), for proxy-free blend selection.
+Profile **topic_cv** — Topic-held-out CV of the blend candidates (train.csv only), for blend selection.
 
 Jobs: 9 ok, 0 failed, 0 not run.  Sanity checks: 0 FAIL, 0 WARN (details below).
 

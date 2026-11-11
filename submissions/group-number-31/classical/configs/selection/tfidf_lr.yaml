@@ -1,4 +1,4 @@
-# Pre-registered selection of C1 tfidf_lr without the external proxy (committed before select_design.py was run).
+# Pre-registered design selection for C1 tfidf_lr (committed before select_design.py was run).
 #
 # Rule: highest mean topic-held-out inner-CV AUROC on the 8,000 training rows (train.py --cv topic: k-means
 # k=10 on word TF-IDF of those rows, seed 20261023, GroupKFold(5) holding out whole clusters). Ties, i.e.

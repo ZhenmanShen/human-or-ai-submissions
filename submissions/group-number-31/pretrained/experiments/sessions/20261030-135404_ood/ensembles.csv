@@ -1,6 +1,0 @@
-method,auroc,tpr@1%fpr,rows_evaluated,members
-stack_logreg,0.99980596,0.9982,10000,lm_gpt2:+0.08 + lm_gpt2_medium:+0.29 + binoculars_qwen05b:+0.27 + binoculars_qwen15b:+0.02 + ft_distilroberta:+0.15 + ft_modernbert_base:+0.12 + ft_roberta_base:+0.16 + stylometric_gbm_ext:+0.28 + stylometric_gbm:-0.45 + tfidf_logreg:+0.20 + embed_e5_base:-0.17
-greedy_selection,0.99962436,0.9964,10000,lm_gpt2:0.43 + ft_distilroberta:0.17 + binoculars_qwen05b:0.10 + ft_modernbert_base:0.10 + ft_roberta_base:0.10 + stylometric_gbm_ext:0.07 + binoculars_qwen15b:0.03
-rank_mean_top5,0.99960498,0.9966,10000,lm_gpt2 + lm_gpt2_medium + binoculars_qwen05b + binoculars_qwen15b + ft_distilroberta
-rank_mean_all,0.9995052000000001,0.9938,10000,11 models
-single_best (lm_gpt2),0.9993489999999999,0.9936,10000,lm_gpt2

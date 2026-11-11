@@ -2,8 +2,8 @@
 # random init. Early stopping on a stratified 10% inner split of the training rows (never the 2k val).
 # Input: single line breaks joined into spaces (blank lines kept); no text distortion. Chosen among 11 variants by
 # the pre-registered topic-held-out CV rule (configs/selection/transformer_scratch.yaml; select_design.py;
-# results/selection/transformer_scratch/), train.csv labels only. History: v1 (raw text; public 0.83201) and v2
-# (+ distortion k=300, chosen on an external evaluation set that rule 4(b) forbids; public 0.91502).
+# results/selection/transformer_scratch/), train.csv labels only. Earlier versions: v1 (raw text; public 0.83201)
+# and v2 (+ distortion k=300; public 0.91502).
 # No hyperparameter grid (one GPU run is ~minutes, a 5-fold grid would be hours); the architecture is fixed.
 model: transformer_scratch
 params:

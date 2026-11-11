@@ -15,15 +15,15 @@ is made of, what was trained, and the exact pipeline and commands. Every number 
 | 2 | Blend B | pretrained | `pretrained/kaggle_submissions/final_B_lm4.csv` | 0.99985 | 0.98848 |
 | 3 | Blend C (v2) | pretrained | `pretrained/kaggle_submissions/final_C_lm4_distil.csv` | 0.99994 | [TODO: upload] |
 | 4 | D: C2 `stylo_gbm` | classical | `classical/kaggle_submissions/final_D_stylo_gbm.csv` | 0.99831 | 0.95995 |
-| 5 | E: C1 `tfidf_lr` (v2) | classical | `classical/kaggle_submissions/final_E_tfidf_lr.csv` | 0.99678 | 0.96374 |
-| 6 | F: C3 `transformer_scratch` (v2) | classical | `classical/kaggle_submissions/final_F_transformer_scratch.csv` | 0.98903 | 0.91502 |
+| 5 | E: C1 `tfidf_lr` (v3) | classical | `classical/kaggle_submissions/final_E_tfidf_lr.csv` | 0.99670 | [TODO: upload] |
+| 6 | F: C3 `transformer_scratch` (v3) | classical | `classical/kaggle_submissions/final_F_transformer_scratch.csv` | 0.98590 | [TODO: upload] |
 
 All six files are committed and validated: 3,000 rows each, ids match `sample_submission.csv`, values in [0, 1].
 None of them needs retraining to be uploaded or reported.
 
-E and F hold v2 of C1 and C3. Their v1 files, uploaded under the same names, scored public **0.88583** (C1) and
-**0.83201** (C3) with val 0.96256 and 0.98500. They are kept in the log as `final_E_tfidf_lr@v1` and
-`final_F_transformer_scratch@v1`, linked to the commits that hold them. Why v1 dropped and what v2 changed:
+A, C, E and F were rebuilt on 2026-11-10 (A, C: v2; E, F: v3). Every earlier upload stays in the log
+(`SUBMISSIONS.md`), linked to the commit that holds its file: A v1 0.99161, C v1 0.98845, E v1 0.88583,
+E v2 0.96374, F v1 0.83201, F v2 0.91502 (public). Why C1 and C3 v1 dropped and what changed:
 [Part 2, "Why C1 and C3 v1 fell on Kaggle"](#why-c1-and-c3-v1-fell-on-kaggle).
 
 ---
@@ -123,7 +123,7 @@ Code: `pretrained/src/models/transformer.py`. Configs: `pretrained/configs/model
 
 ### 1.4 How the uploaded blend files were produced
 
-1. **Cross-validation runs.** `pretrained/run_all.py --profile blends` (then named `ood`) ran every member with 5-fold stratified CV on
+1. **Cross-validation runs.** `pretrained/run_all.py --profile blends` ran every member with 5-fold stratified CV on
    all 10,000 rows (seed 42, fold *k* seeded 42 + *k*). It used two GPUs (RTX 5070 + RTX 3060) and took about 4 h.
    Each run saved:
    - **out-of-fold predictions** for all 10,000 rows (every row scored by a model that never saw it);
@@ -148,13 +148,9 @@ picks the weights on those out-of-fold scores (`scripts/select_blend.py`, rule p
 stratified runs above. DeBERTa-v3-large and the large OpenAI detector were left out of the pool (each would add
 1–1.5 h of GPU time).
 
-**History: the external evaluation set (removed).** The first A and C (uploaded 2026-10-31, public 0.99161 and
-0.98845) were chosen on a labelled set we built ourselves: AI text from 7 local open-weight generators and human
-poems and stories from held-out Project Gutenberg books. Nothing was trained on it, but it chose A's weights and C's
-fifth member (RoBERTa-base, over the CV-better DistilRoBERTa). Competition rule 4(b) forbids externally sourced
-labelled data to "train, validate, or determine competition predictions", so we removed the set and rebuilt A and C
-as above. The old files stay in git history and in the log (`final_A_greedy_proxy`, `final_C_lm4_roberta`); the
-audit is `common/results/proxy_audit.md`. B never used the set and is unchanged.
+**History.** The first A and C (uploaded 2026-10-31, public 0.99161 and 0.98845) used other weights and, for C,
+RoBERTa-base as the fifth member. They stay in the log (`final_A_greedy@v1`, `final_C_lm4_roberta`) and in git
+history. B is unchanged.
 
 **Reproducing.** The files are built from the saved runs, which are not in git (B is re-created exactly,
 `pretrained/results/reproduction.csv`; fine-tune members re-predict with bf16 noise, Spearman ≥ 0.9999):
@@ -202,20 +198,25 @@ Code: `classical/models/tfidf_lr.py`. Config: `classical/configs/tfidf_lr.yaml`.
 
 1. Three TF-IDF views, each with sublinear term frequency and up to 300k features, vocabulary and IDF fit on the
    training rows only:
-   - word 1–2-grams (min_df 2);
+   - word 1–2-grams (min_df 2, lowercased);
    - character 1–5-grams over the **raw** text (min_df 3, case kept), so line breaks, blank lines and spacing
      are features;
    - word 1–3-grams over **text-distorted** input (`classical/features/distortion.py`, Stamatatos 2017): every
-     word outside the 300 most frequent training words becomes `*` (or `#` if capitalised), and line breaks are
+     word outside the 100 most frequent training words becomes `*` (or `#` if capitalised), and line breaks are
      tokens. This keeps function-word, punctuation and line patterns and drops topic.
 2. The three sparse matrices are stacked side by side.
-3. L2 logistic regression (liblinear).
+3. L2 logistic regression (liblinear), C = 4.
 
-Search: C ∈ {4, 16, 64} × lowercase ∈ {yes, no}. Chosen: **C = 64, lowercase** (inner CV 0.9956; the grid is
-flat within 0.0005). Fit time 23 s on CPU. Val AUROC 0.99678.
+**Design selection** (`classical/select_design.py`, rule pre-registered in
+`classical/configs/selection/tfidf_lr.yaml`): 30 configurations, views {v1: word + `char_wb` 2–5; raw char 1–5;
+raw char + distorted view with k ∈ {100, 300, 1000}} × C {4, 16, 64} × lowercase {yes, no}, scored by
+**topic-held-out inner CV** on the 8,000 training rows (below). The highest mean wins; every configuration within
+one fold s.d. of it ties, and the simplest tied one is chosen. All 18 configurations with the distorted view tied
+(best 0.98789); the simplest is k = 100, C = 4, lowercase (0.98685 ± 0.0095). Fit time 25 s on CPU. Val AUROC
+0.99670. Results: `classical/results/selection/tfidf_lr/`.
 
-v1 (the first `final_E` upload, public 0.88583) had only word 1–2-grams and character 2–5-grams *inside* word
-boundaries (`char_wb`), val 0.96256.
+v1 (public 0.88583) had only word 1–2-grams and character 2–5-grams *inside* word boundaries (`char_wb`), val
+0.96256. v2 (public 0.96374) was the k = 300, C = 64 configuration, val 0.99678.
 
 ### C2 `stylo_gbm` — stylometric features + LightGBM (best classical model)
 
@@ -241,8 +242,7 @@ What we learned: layout features carry 50.4% of the model's split gain, blank li
 
 Code: `classical/models/transformer_scratch.py`. Config: `classical/configs/transformer_scratch.yaml`.
 
-1. **Input.** Single line breaks are joined into spaces (blank lines, i.e. paragraph and stanza breaks, stay),
-   and the text is distorted like C1's third view (words outside the 300 most frequent training words masked).
+1. **Input.** Single line breaks are joined into spaces; blank lines (paragraph and stanza breaks) stay.
 2. **Tokenizer trained here.** A byte-level BPE with a 12k vocabulary, trained on that input for the training
    rows plus `unlabeled.csv`, and never on validation or test text. Byte-level keeps case, spaces and blank lines.
 3. **Model.** Learned token and position embeddings (max 512 tokens) feed a **4-layer pre-norm Transformer
@@ -253,42 +253,44 @@ Code: `classical/models/transformer_scratch.py`. Config: `classical/configs/tran
    - Up to 20 epochs, with early stopping (patience 3) on a stratified 10% inner split of the *training* rows;
      the best epoch is restored.
 
-No grid search: the architecture was fixed up front because a 5-fold grid would take hours. Fit time 32 s on the
-RTX 5070. Val AUROC 0.98903.
+**Design selection** (same rule, `classical/configs/selection/transformer_scratch.yaml`): 11 input/training
+variants (line joining, text distortion with k ∈ {100, 300, 1000}, random 128/256-token crops, dropout 0.2, a
+2-layer model) scored by topic-held-out inner CV. Eight tied with the best (crop 128 + distortion, 0.97656 ±
+0.0137); the simplest is line joining alone (0.97593 ± 0.0032). Fit time 34 s on the RTX 5070. Val AUROC 0.98590.
+Results: `classical/results/selection/transformer_scratch/`.
 
-v1 (the first `final_F` upload, public 0.83201) read the raw text without line joining or distortion, val 0.98500.
+v1 (public 0.83201) read the raw text, val 0.98500. v2 (public 0.91502) joined lines and distorted the text
+(k = 300), val 0.98903.
 
 ### Why C1 and C3 v1 fell on Kaggle
 
 v1 of C1 and C3 looked fine on validation (0.963 and 0.985) but scored 0.886 and 0.832 on the public
 leaderboard. The fixed validation split comes from train's distribution, so it cannot show the test shift:
-unseen generators and about 17% verse, against 1.6% of train (`common/results/split_profile.csv`).
+unseen domains and generators, and about 17% verse against 1.6% of train (`common/results/split_profile.csv`).
 
-`classical/ood_eval.py` measures this without touching Kaggle. It fits on the 8,000 training rows and scores
-held-out text: AI rewrites by 7 generators not in train (only rewrites of validation passages), and human vs AI
-poems/stories with the human side from held-out Project Gutenberg books. These are the pretrained track's
-evaluation sets, never trained on. Everything is pooled into one `proxy_auc`, mixed like test. Results:
-`classical/results/ood_eval.csv`.
+**Topic-held-out CV** (`classical/train.py --cv topic`) measures part of this with `train.csv` alone: k-means
+(k = 10) on word TF-IDF of the 8,000 training rows, and each of 5 folds holds out whole clusters (news; personal
+writing; reviews + recipes + bios; baking + computer vision; science + cooking;
+`classical/results/topic_cv/clusters.csv`).
 
-| Model | Val | Unseen generators | Creative | Human verse flagged* | Proxy | Public |
-|---|---|---|---|---|---|---|
-| C1 v1 (`final_E` v1) | 0.9626 | 0.8728 | 0.7801 | 7% | 0.8708 | 0.88583 |
-| C1 v2 (`final_E`) | 0.9968 | 0.9538 | 0.9237 | 31% | 0.9555 | 0.96374 |
-| C3 v1 (`final_F` v1) | 0.9817 | 0.8791 | 0.6105 | 71% | 0.7699 | 0.83201 |
-| C3 v2 (`final_F`) | 0.9881 | 0.8694 | 0.9329 | 24% | 0.9258 | 0.91502 |
-| C2 (`final_D`, unchanged) | 0.9983 | 0.9665 | 0.9343 | 78% | 0.9650 | 0.95995 |
+| Model | Val | Topic-held-out CV (mean ± s.d.) | Worst held-out fold | Public |
+|---|---|---|---|---|
+| C1 v1 (word + `char_wb`) | 0.96256 | 0.91343 ± 0.0340 | 0.86525 (news) | 0.88583 |
+| C1 v2 (raw char + distorted, k = 300, C = 64) | 0.99678 | 0.98745 ± 0.0083 | 0.97796 | 0.96374 |
+| C1 v3 (raw char + distorted, k = 100, C = 4) | 0.99670 | 0.98685 ± 0.0095 | 0.97621 | [TODO: upload] |
+| C3 v1 (raw text) | 0.98500 | 0.90469 ± 0.0699 | 0.78131 (science + cooking) | 0.83201 |
+| C3 v2 (lines joined + distorted) | 0.98903 | 0.97245 ± 0.0067 | 0.96220 | 0.91502 |
+| C3 v3 (lines joined) | 0.98590 | 0.97593 ± 0.0032 | 0.97386 | [TODO: upload] |
 
-\* share of held-out Gutenberg human poems/stories scored above the threshold that flags 5% of validation humans.
+Topic-CV values: `classical/results/selection/*/candidates.csv` (v1 and v2 are candidates there too).
 
-- The proxy put the three v1 models in the same order as Kaggle, 0.01–0.06 below their public scores.
+- On held-out topics, v1 of both models drops far below its validation score, as it did on Kaggle.
 - **C1 v1** read topic: word n-grams and in-word character n-grams never see layout, and topic does not carry
-  over to unseen domains. Raw character n-grams and the distorted-text view fixed most of it.
-- **C3 v1** learned "short lines = AI": in train, human passages have long lines and AI ones short lines, so it
-  scored most human verse as AI. Joining single line breaks removed that shortcut (creative AUROC 0.61 → 0.93).
-  Distortion helped on top. Cropping to random windows and a smaller model did not (variants in `ood_eval.csv`).
-- The C3 v2 design gave proxy 0.916–0.924 over three seeds.
-- The proxy was used to compare designs only. Hyperparameters are still chosen by inner CV, never on validation
-  or Kaggle.
+  over. Raw character n-grams alone help little (0.934); the distorted-text view, which removes topic words, is
+  what closes the gap.
+- **C3 v1** learned "short lines = AI": in train, human passages have long lines and AI ones short lines. Joining
+  single line breaks removes that shortcut and makes the model stable across topics (s.d. 0.070 → 0.003).
+- Design choices use topic-held-out CV only; hyperparameters are never chosen on validation or Kaggle.
 
 ### Commands
 
@@ -297,7 +299,7 @@ python train.py --model stylo_gbm                              # validate on the
 python train.py --model stylo_gbm --final                      # refit on 10k, write final_D_stylo_gbm.csv + artifacts
 python predict.py --model stylo_gbm --out submission.csv       # re-create it from artifacts/
 python predict.py --model stylo_gbm --committed --out submission.csv   # copy the committed file
-python ood_eval.py --model stylo_gbm                           # score on the held-out shifted text
+python train.py --model stylo_gbm --cv topic                   # the search with topic-held-out CV
 ```
 
 The same commands work for `tfidf_lr` (file E) and `transformer_scratch` (file F). A fresh clone

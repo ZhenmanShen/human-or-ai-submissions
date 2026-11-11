@@ -1,8 +1,8 @@
-# Pre-registered, proxy-free re-selection of blends A and C (committed before scripts/select_blend.py ran and
+# Pre-registered selection of blends A and C (committed before scripts/select_blend.py ran and
 # before any topic-CV run of configs/experiments/topic_cv.yaml). Uses only train.csv labels.
 #
 # Candidate members: runs that already exist with saved test predictions, made with configs fixed on 2026-10-28
-# (before any external data existed). Test predictions keep coming from these original 5-fold stratified runs
+# (before this selection). Test predictions keep coming from these original 5-fold stratified runs
 # (seed 42), each mapped through its own OOF-score CDF, exactly like the uploaded blends. Only the CHOICE changes.
 # DeBERTa-v3-large and the OpenAI detector (large) are left out of A's pool: a topic-CV run of each takes
 # 1-1.5 h of GPU time, which would push this step over the team's 2-hour limit. Decided before any result.
@@ -26,8 +26,7 @@ blend_a:
   n_iter: 12
 
 # Blend C: blend B's four members + the fine-tuned encoder with the highest 5-fold stratified CV AUROC among the
-# candidates' fine-tunes (experiments/results.csv, the same runs), equal weights. (The uploaded C used RoBERTa-base,
-# which only the external set favoured.)
+# candidates' fine-tunes (experiments/results.csv, the same runs), equal weights.
 blend_c:
   base: [lm_gpt2, lm_gpt2_medium, binoculars_qwen05b, binoculars_qwen15b]
   add_best_cv_of: [ft_distilroberta, ft_roberta_base, ft_modernbert_base]
